@@ -46,7 +46,8 @@ jobs:
         run: |
           mkdir -p _site/editor
           cp index.html account.html session.js portal-account.js _site/
-          cp -R pbdh-upstream/dist/. _site/editor/
+          cp pbdh-upstream/dist/index.html _site/editor/
+          cp -R pbdh-upstream/dist/assets pbdh-upstream/dist/system-packages _site/editor/
           cp pbdh-upstream/LICENSE _site/editor/LICENSE.txt
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
