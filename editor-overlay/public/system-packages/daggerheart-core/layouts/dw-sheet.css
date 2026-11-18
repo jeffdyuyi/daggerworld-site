@@ -1,4 +1,4 @@
-.dw-workspace { max-width: 79rem; margin: auto; padding: 0 1rem 2rem; }
+.dw-workspace { max-width: min(95vw, 105rem); margin: auto; padding: 0 clamp(0.5rem, 2vw, 2rem) 2.5rem; }
 .dw-page { color: #f1e5d4; display: grid; gap: 1rem; min-width: 0; }
 .dw-page-heading { padding: 1.5rem clamp(1rem, 4vw, 3rem); border: 1px solid #684c37; border-radius: .7rem; background: linear-gradient(110deg,#382621,#1f2029 78%); }
 .dw-page-heading p { margin: 0 0 .35rem; color: #dec097; font-size: .85rem; }
@@ -8,7 +8,7 @@
   border-radius: .65rem; background: #24232b;
 }
 .dw-panel h2, .dw-page .question-layout h2, .dw-page .advancement-region h2 { margin: 0 0 .9rem; color: #f1ce9a; font-size: 1.05rem; }
-.dw-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap: .9rem; align-items: start; }
+.dw-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap: .9rem; align-items: start; }
 .dw-page .question-layout, .dw-page .advancement-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap: 1rem; }
 .dw-page .question-pair { margin-bottom: .65rem; }
 .dw-experience { display: grid; grid-template-columns: minmax(0,1fr) minmax(4rem,7rem); gap: .75rem; margin-bottom: .65rem; }
@@ -24,12 +24,23 @@
 .dw-slot-main::after, .dw-slot-off::before, .dw-slot-torso::after { content: ""; position: absolute; top: 50%; width: 1.4rem; border-top: 1px dashed #b89260; }
 .dw-slot-main::after, .dw-slot-torso::after { left: 100%; }
 .dw-slot-off::before { right: 100%; }
-@media (max-width: 660px) {
-  .dw-workspace { padding-inline: .6rem; }
-  .dw-loadout { grid-template: "figure figure" "armor armor" "main off" / minmax(0,1fr) minmax(0,1fr); gap: .6rem; }
-  .dw-figure { min-height: 13rem; }
-  .dw-figure img { width: 7rem; }
+@media (max-width: 860px) {
+  .dw-loadout { grid-template: "figure figure" "armor armor" "main off" / minmax(0,1fr) minmax(0,1fr); gap: .7rem; }
+  .dw-figure { min-height: 14rem; }
+  .dw-figure img { width: 8rem; }
   .dw-slot-main::after, .dw-slot-off::before, .dw-slot-torso::after { display: none; }
+}
+@media (max-width: 520px) {
+  .dw-workspace { padding-inline: .4rem; }
+  .dw-page-heading { padding: 1rem 1.1rem; }
+  .dw-loadout { grid-template: "figure" "armor" "main" "off" / 1fr; gap: .6rem; }
+  .dw-figure { min-height: 11rem; }
+  .dw-figure img { width: 6.5rem; }
+  .dw-experience { grid-template-columns: 1fr auto; gap: .5rem; }
+}
+@media (min-width: 1200px) {
+  .dw-grid { gap: 1.2rem; grid-template-columns: repeat(auto-fit,minmax(min(100%,15rem),1fr)); }
+  .dw-loadout { gap: 1.2rem 2rem; }
 }
 @media print {
   .dw-page, .dw-page-heading, .dw-panel, .dw-slot, .dw-page .question-layout, .dw-page .advancement-region { background: white; color: #171717; }

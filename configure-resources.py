@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 root = Path(__file__).resolve().parent
-upstream = root / "pbdh-upstream"
+upstream = root / "pbdh-upstream" if (root / "pbdh-upstream").exists() else (root / ".pbdh-upstream")
 package = upstream / "public/system-packages/daggerheart-core"
 assets = package / "resources"
 tables = ("classes", "subclasses", "ancestries", "communities", "domain-cards", "weapons", "armor", "loot")
