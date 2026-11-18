@@ -1,0 +1,4 @@
+.campaign-cloud{padding:.65rem 1rem;background:#f7edd4;color:#492b23;border-top:4px solid #8e543e;border-bottom:1px solid #b99b75;font:14px/1.5 system-ui,sans-serif}
+.campaign-cloud__actions{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}.campaign-cloud a{color:#772f24}.campaign-cloud button{border:1px solid #956a4e;background:#74402f;color:#fff7e1;padding:.35rem .65rem;cursor:pointer}.campaign-cloud button:disabled{opacity:.55;cursor:default}.campaign-cloud details{margin-top:.45rem}.campaign-cloud textarea{display:block;width:min(100%,55rem);margin-top:.35rem;color:#492b23;background:#fff9e8;border:1px solid #b99b75}
+@media print{.campaign-cloud{display:none}}
+

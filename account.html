@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>冒险者中心｜匕首世界</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#241b19;color:#392620;font:16px/1.6 Georgia,"Microsoft YaHei",serif}
+main{max-width:540px;margin:7vh auto;padding:32px;background:#f9f0da;border:2px solid #9d7651;border-top:6px solid #774332}h1{margin:5px 0 15px}a{color:#763726}form{display:grid;gap:13px}label{display:grid;gap:4px;font-weight:bold}input,button{font:inherit;padding:8px;border:1px solid #a48365}button,.action{background:#743b2c;color:#fff3dc;padding:8px 14px;text-decoration:none;cursor:pointer}.action{display:inline-block}small{color:#705246}#status{min-height:1.6rem}button:disabled{opacity:.65}@media(max-width:570px){main{margin:12px;padding:20px}}
+</style>
+<main><a href="./index.html">← 官网首页</a><h1>冒险者中心</h1>
+<form id="login">
+<label>用户名或邮箱<input name="login" autocomplete="username" maxlength="100" required></label>
+<label>内测邀请码<input name="code" type="password" autocomplete="current-password" required></label>
+<button>进入匕首世界</button>
+</form>
+<div id="signed" hidden><p id="greeting"></p><a class="action" id="editor" href="./editor/">录入角色卡</a> <button id="sign-out">退出</button></div>
+<p id="status" role="status"></p>
+</main>
+<script type="module">
+import { login, readSession, loadAccount, signOut } from './session.js';
+const form = document.getElementById('login');
+const signed = document.getElementById('signed');
+const status = document.getElementById('status');
+const button = form.querySelector('button');
+async function showAccount() {
+  if (!readSession()) return;
+  const account = await loadAccount();
+  form.hidden = true;
+  signed.hidden = false;
+  document.getElementById('greeting').textContent = '欢迎，' + account.login;
+  document.getElementById('editor').textContent =
+    account.role === 'gm' ? '主持人档案总览' : account.characters.length ? '角色管理' : '录入角色卡';
+}
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  const data = new FormData(form);
+  button.disabled = true;
+  status.textContent = '正在验证邀请码…';
+  try {
+    await login(data.get('login'), data.get('code'));
+    form.reset();
+    await showAccount();
+    status.textContent = '';
+  } catch (error) { status.textContent = error.message; }
+  finally { button.disabled = false; }
+});
+document.getElementById('sign-out').addEventListener('click', async () => {
+  await signOut();
+  location.reload();
+});
+showAccount().catch(error => { status.textContent = error.message; });
+</script></html>

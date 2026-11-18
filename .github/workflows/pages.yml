@@ -1,0 +1,56 @@
+name: Deploy Daggerworld
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ZZZZzzzzac/PbDH_Sheet
+          ref: fe1de3ff248e27f577e281f2a3318aff47723412
+          path: pbdh-upstream
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: pbdh-upstream/package-lock.json
+      - name: Prepare the campaign editor
+        run: |
+          cp -R editor-overlay/. pbdh-upstream/
+          python3 prepare-editor.py
+          python3 configure-resources.py
+      - name: Build and validate PbDH
+        working-directory: pbdh-upstream
+        run: |
+          npm ci
+          npm run validate:system-package -- public/system-packages/daggerheart-core
+          npm run build
+      - name: Stage website
+        run: |
+          mkdir -p _site/editor
+          cp index.html account.html session.js portal-account.js _site/
+          cp -R pbdh-upstream/dist/. _site/editor/
+          cp pbdh-upstream/LICENSE _site/editor/LICENSE.txt
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
+        id: deployment
