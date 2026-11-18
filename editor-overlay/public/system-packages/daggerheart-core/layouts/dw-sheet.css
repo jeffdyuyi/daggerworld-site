@@ -1,0 +1,38 @@
+.dw-workspace { max-width: 79rem; margin: auto; padding: 0 1rem 2rem; }
+.dw-page { color: #f1e5d4; display: grid; gap: 1rem; min-width: 0; }
+.dw-page-heading { padding: 1.5rem clamp(1rem, 4vw, 3rem); border: 1px solid #684c37; border-radius: .7rem; background: linear-gradient(110deg,#382621,#1f2029 78%); }
+.dw-page-heading p { margin: 0 0 .35rem; color: #dec097; font-size: .85rem; }
+.dw-page-heading h1 { margin: 0; font-size: clamp(1.55rem, 4vw, 2.55rem); letter-spacing: .08em; }
+.dw-panel, .dw-page .question-layout, .dw-page .advancement-region {
+  min-width: 0; padding: clamp(.85rem, 2vw, 1.3rem); border: 1px solid #56473f;
+  border-radius: .65rem; background: #24232b;
+}
+.dw-panel h2, .dw-page .question-layout h2, .dw-page .advancement-region h2 { margin: 0 0 .9rem; color: #f1ce9a; font-size: 1.05rem; }
+.dw-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap: .9rem; align-items: start; }
+.dw-page .question-layout, .dw-page .advancement-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap: 1rem; }
+.dw-page .question-pair { margin-bottom: .65rem; }
+.dw-experience { display: grid; grid-template-columns: minmax(0,1fr) minmax(4rem,7rem); gap: .75rem; margin-bottom: .65rem; }
+.dw-table { min-height: 25rem; margin-top: 1rem; }
+.dw-loadout { display: grid; grid-template: "armor figure ." minmax(8rem,auto) "main figure off" minmax(8rem,auto) ". figure ." minmax(5rem,auto) / minmax(0,1fr) minmax(10rem,17rem) minmax(0,1fr); gap: .8rem 1.4rem; align-items: center; margin-block: 1rem; }
+.dw-figure { grid-area: figure; display: grid; place-items: center; min-height: 19rem; border-radius: 48% 48% .55rem .55rem; background: radial-gradient(ellipse,#805b363d,transparent 72%); border: 1px solid #715336; }
+.dw-figure img { display: block; width: min(78%, 12rem); height: auto; filter: invert(1) sepia(1) saturate(1.1); mix-blend-mode: screen; opacity: .78; clip-path: inset(2px); }
+.dw-slot { min-width: 0; padding: .8rem; border-radius: .6rem; border: 1px solid #795b42; background: #312a2d; position: relative; }
+.dw-slot h3 { margin: 0 0 .55rem; color: #e9bc82; font-size: .95rem; }
+.dw-slot-torso { grid-area: armor; }
+.dw-slot-main { grid-area: main; }
+.dw-slot-off { grid-area: off; }
+.dw-slot-main::after, .dw-slot-off::before, .dw-slot-torso::after { content: ""; position: absolute; top: 50%; width: 1.4rem; border-top: 1px dashed #b89260; }
+.dw-slot-main::after, .dw-slot-torso::after { left: 100%; }
+.dw-slot-off::before { right: 100%; }
+@media (max-width: 660px) {
+  .dw-workspace { padding-inline: .6rem; }
+  .dw-loadout { grid-template: "figure figure" "armor armor" "main off" / minmax(0,1fr) minmax(0,1fr); gap: .6rem; }
+  .dw-figure { min-height: 13rem; }
+  .dw-figure img { width: 7rem; }
+  .dw-slot-main::after, .dw-slot-off::before, .dw-slot-torso::after { display: none; }
+}
+@media print {
+  .dw-page, .dw-page-heading, .dw-panel, .dw-slot, .dw-page .question-layout, .dw-page .advancement-region { background: white; color: #171717; }
+  .dw-page h1, .dw-page h2, .dw-page h3, .dw-page-heading p { color: #171717; }
+  .dw-figure img { filter: none; mix-blend-mode: normal; }
+}

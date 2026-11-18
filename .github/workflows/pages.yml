@@ -33,9 +33,9 @@ jobs:
           cache-dependency-path: pbdh-upstream/package-lock.json
       - name: Prepare the campaign editor
         run: |
-          cp -R editor-overlay/. pbdh-upstream/
           python3 prepare-editor.py
           python3 configure-resources.py
+          python3 design-sheet.py
       - name: Build and validate PbDH
         working-directory: pbdh-upstream
         run: |

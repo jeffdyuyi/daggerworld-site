@@ -1,0 +1,11 @@
+.page-navigation { width: min(100% - 2rem,77rem); margin: 1rem auto; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: .45rem; }
+.page-navigation button { width: 100%; min-height: 2.75rem; padding: .45rem .25rem; border: 1px solid #6f5340; border-radius: .45rem; background: #28252b; color: #e7d4ba; }
+.page-navigation button[aria-current="page"] { background: #694731; border-color: #e1b071; color: #fff3d9; }
+.dw-tools { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+.dw-tools a { color: inherit; text-decoration: underline; }
+.dw-tools details[open] { display: flex; }
+.dw-tools details summary { cursor: pointer; }
+.sheet-output-root:has(.dw-workspace), .sheet-page:has(.dw-page) { background: transparent; border: 0; min-height: 0; }
+.campaign-cloud { background: #29232a; color: #f1e5d4; border-top-color: #ab7950; border-bottom-color: #624833; }
+.campaign-cloud a { color: #f3cc96; }
+@media (max-width: 700px) { .page-navigation { grid-template-columns: repeat(3,minmax(0,1fr)); width: calc(100% - 1.2rem); } }
