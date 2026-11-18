@@ -34,7 +34,7 @@ top_bar.write_text(
   return (
     <header className="top-bar">
       <div className="brand-block">
-        <span className="brand-mark" aria-hidden="true">匕</span>
+        <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 512 512" width="22" height="22" fill="currentColor"><path d="m405.47 18.094l-31.407 31.406l78.844 78.844l31.406-31.406zM357.72 65.844L307.343 116.22l40.313 40.312l50.375-50.375zm-66.72 66.718L240.626 182.94l30.906 30.905l50.375-50.375zm-66.718 66.72l-50.375 50.374l30.906 30.906l50.375-50.375zm-66.72 66.718l-50.374 50.375l30.906 30.906l50.375-50.375zm-66.718 66.72L40.47 383.094l30.905 30.906l50.375-50.375zM24.03 400.125l-14.47 78.22l78.22-14.47l-15.064-15.062l-48.687-48.687z"/></svg></span>
         <div><p className="eyebrow">匕首世界</p><h1>化身档案</h1></div>
       </div>
       <nav className="dw-tools" aria-label="角色卡工具">
@@ -71,3 +71,6 @@ edit(up / "src/App.tsx",
      '{packageIssues.some((issue) => issue.code !== "UNUSED_PACKAGE_IMAGE") ? (\n'
      '        <PackageIssuePanel issues={packageIssues.filter((issue) => issue.code !== "UNUSED_PACKAGE_IMAGE")} />\n'
      '      ) : null}')
+edit(up / "src/rendering/SheetRenderer.tsx",
+     'key={page.ID}>{page.名称}</button>',
+     'key={page.ID} data-page-id={page.ID}>{page.名称}</button>')

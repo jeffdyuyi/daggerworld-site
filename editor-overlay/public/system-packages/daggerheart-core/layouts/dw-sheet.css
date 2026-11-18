@@ -17,7 +17,8 @@
 .dw-figure { grid-area: figure; display: grid; place-items: center; min-height: 19rem; border-radius: 48% 48% .55rem .55rem; background: radial-gradient(ellipse,#805b363d,transparent 72%); border: 1px solid #715336; }
 .dw-figure img { display: block; width: min(78%, 12rem); height: auto; filter: invert(1) sepia(1) saturate(1.1); mix-blend-mode: screen; opacity: .78; clip-path: inset(2px); }
 .dw-slot { min-width: 0; padding: .8rem; border-radius: .6rem; border: 1px solid #795b42; background: #312a2d; position: relative; }
-.dw-slot h3 { margin: 0 0 .55rem; color: #e9bc82; font-size: .95rem; }
+.dw-slot h3 { margin: 0 0 .55rem; color: #e9bc82; font-size: .95rem; display: flex; align-items: center; gap: .45rem; }
+.dw-slot-icon { width: 1.15rem; height: 1.15rem; fill: #d8b168; opacity: .9; flex-shrink: 0; }
 .dw-slot-torso { grid-area: armor; }
 .dw-slot-main { grid-area: main; }
 .dw-slot-off { grid-area: off; }
