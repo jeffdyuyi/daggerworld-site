@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>匕首世界角色库 · 化身卡</title>
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body class="dw-theme">
+  <!-- Top Navigation & Vault Bar -->
+  <header class="dw-header">
+    <div class="header-left">
+      <a href="../index.html" class="dw-brand">
+        <span class="brand-icon">⚔️</span>
+        <div class="brand-text">
+          <span class="sub-title">深水城 2026 · 匕首世界</span>
+          <span class="main-title">角色库 & 化身档案</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="header-center">
+      <div class="vault-switcher-pill" id="vault-open-btn" title="点击管理或切换角色">
+        <span class="vault-avatar-icon" id="cur-avatar-icon">🛡️</span>
+        <div class="vault-info">
+          <span class="cur-char-name" id="cur-char-name">加载角色中…</span>
+          <span class="cur-char-class" id="cur-char-class">-</span>
+        </div>
+        <span class="dropdown-chevron">▼</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <span class="sync-badge" id="sync-status">
+        <span class="status-dot">●</span> <span id="sync-text">本地离线</span>
+      </span>
+      <button class="dw-btn dw-btn-outline" id="btn-save-cloud" title="立即保存至云端">☁️ 保存</button>
+      <button class="dw-btn dw-btn-outline" id="btn-open-vault">📋 角色库</button>
+      <div class="more-menu-wrapper">
+        <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
+        <div class="more-dropdown" id="more-dropdown" hidden>
+          <button id="btn-create-char">➕ 新建化身</button>
+          <button id="btn-export-json">💾 导出本卡 JSON</button>
+          <label class="dropdown-file-label">
+            📥 导入角色卡
+            <input type="file" id="import-json-file" accept=".json" hidden>
+          </label>
+          <button id="btn-roll-init">🎲 快速检定</button>
+          <hr>
+          <a href="../account.html" class="dropdown-link">👤 冒险者中心</a>
+          <a href="../index.html#archive" target="_blank" class="dropdown-link">📖 战役图鉴</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Top Combat Resource Dashboard -->
+  <section class="combat-dashboard" id="combat-dashboard">
+    <div class="char-summary-strip">
+      <div class="avatar-tag">
+        <span class="level-badge" id="dash-level">Lv 1</span>
+        <span class="name-badge" id="dash-name">无名化身</span>
+        <span class="class-badge" id="dash-class">新角色</span>
+      </div>
+      <div class="level-control">
+        <button class="stepper-btn" id="lvl-down" title="降级">-</button>
+        <span>等级</span>
+        <button class="stepper-btn" id="lvl-up" title="升级">+</button>
+      </div>
+    </div>
+
+    <div class="resource-tracks-grid">
+      <!-- Health Track -->
+      <div class="resource-card health-card">
+        <div class="res-header">
+          <span class="res-title">❤️ 生命 (HP)</span>
+          <div class="res-counter">
+            <span id="hp-cur">6</span> / <span id="hp-max">6</span>
+          </div>
+        </div>
+        <div class="res-pips-bar" id="hp-pips"></div>
+        <div class="res-stepper">
+          <button class="res-btn" id="hp-minus">-1</button>
+          <button class="res-btn" id="hp-plus">+1</button>
+        </div>
+      </div>
+
+      <!-- Stress Track -->
+      <div class="resource-card stress-card">
+        <div class="res-header">
+          <span class="res-title">🧠 压力 (Stress)</span>
+          <div class="res-counter">
+            <span id="stress-cur">0</span> / <span id="stress-max">6</span>
+          </div>
+        </div>
+        <div class="res-pips-bar" id="stress-pips"></div>
+        <div class="res-stepper">
+          <button class="res-btn" id="stress-minus">-1</button>
+          <button class="res-btn" id="stress-plus">+1</button>
+        </div>
+      </div>
+
+      <!-- Hope Track -->
+      <div class="resource-card hope-card">
+        <div class="res-header">
+          <span class="res-title">☀️ 希望 (Hope)</span>
+          <div class="res-counter">
+            <span id="hope-cur">2</span> / <span id="hope-max">6</span>
+          </div>
+        </div>
+        <div class="res-pips-bar" id="hope-pips"></div>
+        <div class="res-stepper">
+          <button class="res-btn" id="hope-minus">-1</button>
+          <button class="res-btn" id="hope-plus">+1</button>
+        </div>
+      </div>
+
+      <!-- Armor Track & Thresholds Dashboard -->
+      <div class="resource-card armor-card">
+        <div class="res-header">
+          <span class="res-title">🛡️ 护甲槽 (Armor)</span>
+          <div class="res-counter">
+            <span id="armor-cur">0</span> / <span id="armor-max">0</span>
+          </div>
+        </div>
+        <div class="res-pips-bar" id="armor-pips"></div>
+        <div class="res-stepper">
+          <button class="res-btn" id="armor-minus">-1</button>
+          <button class="res-btn" id="armor-plus">+1</button>
+        </div>
+      </div>
+
+      <!-- Damage Thresholds Readout -->
+      <div class="thresholds-summary-card" id="thresholds-card">
+        <div class="threshold-col minor">
+          <span class="th-label">轻度伤害</span>
+          <span class="th-val" id="th-minor">1 ~ 0</span>
+          <span class="th-hint">标记 1 点生命</span>
+        </div>
+        <div class="threshold-col major">
+          <span class="th-label">重度伤害</span>
+          <span class="th-val" id="th-major">1+</span>
+          <span class="th-hint">标记 2 点生命</span>
+        </div>
+        <div class="threshold-col severe">
+          <span class="th-label">严重伤害</span>
+          <span class="th-val" id="th-severe">2+</span>
+          <span class="th-hint">标记 3 点生命</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Navigation Tabs: 4 Pages -->
+  <nav class="page-tabs" id="page-tabs">
+    <button class="tab-btn active" data-page="overview">
+      <span class="tab-icon">👤</span> 【化身概览】
+    </button>
+    <button class="tab-btn" data-page="foundations">
+      <span class="tab-icon">📜</span> 【角色基石】
+    </button>
+    <button class="tab-btn" data-page="skills">
+      <span class="tab-icon">✨</span> 【技能卡牌】
+    </button>
+    <button class="tab-btn" data-page="inventory">
+      <span class="tab-icon">🎒</span> 【行装背包】
+    </button>
+  </nav>
+
+  <!-- Tab Content Containers -->
+  <main class="page-viewport">
+    
+    <!-- PAGE 1: 【概览】 -->
+    <section class="tab-page active" id="page-overview">
+      <div class="overview-grid">
+        
+        <!-- Left 3/4: Equipment Silhouette & Paper Doll -->
+        <div class="equipment-paperdoll-section">
+          <div class="section-title-bar">
+            <h2>角色随身装备</h2>
+            <div class="suit-mode-tag" id="suit-mode-tag">散件计算中</div>
+          </div>
+
+          <div class="paperdoll-container">
+            <!-- Left Column: Head, Chest, Wrists, Legs, Feet, Back -->
+            <div class="gear-slot-col left-col">
+              <div class="gear-slot" data-slot="head">
+                <div class="slot-icon-box" id="slot-icon-head"></div>
+                <div class="slot-info">
+                  <span class="slot-name">头部</span>
+                  <span class="slot-item" id="slot-name-head">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="chest">
+                <div class="slot-icon-box" id="slot-icon-chest"></div>
+                <div class="slot-info">
+                  <span class="slot-name">身躯</span>
+                  <span class="slot-item" id="slot-name-chest">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="wrists">
+                <div class="slot-icon-box" id="slot-icon-wrists"></div>
+                <div class="slot-info">
+                  <span class="slot-name">腕部</span>
+                  <span class="slot-item" id="slot-name-wrists">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="legs">
+                <div class="slot-icon-box" id="slot-icon-legs"></div>
+                <div class="slot-info">
+                  <span class="slot-name">腿部</span>
+                  <span class="slot-item" id="slot-name-legs">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="feet">
+                <div class="slot-icon-box" id="slot-icon-feet"></div>
+                <div class="slot-info">
+                  <span class="slot-name">足部</span>
+                  <span class="slot-item" id="slot-name-feet">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="back">
+                <div class="slot-icon-box" id="slot-icon-back"></div>
+                <div class="slot-info">
+                  <span class="slot-name">背部</span>
+                  <span class="slot-item" id="slot-name-back">空置</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Center: Silhouette / Doll Graphic -->
+            <div class="paperdoll-silhouette">
+              <img src="./assets/figure.png" alt="角色轮廓" class="silhouette-img">
+              <div class="silhouette-pedestal"></div>
+            </div>
+
+            <!-- Right Column: Rings, Trinkets, Suit, Costume -->
+            <div class="gear-slot-col right-col">
+              <div class="gear-slot suit-slot-highlight" data-slot="suit" title="套装护甲：穿戴后将顶掉散件护甲计算">
+                <div class="slot-icon-box" id="slot-icon-suit"></div>
+                <div class="slot-info">
+                  <span class="slot-name">套装护甲</span>
+                  <span class="slot-item" id="slot-name-suit">无套装 (无甲)</span>
+                </div>
+              </div>
+
+              <div class="gear-slot costume-slot-highlight" data-slot="costume" title="外观时装：独立视觉外观">
+                <div class="slot-icon-box" id="slot-icon-costume"></div>
+                <div class="slot-info">
+                  <span class="slot-name">外观时装</span>
+                  <span class="slot-item" id="slot-name-costume">冒险常服</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="ring1">
+                <div class="slot-icon-box" id="slot-icon-ring1"></div>
+                <div class="slot-info">
+                  <span class="slot-name">戒指 1</span>
+                  <span class="slot-item" id="slot-name-ring1">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="ring2">
+                <div class="slot-icon-box" id="slot-icon-ring2"></div>
+                <div class="slot-info">
+                  <span class="slot-name">戒指 2</span>
+                  <span class="slot-item" id="slot-name-ring2">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="trinket1">
+                <div class="slot-icon-box" id="slot-icon-trinket1"></div>
+                <div class="slot-info">
+                  <span class="slot-name">饰品 1</span>
+                  <span class="slot-item" id="slot-name-trinket1">空置</span>
+                </div>
+              </div>
+
+              <div class="gear-slot" data-slot="trinket2">
+                <div class="slot-icon-box" id="slot-icon-trinket2"></div>
+                <div class="slot-info">
+                  <span class="slot-name">饰品 2</span>
+                  <span class="slot-item" id="slot-name-trinket2">空置</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Weapons Bar -->
+          <div class="weapons-loadout-row">
+            <div class="weapon-slot main-weapon" data-slot="weapon_main">
+              <div class="slot-icon-box" id="slot-icon-weapon-main"></div>
+              <div class="weapon-info">
+                <div class="wp-title-row">
+                  <span class="wp-slot-tag">主手武器</span>
+                  <strong class="wp-name" id="wp-main-name">简易近战武器</strong>
+                </div>
+                <div class="wp-stats" id="wp-main-stats">近战 · 物理 · 1d8+力量</div>
+              </div>
+            </div>
+
+            <div class="weapon-slot off-weapon" data-slot="weapon_off">
+              <div class="slot-icon-box" id="slot-icon-weapon-off"></div>
+              <div class="weapon-info">
+                <div class="wp-title-row">
+                  <span class="wp-slot-tag">副手装备</span>
+                  <strong class="wp-name" id="wp-off-name">空手 / 盾牌</strong>
+                </div>
+                <div class="wp-stats" id="wp-off-stats">-</div>
+              </div>
+            </div>
+
+            <div class="weapon-slot backup-weapon" data-slot="weapon_spare">
+              <div class="slot-icon-box" id="slot-icon-weapon-spare"></div>
+              <div class="weapon-info">
+                <div class="wp-title-row">
+                  <span class="wp-slot-tag">备用武器</span>
+                  <strong class="wp-name" id="wp-spare-name">备用匕首</strong>
+                </div>
+                <div class="wp-stats" id="wp-spare-stats">近程/远投 · 1d6+敏捷</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 1/4: Attributes Column -->
+        <div class="attributes-defense-section">
+          <div class="section-title-bar">
+            <h2>角色属性</h2>
+            <span class="attr-hint">点击骰子检定</span>
+          </div>
+
+          <div class="attributes-list">
+            <div class="attr-card" data-attr="agility">
+              <div class="attr-header">
+                <span class="attr-name">敏捷 (Agility)</span>
+                <span class="attr-mod" id="attr-mod-agility">+0</span>
+              </div>
+              <p class="attr-desc">冲刺 · 闪避 · 杂技 · 移动</p>
+              <button class="roll-trigger-btn" data-attr-roll="agility">🎲 检定</button>
+            </div>
+
+            <div class="attr-card" data-attr="strength">
+              <div class="attr-header">
+                <span class="attr-name">力量 (Strength)</span>
+                <span class="attr-mod" id="attr-mod-strength">+0</span>
+              </div>
+              <p class="attr-desc">粉碎 · 举重 · 近战 · 坚韧</p>
+              <button class="roll-trigger-btn" data-attr-roll="strength">🎲 检定</button>
+            </div>
+
+            <div class="attr-card" data-attr="finesse">
+              <div class="attr-header">
+                <span class="attr-name">灵巧 (Finesse)</span>
+                <span class="attr-mod" id="attr-mod-finesse">+0</span>
+              </div>
+              <p class="attr-desc">瞄准 · 潜行 · 巧手 · 锁匠</p>
+              <button class="roll-trigger-btn" data-attr-roll="finesse">🎲 检定</button>
+            </div>
+
+            <div class="attr-card" data-attr="instinct">
+              <div class="attr-header">
+                <span class="attr-name">本能 (Instinct)</span>
+                <span class="attr-mod" id="attr-mod-instinct">+0</span>
+              </div>
+              <p class="attr-desc">洞察 · 察觉 · 野性 · 直觉</p>
+              <button class="roll-trigger-btn" data-attr-roll="instinct">🎲 检定</button>
+            </div>
+
+            <div class="attr-card" data-attr="presence">
+              <div class="attr-header">
+                <span class="attr-name">风采 (Presence)</span>
+                <span class="attr-mod" id="attr-mod-presence">+0</span>
+              </div>
+              <p class="attr-desc">魅力 · 威吓 · 说服 · 领导</p>
+              <button class="roll-trigger-btn" data-attr-roll="presence">🎲 检定</button>
+            </div>
+
+            <div class="attr-card" data-attr="knowledge">
+              <div class="attr-header">
+                <span class="attr-name">知识 (Knowledge)</span>
+                <span class="attr-mod" id="attr-mod-knowledge">+0</span>
+              </div>
+              <p class="attr-desc">回想 · 分析 · 奥术 · 调查</p>
+              <button class="roll-trigger-btn" data-attr-roll="knowledge">🎲 检定</button>
+            </div>
+          </div>
+
+          <!-- Secondary Combat Stats -->
+          <div class="defense-stats-box">
+            <div class="def-item">
+              <span class="def-label">闪避值 (Evasion)</span>
+              <strong class="def-val" id="stat-evasion">8</strong>
+            </div>
+            <div class="def-item">
+              <span class="def-label">基础护甲值 (Score)</span>
+              <strong class="def-val" id="stat-armor-score">0</strong>
+            </div>
+            <div class="def-item">
+              <span class="def-label">熟练度 (Proficiency)</span>
+              <strong class="def-val" id="stat-proficiency">1</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Level-up / Upgrade Bar -->
+      <div class="levelup-bottom-bar">
+        <div class="levelup-title">
+          <h3>升级与历练强化</h3>
+          <span class="levelup-tier-tag" id="cur-tier-tag">第 1 阶位 (1-4级)</span>
+        </div>
+        <div class="advancement-options" id="advancements-container">
+          <label class="adv-choice"><input type="checkbox" data-adv="attr1"> +1 属性值</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="attr2"> +1 额外属性值</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="hp1"> +1 生命上限</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="stress1"> +1 压力上限</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="prof"> +1 伤害熟练度</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="domain"> 额外领域卡牌</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: 【基石】 -->
+    <section class="tab-page" id="page-foundations">
+      <div class="foundations-container">
+        
+        <!-- Header Selection Row -->
+        <div class="foundations-select-bar">
+          <div class="f-select-group">
+            <label>化身姓名</label>
+            <input type="text" id="fn-char-name" class="dw-input" placeholder="输入化身名称">
+          </div>
+          <div class="f-select-group">
+            <label>血统种族</label>
+            <select id="fn-select-ancestry" class="dw-select"></select>
+          </div>
+          <div class="f-select-group">
+            <label>社群文化</label>
+            <select id="fn-select-community" class="dw-select"></select>
+          </div>
+          <div class="f-select-group">
+            <label>主职职业</label>
+            <select id="fn-select-class" class="dw-select"></select>
+          </div>
+          <div class="f-select-group">
+            <label>子职分支</label>
+            <select id="fn-select-subclass" class="dw-select"></select>
+          </div>
+        </div>
+
+        <!-- Highlighted Spellcasting Bar (If applicable) -->
+        <div class="spellcasting-highlight-card" id="spellcasting-card" hidden>
+          <div class="sp-icon">🔮</div>
+          <div class="sp-content">
+            <h4 id="sp-trait-title">核心施法特性</h4>
+            <p id="sp-trait-desc">该职业具备施法能力，核心施法属性为【知识】。法术检定根据施法属性骰修正。</p>
+          </div>
+        </div>
+
+        <!-- 4 Core Foundation Cards Grid -->
+        <div class="foundation-cards-grid">
+          <!-- Ancestry Feature A -->
+          <div class="f-card">
+            <div class="f-card-header">
+              <span class="f-badge">种族血统</span>
+              <h3 id="fn-ancestry-a-title">种族特性 A</h3>
+            </div>
+            <div class="f-card-body" id="fn-ancestry-a-desc">
+              请选择种族以加载核心特性。
+            </div>
+          </div>
+
+          <!-- Ancestry Feature B -->
+          <div class="f-card">
+            <div class="f-card-header">
+              <span class="f-badge">种族血统</span>
+              <h3 id="fn-ancestry-b-title">种族特性 B</h3>
+            </div>
+            <div class="f-card-body" id="fn-ancestry-b-desc">
+              请选择种族以加载辅助特性。
+            </div>
+          </div>
+
+          <!-- Class Core Trait -->
+          <div class="f-card">
+            <div class="f-card-header">
+              <span class="f-badge">职业特性</span>
+              <h3 id="fn-class-trait-title">职业核心能力</h3>
+            </div>
+            <div class="f-card-body" id="fn-class-trait-desc">
+              请选择职业以加载职业核心机制。
+            </div>
+          </div>
+
+          <!-- Subclass Trait -->
+          <div class="f-card">
+            <div class="f-card-header">
+              <span class="f-badge">子职业研修</span>
+              <h3 id="fn-subclass-title">子职业基石与进阶</h3>
+            </div>
+            <div class="f-card-body" id="fn-subclass-desc">
+              请选择子职业研修流派。
+            </div>
+          </div>
+
+          <!-- Community Feature -->
+          <div class="f-card">
+            <div class="f-card-header">
+              <span class="f-badge">社群归属</span>
+              <h3 id="fn-community-title">社群特性</h3>
+            </div>
+            <div class="f-card-body" id="fn-community-desc">
+              请选择社群文化以加载成长背景。
+            </div>
+          </div>
+
+          <!-- GM Secret / Character Persona Notes -->
+          <div class="f-card gm-notes-card">
+            <div class="f-card-header">
+              <span class="f-badge gm-badge">深水城主持人备注</span>
+              <h3>人格与战役秘记</h3>
+            </div>
+            <div class="f-card-body">
+              <textarea id="fn-gm-notes" class="dw-textarea" rows="4" placeholder="在此记录角色的人格秘密、战役经历或主持人特许备注（对常规化身卡界面隐藏经历）…"></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PAGE 3: 【技能】 -->
+    <section class="tab-page" id="page-skills">
+      <div class="skills-container">
+        
+        <!-- Filter Toolbar -->
+        <div class="skills-toolbar">
+          <div class="domain-filters" id="domain-filters-bar">
+            <!-- Dynamically populated or all domains -->
+          </div>
+
+          <div class="skills-controls-right">
+            <label class="gm-override-toggle" title="解除职业领域限制，可任意学习和装备全领域卡">
+              <input type="checkbox" id="gm-override-domains">
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">🛡️ 主持人特许：解锁全领域卡</span>
+            </label>
+            <button class="dw-btn dw-btn-gold" id="btn-add-custom-card">➕ 原创领域卡</button>
+          </div>
+        </div>
+
+        <!-- Domain Cards Section: Equipped Loadout -->
+        <div class="domain-sub-header">
+          <h3>随身整备中的领域卡牌 (<span id="equipped-cards-count">0</span> / 5)</h3>
+          <span class="sub-hint">点击卡牌可卸下至秘藏</span>
+        </div>
+        <div class="domain-cards-grid" id="equipped-cards-container">
+          <!-- Equipped cards rendered here -->
+        </div>
+
+        <!-- Domain Cards Section: Available / Vaulted Cards -->
+        <div class="domain-sub-header">
+          <h3>领域法术与能力秘藏 (已学 / 可选用)</h3>
+          <span class="sub-hint">点击卡牌可整备至随身技能位</span>
+        </div>
+        <div class="domain-cards-grid" id="vault-cards-container">
+          <!-- Vaulted domain cards rendered here -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PAGE 4: 【背包】 -->
+    <section class="tab-page" id="page-inventory">
+      <div class="inventory-container">
+        
+        <!-- Bag Slots & Expandable Pouches Bar -->
+        <div class="bag-equipment-panel">
+          <div class="bag-panel-title">
+            <h3>行囊拓展栏位</h3>
+            <span class="bag-summary-badge">
+              总容纳：<span id="bag-total-slots">18</span> 格 (基础 <span id="bag-base-slots">10</span> + 拓展 <span id="bag-extra-slots">8</span>)
+            </span>
+          </div>
+
+          <div class="bag-slots-strip">
+            <div class="bag-slot-card" data-bag-slot="main_bag">
+              <div class="slot-icon-box" id="slot-icon-main-bag"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">主背包</span>
+                <strong class="bag-name" id="bag-name-main">10格标准行囊</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="pouch_1">
+              <div class="slot-icon-box" id="slot-icon-pouch-1"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">腰包 1</span>
+                <strong class="bag-name" id="bag-name-pouch1">拓展皮腰包 (+2格)</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="pouch_2">
+              <div class="slot-icon-box" id="slot-icon-pouch-2"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">腰包 2</span>
+                <strong class="bag-name" id="bag-name-pouch2">空腰带位 (0格)</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="satchel_1">
+              <div class="slot-icon-box" id="slot-icon-satchel-1"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">挎包 1</span>
+                <strong class="bag-name" id="bag-name-satchel1">深水城旅者挎包 (+4格)</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="satchel_2">
+              <div class="slot-icon-box" id="slot-icon-satchel-2"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">挎包 2</span>
+                <strong class="bag-name" id="bag-name-satchel2">空挎包位 (0格)</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Visual Grid Bag -->
+        <div class="inventory-grid-panel">
+          <div class="grid-panel-header">
+            <h3>格子化背包物品栏</h3>
+            <div class="grid-actions">
+              <button class="dw-btn dw-btn-outline" id="btn-add-item">➕ 放入新物品</button>
+              <button class="dw-btn dw-btn-outline" id="btn-clean-bag">🧹 整理背包</button>
+            </div>
+          </div>
+          
+          <div class="visual-slots-grid" id="inventory-grid">
+            <!-- 10+ slots rendered as real Diablo/Velundra style grid cells -->
+          </div>
+        </div>
+
+        <!-- Currency & Valuables -->
+        <div class="currency-panel">
+          <div class="currency-card">
+            <span class="coin-icon">🪙</span>
+            <div class="coin-info">
+              <label>零钱金币 (Gold Coins)</label>
+              <input type="number" id="coin-gold" class="coin-input" value="15" min="0">
+            </div>
+          </div>
+          <div class="currency-card">
+            <span class="coin-icon">💰</span>
+            <div class="coin-info">
+              <label>钱袋 (Handfuls / Bags)</label>
+              <input type="number" id="coin-bags" class="coin-input" value="1" min="0">
+            </div>
+          </div>
+          <div class="currency-card">
+            <span class="coin-icon">✨</span>
+            <div class="coin-info">
+              <label>精炼粉末 / 战役催化剂</label>
+              <input type="number" id="coin-dust" class="coin-input" value="0" min="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Modular Armor Formula Engine Card -->
+        <div class="armor-formula-card">
+          <div class="formula-header">
+            <span class="formula-icon">🛡️</span>
+            <div>
+              <h3>防具与伤害阈值动态计算引擎</h3>
+              <p class="formula-subtitle">根据《匕首世界》SRD与细分装备规则实时运算</p>
+            </div>
+          </div>
+          <div class="formula-body" id="armor-formula-breakdown">
+            <!-- Real-time formula breakdown rendered here -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Character Vault (角色库管理) -->
+  <div class="dw-modal-backdrop" id="vault-modal" hidden>
+    <div class="dw-modal-window">
+      <div class="modal-header">
+        <h2>冒险者角色库</h2>
+        <button class="modal-close-btn" id="vault-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="vault-intro">在此管理您的所有化身角色。点击任意化身即可切换载入，或创建新的冒险者。</p>
+        <div class="vault-character-list" id="vault-char-list">
+          <!-- Characters listed here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="dw-btn dw-btn-gold" id="vault-create-btn">➕ 建立新化身</button>
+        <button class="dw-btn dw-btn-outline" id="vault-refresh-btn">🔄 刷新云端</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Equipment / Item Picker -->
+  <div class="dw-modal-backdrop" id="item-picker-modal" hidden>
+    <div class="dw-modal-window wide-modal">
+      <div class="modal-header">
+        <h2 id="picker-title">选择装备</h2>
+        <button class="modal-close-btn" id="item-picker-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="picker-search-bar">
+          <input type="text" id="picker-search-input" class="dw-input" placeholder="搜索装备名称或关键词…">
+          <button class="dw-btn dw-btn-outline" id="picker-unequip-btn">卸下此槽位装备</button>
+        </div>
+        <div class="picker-items-grid" id="picker-items-list">
+          <!-- Equipment list rendered here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Duality Dice Roller -->
+  <div class="dw-modal-backdrop" id="dice-roll-modal" hidden>
+    <div class="dw-modal-window narrow-modal">
+      <div class="modal-header">
+        <h2 id="roll-attr-title">双元掷骰检定</h2>
+        <button class="modal-close-btn" id="dice-roll-close">✕</button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="duality-dice-display">
+          <div class="duality-die hope-die">
+            <span class="die-label">希望骰 (D12)</span>
+            <span class="die-number" id="dice-hope-val">?</span>
+          </div>
+          <div class="duality-die fear-die">
+            <span class="die-label">恐惧骰 (D12)</span>
+            <span class="die-number" id="dice-fear-val">?</span>
+          </div>
+        </div>
+        <div class="roll-math-row">
+          <span>骰值大者: <strong id="roll-high-val">-</strong></span>
+          <span>+ 属性修正: <strong id="roll-mod-val">+0</strong></span>
+          <span>= 总检定值: <strong id="roll-total-val" class="highlight-total">-</strong></span>
+        </div>
+        <div class="roll-verdict" id="roll-verdict">
+          点击下方按钮掷出双元骰！
+        </div>
+      </div>
+      <div class="modal-footer text-center">
+        <button class="dw-btn dw-btn-gold" id="btn-re-roll">🎲 掷出双元骰 (1d12 + 1d12)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Custom Domain Card -->
+  <div class="dw-modal-backdrop" id="custom-card-modal" hidden>
+    <div class="dw-modal-window">
+      <div class="modal-header">
+        <h2>添加原创战役领域卡</h2>
+        <button class="modal-close-btn" id="custom-card-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="f-select-group">
+          <label>卡牌名称</label>
+          <input type="text" id="cc-name" class="dw-input" placeholder="例如：深水城暗流秘术">
+        </div>
+        <div class="f-select-group">
+          <label>归属领域</label>
+          <select id="cc-domain" class="dw-select">
+            <option value="刀锋">刀锋 (Blade)</option>
+            <option value="骨骼">骨骼 (Bone)</option>
+            <option value="秘典">秘典 (Codex)</option>
+            <option value="优雅">优雅 (Grace)</option>
+            <option value="午夜">午夜 (Midnight)</option>
+            <option value="智者">智者 (Sage)</option>
+            <option value="辉光">辉光 (Splendor)</option>
+            <option value="勇气">勇气 (Valor)</option>
+            <option value="奥术">奥术 (Arcana)</option>
+          </select>
+        </div>
+        <div class="f-select-group">
+          <label>等级阶位</label>
+          <input type="number" id="cc-level" class="dw-input" value="1" min="1" max="10">
+        </div>
+        <div class="f-select-group">
+          <label>回想消耗 (⚡ 希望点)</label>
+          <input type="number" id="cc-recall" class="dw-input" value="1" min="0" max="6">
+        </div>
+        <div class="f-select-group">
+          <label>效果描述与规则说明</label>
+          <textarea id="cc-desc" class="dw-textarea" rows="4" placeholder="详细说明使用时机、消耗与机制判定…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="dw-btn dw-btn-gold" id="cc-submit-btn">保存至化身领域秘藏</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Main Entry Module -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

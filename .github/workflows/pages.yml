@@ -18,37 +18,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          repository: ZZZZzzzzac/PbDH_Sheet
-          ref: fe1de3ff248e27f577e281f2a3318aff47723412
-          path: pbdh-upstream
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: pbdh-upstream/package-lock.json
-      - name: Prepare the campaign editor
-        run: |
-          python3 prepare-editor.py
-          python3 configure-resources.py
-          python3 design-sheet.py
-      - name: Build and validate PbDH
-        working-directory: pbdh-upstream
-        run: |
-          npm ci
-          npm run validate:system-package -- public/system-packages/daggerheart-core
-          npm run build
       - name: Stage website
         run: |
-          mkdir -p _site/editor
+          mkdir -p _site
           cp index.html account.html session.js portal-account.js _site/
-          cp pbdh-upstream/dist/index.html _site/editor/
-          cp -R pbdh-upstream/dist/assets pbdh-upstream/dist/system-packages _site/editor/
-          cp pbdh-upstream/LICENSE _site/editor/LICENSE.txt
+          cp -R editor _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
