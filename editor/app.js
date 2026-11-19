@@ -1,5 +1,5 @@
 import { loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
-import { itemArt, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
+import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
 
 // Global App State
 let db = null;
@@ -232,25 +232,20 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
         trinket1: null,
         trinket2: null,
         suit: null,
-        costume: { 名称: '深水城冒险者常服' },
-        weapon_main: { 名称: '精钢长剑', 伤害: '1d8+力量', 距离: '近战', 属性: '力量', 伤害类型: '物理' },
-        weapon_off: { 名称: '硬木鸢盾', 护甲值: 1, 描述: '提供招架与抵挡' },
-        weapon_spare: { 名称: '猎手小刀', 伤害: '1d6+敏捷', 距离: '近程/远投', 属性: '敏捷' }
+        costume: null,
+        weapon_main: null,
+        weapon_off: null,
+        weapon_spare: null
       },
       bags: {
-        main_bag: { 名称: '10格标准行囊', capacity: 10 },
-        pouch_1: { 名称: '便携皮腰包', capacity: 2 },
+        main_bag: null,
+        pouch_1: null,
         pouch_2: null,
-        satchel_1: { 名称: '深水城旅者挎包', capacity: 4 },
+        satchel_1: null,
         satchel_2: null
       },
-      inventoryItems: [
-        { name: '治愈药膏', qty: 2, icon: '🧪', desc: '恢复 1d4 点生命' },
-        { name: '火把', qty: 3, icon: '🔥', desc: '照亮黑暗区域' },
-        { name: '干粮口粮', qty: 5, icon: '🍞', desc: '维持一天的探险所需' },
-        { name: '50尺麻绳', qty: 1, icon: '🪢', desc: '攀爬探险必备' }
-      ],
-      currency: { gold: 20, bags: 1, dust: 0 },
+      inventoryItems: [],
+      currency: { gold: 0, bags: 0, dust: 0 },
       equippedDomainCards: [],
       vaultDomainCards: [],
       customDomainCards: []
@@ -588,7 +583,7 @@ function switchLayer(layer, targetIndex) {
     if (backBtn) {
       backBtn.style.display = 'inline-flex';
       backBtn.innerHTML = '<span>‹</span> 返回角色卡';
-      backBtn.title = '返回化身卡页面';
+      backBtn.title = '返回角色卡页面';
     }
     if (brandLink) brandLink.style.display = 'flex';
     initWorkshopLayer();
@@ -611,7 +606,7 @@ function switchLayer(layer, targetIndex) {
   }
 }
 
-// 渲染第一层：角色库展示与化身卡片列表
+// 渲染第一层：角色库展示与角色卡片列表
 function renderVaultLobby() {
   const container = el('lobby-char-cards-container');
   const countBadge = el('vault-count-badge');
@@ -622,8 +617,8 @@ function renderVaultLobby() {
   if (!characters.length) {
     container.innerHTML = `
       <div style="grid-column:1/-1;background:var(--bg-card);padding:36px;border-radius:10px;border:1px dashed var(--border-bo3);text-align:center;">
-        <p style="font-size:16px;color:var(--text-gold);margin-bottom:8px;">📜 暂无化身档案</p>
-        <p style="font-size:13px;color:var(--text-muted);">可在右侧填写并铸造您的第一位冒险化身！</p>
+        <p style="font-size:16px;color:var(--text-gold);margin-bottom:8px;">📜 暂无角色档案</p>
+        <p style="font-size:13px;color:var(--text-muted);">可在右侧新建角色。</p>
       </div>
     `;
     return;
@@ -650,7 +645,7 @@ function renderVaultLobby() {
         </div>
         <div class="vcard-meta">
           <div class="vcard-name-row">
-            <h3 class="vcard-name">${char.avatar_name || '无名化身'}</h3>
+            <h3 class="vcard-name">${char.avatar_name || '无名角色'}</h3>
             <span class="gender-badge gender-${gender}">${gender === '男' ? '♂ 男' : (gender === '女' ? '♀ 女' : '⚪ 无')}</span>
           </div>
           <div class="vcard-tags">
@@ -668,10 +663,10 @@ function renderVaultLobby() {
       </div>
       <div class="vcard-actions">
         <button class="vcard-btn-enter" data-index="${idx}">
-          <span>⚔️</span> 进入化身工作台 ›
+          <span>⚔️</span> 打开角色卡
         </button>
         <button class="vcard-btn-icon" data-action="export" data-index="${idx}" title="导出本卡 JSON">💾</button>
-        <button class="vcard-btn-icon" data-action="delete" data-index="${idx}" title="删除化身" style="color:#ef4444;">🗑️</button>
+        <button class="vcard-btn-icon" data-action="delete" data-index="${idx}" title="删除角色" style="color:#ef4444;">🗑️</button>
       </div>
     `;
 
@@ -699,14 +694,14 @@ function exportCharacterJson(idx = null) {
   const blob = new Blob([jsonStr], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `匕首世界化身_${target.avatar_name || '角色'}_Lv${target.level}.json`;
+  a.download = `匕首世界角色_${target.avatar_name || '角色'}_Lv${target.level}.json`;
   a.click();
 }
 
 function deleteCharacterByIndex(idx) {
   const target = characters[idx];
   if (!target) return;
-  if (confirm(`确定要彻底删除化身【${target.avatar_name}】吗？此操作无法撤销。`)) {
+  if (confirm(`确定要彻底删除角色【${target.avatar_name}】吗？此操作无法撤销。`)) {
     characters.splice(idx, 1);
     if (!characters.length) {
       characters.push(createDefaultCharacter());
@@ -756,7 +751,7 @@ function setupCreationWizard() {
       const classId = selCls?.value || '职业:战士';
       const subclassId = selSub?.value || null;
 
-      // 确立新化身
+      // 确立新角色
       const newChar = createDefaultCharacter(name, gender, ancestryId, classId, subclassId);
       
       // 根据所选职业同步初始生命与闪避
@@ -775,11 +770,11 @@ function setupCreationWizard() {
       
       // 平滑切入第二层跑团工作台！
       switchLayer('sheet', activeCharIndex);
-      alert(`🎉 契约已确立！化身【${name}】已成功生成，进入角色卡工作台。`);
+      alert(`已创建角色「${name}」。`);
     });
   }
 
-  // 顶部“铸造新化身”平滑滚动
+  // 顶部“铸造新角色”平滑滚动
   const scrollCreateBtn = el('btn-hero-scroll-create');
   if (scrollCreateBtn) {
     scrollCreateBtn.addEventListener('click', () => {
@@ -805,7 +800,7 @@ function setupCreationWizard() {
           activeCharIndex = characters.length - 1;
           saveLocal();
           renderVaultLobby();
-          alert(`成功导入化身【${normalized.avatar_name}】！`);
+          alert(`成功导入角色【${normalized.avatar_name}】！`);
         } catch {
           alert('导入失败：文件格式不符合匕首世界角色卡规范。');
         }
@@ -873,11 +868,11 @@ function renderAll() {
   if (s.armorPips.cur > stats.baseArmor) s.armorPips.cur = stats.baseArmor;
 
   // 1. Top Header Info
-  el('cur-char-name').textContent = c.avatar_name || '无名化身';
+  el('cur-char-name').textContent = c.avatar_name || '无名角色';
   const clsObj = db?.classes?.find(x => x.ID === s.classId || x.名称 === s.classId);
   el('cur-char-class').textContent = `${clsObj?.名称 || '战士'} · Lv ${c.level}`;
 
-  el('dash-name').textContent = c.avatar_name || '无名化身';
+  el('dash-name').textContent = c.avatar_name || '无名角色';
   el('dash-class').textContent = clsObj?.名称 || '战士';
   el('dash-level').textContent = `Lv ${c.level}`;
 
@@ -985,16 +980,20 @@ function renderEquipmentSlots(stats) {
   }
 
   // Weapons
-  el('wp-main-name').textContent = eq.weapon_main?.名称 || '空手 / 拳脚';
-  el('wp-main-stats').textContent = eq.weapon_main ? `${eq.weapon_main.距离 || '近战'} · ${eq.weapon_main.伤害 || '1d6'} · ${eq.weapon_main.属性 || '力量'}` : '-';
+  el('wp-main-name').textContent = eq.weapon_main?.名称 || '空手';
+  el('wp-main-stats').textContent = weaponSummary(eq.weapon_main);
 
   el('wp-off-name').textContent = eq.weapon_off?.名称 || '空置';
-  el('wp-off-stats').textContent = eq.weapon_off ? `${eq.weapon_off.描述 || (eq.weapon_off.护甲值 ? `+${eq.weapon_off.护甲值} 护甲` : '-')}` : '-';
+  el('wp-off-stats').innerHTML = eq.weapon_off ? renderMarkdown(eq.weapon_off.描述 || (eq.weapon_off.护甲值 ? `+${eq.weapon_off.护甲值} 护甲` : '')) || '—' : '—';
 
   el('wp-spare-name').textContent = eq.weapon_spare?.名称 || '空置';
-  el('wp-spare-stats').textContent = eq.weapon_spare ? `${eq.weapon_spare.距离 || '近程'} · ${eq.weapon_spare.伤害 || '1d6'}` : '-';
+  el('wp-spare-stats').textContent = weaponSummary(eq.weapon_spare);
   for (const slot of ['weapon_main', 'weapon_off', 'weapon_spare']) renderSlotArt(slot, eq[slot]);
   renderPaperdoll(c, stats.isSuitActive);
+}
+
+function weaponSummary(item) {
+  return [item?.距离, item?.伤害, item?.属性].filter(Boolean).join(' · ') || '—';
 }
 
 function renderSlotArt(slot, item) {
@@ -1069,7 +1068,7 @@ function renderFoundations(clsObj) {
     if (alertNoticeEl) alertNoticeEl.hidden = false;
     if (gmToggleBtn) {
       gmToggleBtn.classList.add('active');
-      gmToggleBtn.innerHTML = '<span>🔒</span> 锁定化身基石';
+      gmToggleBtn.innerHTML = '<span>🔒</span> 锁定角色基石';
     }
     lockedInputs.forEach(input => {
       if (input) {
@@ -1502,7 +1501,7 @@ function setupEventListeners() {
         renderVaultCharList();
         renderAll();
       } else {
-        alert('云端暂无其他化身。');
+        alert('云端暂无其他角色。');
       }
     } catch (err) {
       alert('刷新失败：' + err.message);
@@ -1524,7 +1523,7 @@ function setupEventListeners() {
       c.updated_at = saved.updated_at;
       saveLocal();
       updateSyncStatus(true, '云端已同步！');
-      alert(`化身【${c.avatar_name}】已成功同步至云端！`);
+      alert(`角色【${c.avatar_name}】已成功同步至云端！`);
     } catch (err) {
       alert('保存至云端失败：' + err.message);
       updateSyncStatus(false, '保存失败 (已存本地)');
@@ -1636,7 +1635,9 @@ function setupEventListeners() {
   el('btn-ws-save-domain')?.addEventListener('click', handleSaveCustomDomain);
 
   // Live Previews for Forms
-  ['ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-stats', 'ws-item-desc'].forEach(id => {
+  const appearanceSelect = el('ws-item-appearance');
+  for (const [value, label] of Object.entries(itemAppearances)) appearanceSelect.add(new Option(label, value));
+  ['ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-stats', 'ws-item-desc', 'ws-item-appearance'].forEach(id => {
     el(id)?.addEventListener('input', updateItemPreview);
     el(id)?.addEventListener('change', updateItemPreview);
   });
@@ -1763,19 +1764,14 @@ function openItemPicker(slotKey) {
   if (isLoot) {
     candidates = db?.loot || [];
   } else if (slotKey.startsWith('weapon_')) {
-    candidates = db?.weapons || [];
+    candidates = (db?.weapons || []).filter(item => item.类型 === (slotKey === 'weapon_off' ? '副武器' : '主武器'));
   } else if (slotKey === 'suit') {
-    candidates = (db?.armor || []).filter(a => a.类型?.includes('套装') || a.名称?.includes('甲'));
+    candidates = db?.armor || [];
   } else if (slotKey === 'costume') {
-    candidates = [
-      { 名称: '深水城冒险常服', 描述: '轻便体面的冒险常服。' },
-      { 名称: '北地游侠披风服', 描述: '耐磨防尘的荒野旅行装束。' },
-      { 名称: '晨曦神殿见习长袍', 描述: '绣有金线的圣职法衣。' },
-      { 名称: '暗夜潜行紧身衣', 描述: '黑蚕丝与软皮拼接的隐匿装束。' },
-      { 名称: '深水城贵族锦袍', 描述: '用昂贵天鹅绒精制的社交盛装。' }
-    ];
+    candidates = (db?.modular_gear || []).filter(item => item.部位 === 'costume');
   } else if (slotKey.includes('bag') || slotKey.includes('pouch') || slotKey.includes('satchel')) {
-    candidates = (db?.modular_gear || []).filter(g => g.部位 === 'pouch' || g.部位 === 'satchel' || g.部位 === 'main-bag');
+    const part = slotKey === 'main_bag' ? 'main-bag' : slotKey.split('_')[0];
+    candidates = (db?.modular_gear || []).filter(g => g.部位 === part);
   } else {
     const part = slotKey.replace(/[0-9]/g, '');
     candidates = (db?.modular_gear || []).filter(g => g.部位 === part || g.类型 === getSlotTitle(slotKey));
@@ -1983,7 +1979,7 @@ function renderVaultCharList() {
       <div class="vault-char-left">
         <span style="font-size:24px;">🛡️</span>
         <div>
-          <div class="vault-char-title">${char.avatar_name || '无名化身'}</div>
+          <div class="vault-char-title">${char.avatar_name || '无名角色'}</div>
           <div class="vault-char-meta">${clsObj?.名称 || '战士'} · Lv ${char.level} · 更新于 ${new Date(char.updated_at || Date.now()).toLocaleDateString()}</div>
         </div>
       </div>
@@ -2004,7 +2000,7 @@ function renderVaultCharList() {
     if (delBtn) {
       delBtn.addEventListener('click', async e => {
         e.stopPropagation();
-        if (confirm(`确定要彻底删除化身【${char.avatar_name}】吗？`)) {
+        if (confirm(`确定要彻底删除角色【${char.avatar_name}】吗？`)) {
           if (!char.id.startsWith('local_') && !char.id.startsWith('imported_')) {
             try { await deleteCharacter(char.id); } catch (err) { console.warn(err); }
           }
@@ -2022,7 +2018,7 @@ function renderVaultCharList() {
 }
 
 function createNewAvatar() {
-  const name = prompt('请输入新化身的角色名称：', '深水城探索者');
+  const name = prompt('请输入新角色的角色名称：', '深水城探索者');
   if (!name) return;
   const newChar = createDefaultCharacter(name);
   characters.push(newChar);
@@ -2056,7 +2052,7 @@ function initWorkshopLayer() {
   updateCardPreview();
 }
 
-// 刷新全队受赐化身选择器与槽位统计
+// 刷新全队受赐角色选择器与槽位统计
 function updateWorkshopTargetSelect() {
   const sel = el('ws-target-char-select');
   const meta = el('ws-target-char-meta');
@@ -2065,7 +2061,7 @@ function updateWorkshopTargetSelect() {
   sel.innerHTML = '';
   if (!characters.length) {
     sel.innerHTML = '<option value="0">暂无角色（请先创角）</option>';
-    if (meta) meta.innerHTML = '<span class="f-badge">暂无化身</span>';
+    if (meta) meta.innerHTML = '<span class="f-badge">暂无角色</span>';
     return;
   }
 
@@ -2161,7 +2157,7 @@ function updateItemPreview() {
   if (el('ws-prev-tag')) el('ws-prev-tag').textContent = `${type} ${subcat ? '· ' + subcat : ''} · T${tier}`;
   if (el('ws-prev-stats')) el('ws-prev-stats').textContent = stats;
   if (el('ws-prev-desc')) el('ws-prev-desc').innerHTML = renderMarkdown(desc);
-  if (el('ws-prev-icon')) el('ws-prev-icon').textContent = resolveItemIcon(name, type, subcat);
+  el('ws-prev-icon')?.replaceChildren(itemImage({ name, type, subcat, appearance: el('ws-item-appearance')?.value }));
 }
 
 // 实时更新领域卡表单预览
@@ -2207,6 +2203,7 @@ function handleWorkshopItemSubmit(isDispatch) {
     stats,
     desc,
     icon,
+    appearance: validAppearance(el('ws-item-appearance')?.value),
     qty: 1
   };
 
@@ -2219,7 +2216,7 @@ function handleWorkshopItemSubmit(isDispatch) {
   }
   saveCampaignResources();
 
-  // 2. 发放至受赐化身
+  // 2. 发放至受赐角色
   if (isDispatch) {
     dispatchItemToCharacter(item, workshopState.targetCharIndex);
   } else {
@@ -2262,7 +2259,7 @@ function handleWorkshopCardSubmit(isDispatch) {
   }
   saveCampaignResources();
 
-  // 2. 发放至受赐化身
+  // 2. 发放至受赐角色
   if (isDispatch) {
     dispatchCardToCharacter(card, workshopState.targetCharIndex);
   } else {
@@ -2310,10 +2307,10 @@ function handleSaveCustomDomain() {
   alert(`已成功注册自定领域【${name}】！`);
 }
 
-// 发放物品至指定化身背包
+// 发放物品至指定角色背包
 function dispatchItemToCharacter(item, charIndex) {
   const target = characters[charIndex] || curChar();
-  if (!target) return alert('未找到目标化身！');
+  if (!target) return alert('未找到目标角色！');
   if (!target.sheet.inventoryItems) target.sheet.inventoryItems = [];
 
   const formattedDesc = item.stats ? `**【${item.type} · ${item.subcat || '标准'}】** ${item.stats}\n\n${item.desc}` : item.desc;
@@ -2322,6 +2319,7 @@ function dispatchItemToCharacter(item, charIndex) {
     desc: formattedDesc,
     qty: 1,
     icon: item.icon || resolveItemIcon(item.name, item.type, item.subcat),
+    appearance: validAppearance(item.appearance),
     type: item.type,
     subcat: item.subcat,
     tier: item.tier
@@ -2332,13 +2330,13 @@ function dispatchItemToCharacter(item, charIndex) {
     renderInventory(calculateStats(target));
   }
   updateWorkshopTargetSelect();
-  alert(`👑 已成功向化身【${target.avatar_name}】的背包发放【${item.name}】！`);
+  alert(`👑 已成功向角色【${target.avatar_name}】的背包发放【${item.name}】！`);
 }
 
-// 发放领域卡至指定化身领域秘藏
+// 发放领域卡至指定角色领域秘藏
 function dispatchCardToCharacter(card, charIndex) {
   const target = characters[charIndex] || curChar();
-  if (!target) return alert('未找到目标化身！');
+  if (!target) return alert('未找到目标角色！');
   if (!target.sheet.customDomainCards) target.sheet.customDomainCards = [];
 
   target.sheet.customDomainCards.push(card);
@@ -2347,7 +2345,7 @@ function dispatchCardToCharacter(card, charIndex) {
     renderDomainCards();
   }
   updateWorkshopTargetSelect();
-  alert(`👑 已成功向化身【${target.avatar_name}】的领域秘藏发放【${card.名称 || card.name}】！`);
+  alert(`👑 已成功向角色【${target.avatar_name}】的领域秘藏发放【${card.名称 || card.name}】！`);
 }
 
 // 回显载入物品进入编辑状态
@@ -2360,6 +2358,7 @@ function loadItemToEdit(item) {
   if (el('ws-item-subcat')) el('ws-item-subcat').value = item.subcat || '';
   if (el('ws-item-stats')) el('ws-item-stats').value = item.stats || '';
   if (el('ws-item-desc')) el('ws-item-desc').value = item.desc || '';
+  el('ws-item-appearance').value = validAppearance(item.appearance);
 
   workshopState.editingType = 'item';
   workshopState.editingId = item.id;
@@ -2417,6 +2416,7 @@ function cancelWorkshopEdit() {
   if (el('ws-item-subcat')) el('ws-item-subcat').value = '';
   if (el('ws-item-stats')) el('ws-item-stats').value = '';
   if (el('ws-item-desc')) el('ws-item-desc').value = '';
+  el('ws-item-appearance').value = '';
 
   if (el('ws-card-edit-id')) el('ws-card-edit-id').value = '';
   if (el('ws-card-name')) el('ws-card-name').value = '';
@@ -2580,7 +2580,7 @@ function renderWorkshopLibrary() {
       ${item.stats ? `<div class="ws-card-stats">${item.stats}</div>` : ''}
       <div class="ws-card-body-desc">${renderMarkdown(item.desc || '暂无说明')}</div>
       <div class="ws-card-item-actions">
-        <button type="button" class="ws-btn-mini ws-btn-gold" data-action="dispatch">👑 发放至受赐化身</button>
+        <button type="button" class="ws-btn-mini ws-btn-gold" data-action="dispatch">👑 发放至受赐角色</button>
         <button type="button" class="ws-btn-mini" data-action="edit">✏️ 编辑</button>
         <button type="button" class="ws-btn-mini ws-btn-mini-danger" data-action="del">🗑️ 删除</button>
       </div>
@@ -2703,6 +2703,7 @@ function exportPbDHPack() {
       子类别: item.subcat || '',
       等级: Number(item.tier) || 1,
       效果: item.desc || '',
+      appearance: validAppearance(item.appearance),
       简略信息: item.stats ? { item1: item.stats } : {}
     })),
     customDomains: campaignResources.customDomains || []
@@ -2808,6 +2809,7 @@ function importPbDHPack(e) {
             stats,
             desc: v.效果 || '',
             icon: resolveItemIcon(v.名称, v.类型, v.子类别),
+            appearance: validAppearance(v.appearance),
             qty: 1
           };
           const exIdx = campaignResources.items.findIndex(it => it.name === item.name);
@@ -2848,9 +2850,9 @@ function clearWorkshopLibrary() {
 
 // 背包放入物品模态框 (智能结合 Kenney 图标解析)
 function openAddItemModal(gridIndex = null) {
-  const name = prompt('请输入要放入背包的物品名称：', '精制治疗药水');
+  const name = prompt('物品名称');
   if (!name) return;
-  const desc = prompt('请输入物品描述：', '恢复 1d8 点生命');
+  const desc = prompt('物品描述');
   const c = curChar();
   if (!c.sheet.inventoryItems) c.sheet.inventoryItems = [];
 
@@ -2879,7 +2881,7 @@ function importCharacterJson(e) {
       activeCharIndex = characters.length - 1;
       saveLocal();
       renderAll();
-      alert(`已成功导入化身【${imported.avatar_name}】！`);
+      alert(`已成功导入角色【${imported.avatar_name}】！`);
     } catch (err) {
       alert('导入失败：' + err.message);
     }

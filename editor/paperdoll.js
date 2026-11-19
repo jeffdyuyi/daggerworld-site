@@ -1,5 +1,21 @@
 const art = new URL('./assets/paperdoll/', import.meta.url);
 const sprites = new Map();
+export const itemAppearances = {
+  sword: '剑', dagger: '匕首', axe: '斧', hammer: '锤', spear: '长矛', staff: '法杖',
+  bow: '弓', crossbow: '弩', scythe: '镰刀', shield: '木盾', steelShield: '铁盾',
+  leather: '皮甲', chain: '链甲', plate: '板甲', robe: '长袍', tunic: '短衣',
+  helm: '头盔', hood: '兜帽', crown: '头冠', boots: '靴', gloves: '护手', legs: '护腿',
+  'item-health': '红药瓶', 'item-stress': '蓝药瓶', 'item-poison': '绿药瓶',
+  'item-potion': '高颈瓶', 'item-bottle': '棕药瓶', 'item-scroll': '卷轴', 'item-book': '书',
+  'item-map': '地图', 'item-torch': '火把', 'item-gem': '宝石', 'item-crystal': '晶球',
+  'item-bag': '布袋', 'item-chest': '箱', 'item-ring': '戒指', 'item-charm': '护符',
+  'item-key': '钥匙', 'item-bomb': '炸弹', 'item-rope': '绳索', 'item-gold': '金币',
+  'item-seed': '叶片', 'item-food': '食物', 'item-box': '匣',
+};
+
+export function validAppearance(value) {
+  return Object.hasOwn(itemAppearances, value) ? value : '';
+}
 const iconRules = [
   [/配方|卷轴|契约|羊皮纸/, 'item-scroll'],
   [/生命药水|治疗药/, 'item-health'],
@@ -18,7 +34,7 @@ const iconRules = [
   [/皮甲|软甲|护甲/, 'leather'],
   [/布甲|丝甲|法袍|长袍/, 'robe'],
   [/盾/, 'shield'],
-  [/匕首|短刀|飞刀|刺针/, 'dagger'],
+  [/匕首|短刀|小刀|飞刀|刺针/, 'dagger'],
   [/镰/, 'scythe'],
   [/斧/, 'axe'],
   [/锤|铁头棍|链枷/, 'hammer'],
@@ -51,6 +67,8 @@ const iconRules = [
 ];
 
 export function itemArt(item = {}) {
+  const appearance = validAppearance(item.appearance);
+  if (appearance) return appearance;
   const name = item.名称 ?? item.name ?? '';
   const category = item.子类别 ?? item.subcat ?? '';
   const match = iconRules.find(([pattern]) => pattern.test(name))
@@ -84,7 +102,7 @@ function loadSprite(name) {
 
 const torsoSprites = new Set(['leather', 'chain', 'plate', 'robe', 'tunic']);
 const headSprites = new Set(['helm', 'hood', 'crown']);
-const handSprites = new Set(['sword', 'dagger', 'axe', 'hammer', 'staff', 'spear', 'bow', 'crossbow', 'scythe', 'shield']);
+const handSprites = new Set(['sword', 'dagger', 'axe', 'hammer', 'staff', 'spear', 'bow', 'crossbow', 'scythe', 'shield', 'steelShield']);
 const skinVariants = { pale: ['body', 'body2'], tan: ['tan', 'tan2'], deep: ['deep', 'deep2'], green: ['green', 'green2'] };
 const hairVariants = { brown: 'hair', black: 'hairDark', gold: 'hairGold', gray: 'hairGray' };
 
@@ -114,8 +132,8 @@ export function outfitLayers(sheet, suitActive) {
       ...(gear.feet ? [{ sprite: 'boots', metal: true }] : []),
       ...(hair ? [{ sprite: hair }] : []),
       ...(look.beard ? [{ sprite: 'beard' }] : []),
-      ...(off ? [{ sprite: handSprites.has(off) ? offSprite : 'staff', flip: off !== 'shield' }] : []),
-      ...(main ? [{ sprite: handSprites.has(main) ? main : 'staff', flip: main === 'shield' }] : []),
+      ...(off ? [{ sprite: handSprites.has(off) ? offSprite : 'staff', flip: off !== 'shield' && off !== 'steelShield' }] : []),
+      ...(main ? [{ sprite: handSprites.has(main) ? main : 'staff', flip: main === 'shield' || main === 'steelShield' }] : []),
       ...(helmet ? [{ sprite: headSprites.has(helmet) ? helmet : 'helm' }] : []),
     ],
   };

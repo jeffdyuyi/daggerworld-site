@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>匕首世界角色库 · 化身卡</title>
+  <title>角色库</title>
   <link rel="stylesheet" href="./app.css">
 </head>
 <body class="dw-theme">
@@ -17,7 +17,7 @@
         <span class="brand-icon">⚔️</span>
         <div class="brand-text">
           <span class="sub-title">深水城 2026 · 匕首世界</span>
-          <span class="main-title">角色库 & 化身档案</span>
+          <span class="main-title">角色库</span>
         </div>
       </a>
     </div>
@@ -43,7 +43,7 @@
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
-          <button id="btn-create-char">➕ 新建化身</button>
+          <button id="btn-create-char">新建角色</button>
           <button id="btn-dropdown-workshop">🛠️ 资源工坊与卡包</button>
           <button id="btn-export-json">💾 导出本卡 JSON</button>
           <label class="dropdown-file-label">
@@ -69,11 +69,10 @@
     <div class="vault-hero-banner">
       <div class="vault-hero-content">
         <div class="vault-badge-pill">DAGGERHEART VAULT</div>
-        <h1><span>⚔️</span> 匕首世界 · 化身圣所</h1>
-        <p>管理你在深水城与费伦战役中的专属角色，或铸造新的冒险契约。</p>
+        <h1>角色库</h1>
       </div>
       <div class="vault-hero-actions">
-        <button class="dw-btn dw-btn-gold" id="btn-hero-scroll-create">＋ 铸造新化身</button>
+        <button class="dw-btn dw-btn-gold" id="btn-hero-scroll-create">＋ 新建角色</button>
         <button class="dw-btn dw-btn-outline" id="btn-vault-refresh">🔄 刷新云端</button>
         <button class="dw-btn dw-btn-outline" id="btn-hero-import">📥 导入角色卡 JSON</button>
         <input type="file" id="hero-import-file" accept=".json" hidden>
@@ -86,7 +85,7 @@
       <!-- Left: Existing Characters List -->
       <div class="vault-characters-section">
         <div class="section-title-bar">
-          <h2>📜 已有化身档案 (<span id="vault-count-badge">0</span>)</h2>
+          <h2>已有角色 (<span id="vault-count-badge">0</span>)</h2>
         </div>
         <div class="vault-cards-grid" id="lobby-char-cards-container">
           <!-- Dynamically Injected by renderVaultLobby() -->
@@ -98,14 +97,14 @@
         <div class="creator-card">
           <div class="creator-header">
             <span class="f-badge">创角殿堂</span>
-            <h2>铸造新化身契约</h2>
+            <h2>新建角色</h2>
           </div>
-          <p class="creator-desc">设定角色的核心基石。化身一旦确立，基础设定将铭刻入档案契约（跑团中不可擅自修改，仅主持人拥有特权调整）。</p>
+          <p class="creator-desc">创建后，基础设定由主持人修改。</p>
 
           <form id="form-create-character" class="creator-form" onsubmit="return false;">
             <!-- Name -->
             <div class="form-group">
-              <label for="new-char-name">化身名讳 (Character Name)</label>
+              <label for="new-char-name">角色名</label>
               <input type="text" id="new-char-name" class="creator-input" placeholder="例如：达罗·落星" required maxlength="30">
             </div>
 
@@ -164,7 +163,7 @@
     <div class="char-summary-strip">
       <div class="avatar-tag">
         <span class="level-badge" id="dash-level">Lv 1</span>
-        <span class="name-badge" id="dash-name">无名化身</span>
+        <span class="name-badge" id="dash-name">无名角色</span>
         <span class="gender-badge" id="dash-gender">♂ 男</span>
         <span class="class-badge" id="dash-class">战士</span>
       </div>
@@ -260,7 +259,7 @@
   <!-- Navigation Tabs: 4 Pages -->
   <nav class="page-tabs" id="page-tabs">
     <button class="tab-btn active" data-page="overview">
-      <span class="tab-icon">👤</span> 【化身概览】
+      <span class="tab-icon">👤</span> 角色概览
     </button>
     <button class="tab-btn" data-page="foundations">
       <span class="tab-icon">📜</span> 【角色基石】
@@ -340,7 +339,7 @@
             </div>
 
             <div class="paperdoll-stage">
-              <canvas id="paperdoll" width="128" height="128" role="img" aria-label="化身像素立绘">化身立绘</canvas>
+              <canvas id="paperdoll" width="128" height="128" role="img" aria-label="角色像素立绘">角色立绘</canvas>
               <div class="paperdoll-options">
                 <label>肤色 <select id="paperdoll-skin"><option value="">默认</option><option value="pale">浅色</option><option value="tan">棕色</option><option value="deep">深色</option><option value="green">绿色</option></select></label>
                 <label>头发 <select id="paperdoll-hair"><option value="brown">棕发</option><option value="black">黑发</option><option value="gold">金发</option><option value="gray">灰发</option><option value="none">无发</option></select></label>
@@ -364,7 +363,7 @@
                 <div class="slot-icon-box" id="slot-icon-costume"></div>
                 <div class="slot-info">
                   <span class="slot-name">外观时装</span>
-                  <span class="slot-item" id="slot-name-costume">深水城冒险常服</span>
+                  <span class="slot-item" id="slot-name-costume">空置</span>
                 </div>
               </div>
 
@@ -409,9 +408,9 @@
               <div class="weapon-info">
                 <div class="wp-title-row">
                   <span class="wp-slot-tag">主手武器</span>
-                  <strong class="wp-name" id="wp-main-name">精钢长剑</strong>
+                  <strong class="wp-name" id="wp-main-name">空手</strong>
                 </div>
-                <div class="wp-stats" id="wp-main-stats">近战 · 物理 · 1d8+力量</div>
+                <div class="wp-stats" id="wp-main-stats">—</div>
               </div>
             </div>
 
@@ -420,9 +419,9 @@
               <div class="weapon-info">
                 <div class="wp-title-row">
                   <span class="wp-slot-tag">副手装备</span>
-                  <strong class="wp-name" id="wp-off-name">硬木鸢盾</strong>
+                  <strong class="wp-name" id="wp-off-name">空置</strong>
                 </div>
-                <div class="wp-stats" id="wp-off-stats">+1 护甲</div>
+                <div class="wp-stats" id="wp-off-stats">—</div>
               </div>
             </div>
 
@@ -431,9 +430,9 @@
               <div class="weapon-info">
                 <div class="wp-title-row">
                   <span class="wp-slot-tag">备用武器</span>
-                  <strong class="wp-name" id="wp-spare-name">猎手小刀</strong>
+                  <strong class="wp-name" id="wp-spare-name">空置</strong>
                 </div>
-                <div class="wp-stats" id="wp-spare-stats">近程/远投 · 1d6+敏捷</div>
+                <div class="wp-stats" id="wp-spare-stats">—</div>
               </div>
             </div>
           </div>
@@ -571,7 +570,7 @@
           <div class="identity-header-row">
             <div class="identity-title-group">
               <span class="f-badge">契约基石</span>
-              <h3>化身核心设定</h3>
+              <h3>基础设定</h3>
               <span class="lock-indicator" id="fn-lock-status">
                 <span class="lock-icon">🔒</span> 玩家锁定 (契约确立)
               </span>
@@ -588,14 +587,14 @@
 
           <div class="gm-alert-box" id="gm-alert-notice" hidden>
             👑 <strong>主持人特权调整已激活：</strong>
-            当前为GM后台模式，可修改玩家化身姓名、性别（使用变性药水等道具时）、种族血统或职业子职业。修改将即时生效并同步至档案。
+            当前为GM后台模式，可修改玩家角色姓名、性别（使用变性药水等道具时）、种族血统或职业子职业。修改将即时生效并同步至档案。
           </div>
 
           <!-- Header Selection Row -->
           <div class="foundations-select-bar">
             <div class="f-select-group">
-              <label>化身姓名</label>
-              <input type="text" id="fn-char-name" class="dw-input locked-field" placeholder="输入化身名称" disabled>
+              <label>角色姓名</label>
+              <input type="text" id="fn-char-name" class="dw-input locked-field" placeholder="输入角色名称" disabled>
             </div>
             <div class="f-select-group">
               <label>性别气质</label>
@@ -697,7 +696,7 @@
               <h3>人格与战役秘记</h3>
             </div>
             <div class="f-card-body">
-              <textarea id="fn-gm-notes" class="dw-textarea" rows="4" placeholder="在此记录角色的人格秘密、战役经历或主持人特许备注（对常规化身卡界面隐藏经历）…"></textarea>
+              <textarea id="fn-gm-notes" class="dw-textarea" rows="4" placeholder="在此记录角色的人格秘密、战役经历或主持人特许备注（对常规角色卡界面隐藏经历）…"></textarea>
             </div>
           </div>
         </div>
@@ -874,10 +873,10 @@
     <header class="ws-page-hero">
       <div class="ws-hero-left">
         <div class="ws-hero-nav">
-          <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-to-sheet" title="返回正在调适的化身卡">
+          <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-to-sheet" title="返回正在调适的角色卡">
             <span>‹</span> 返回角色卡
           </button>
-          <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-to-vault" title="返回第一层化身大厅">
+          <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-to-vault" title="返回第一层角色大厅">
             <span>‹</span> 角色库大厅
           </button>
         </div>
@@ -902,11 +901,11 @@
       </div>
     </header>
 
-    <!-- Global Dispatch Target Strip (全队受赐化身选择器) -->
+    <!-- Global Dispatch Target Strip (全队受赐角色选择器) -->
     <section class="ws-dispatch-strip">
       <div class="ws-dispatch-strip-left">
-        <span class="dispatch-crown-badge">👑 受赐化身</span>
-        <select id="ws-target-char-select" class="dw-select ws-target-select" title="选择受赐化身">
+        <span class="dispatch-crown-badge">👑 受赐角色</span>
+        <select id="ws-target-char-select" class="dw-select ws-target-select" title="选择受赐角色">
           <!-- Populated with all characters -->
         </select>
         <div class="ws-target-char-meta" id="ws-target-char-meta">
@@ -914,7 +913,7 @@
         </div>
       </div>
       <div class="ws-strip-hint">
-        <span>💡 在左侧点击条目的【👑 发放】可直接送达该化身随身背包或秘藏</span>
+        <span>💡 在左侧点击条目的【👑 发放】可直接送达该角色随身背包或秘藏</span>
       </div>
     </section>
 
@@ -997,6 +996,8 @@
             <div class="f-select-group">
               <label>子类别 / 标签</label>
               <input type="text" id="ws-item-subcat" class="dw-input" placeholder="例如：药剂 / 奇物 / 单手刃 / 卷轴">
+              <label for="ws-item-appearance">外观</label>
+              <select id="ws-item-appearance" class="dw-select"><option value="">自动匹配</option></select>
             </div>
             <div class="f-select-group">
               <label>简略属性预览</label>
@@ -1026,7 +1027,7 @@
 
           <!-- Action Buttons -->
           <div class="ws-actions-row">
-            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-item">👑 发放至受赐化身背包</button>
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-item">👑 发放至受赐角色背包</button>
             <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-item">💾 保存至储备军械库</button>
           </div>
         </div>
@@ -1083,7 +1084,7 @@
 
           <!-- Action Buttons -->
           <div class="ws-actions-row">
-            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-card">👑 发放至化身领域秘藏</button>
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-card">👑 发放至角色领域秘藏</button>
             <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-card">💾 保存至储备军械库</button>
           </div>
         </div>
@@ -1159,13 +1160,13 @@
         <button class="modal-close-btn" id="vault-modal-close">✕</button>
       </div>
       <div class="modal-body">
-        <p class="vault-intro">在此管理您的所有化身角色。点击任意化身即可切换载入，或创建新的冒险者。</p>
+        <p class="vault-intro">在此管理您的所有角色角色。点击任意角色即可切换载入，或创建新的冒险者。</p>
         <div class="vault-character-list" id="vault-char-list">
           <!-- Characters listed here -->
         </div>
       </div>
       <div class="modal-footer">
-        <button class="dw-btn dw-btn-gold" id="vault-create-btn">➕ 建立新化身</button>
+        <button class="dw-btn dw-btn-gold" id="vault-create-btn">➕ 建立新角色</button>
         <button class="dw-btn dw-btn-outline" id="vault-refresh-btn">🔄 刷新云端</button>
       </div>
     </div>
