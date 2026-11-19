@@ -228,35 +228,41 @@ async function init() {
   setupSlotIcons();
   setupEventListeners();
 
+  // 1. 优先本地秒开 (0ms 极速响应，消除白屏等待)
+  loadLocalFallback();
+  renderAll();
+
+  // 2. 异步加载规则数据库并填充下拉菜单
   try {
-    // 1. Load Database
     const res = await fetch('./data/database.json');
     db = await res.json();
     populateSelectOptions();
+    renderAll();
   } catch (err) {
     console.error('Failed to load database.json:', err);
   }
 
-  // 2. Load User Session and Characters
-  try {
-    currentUser = await loadAccount();
-    if (currentUser) {
-      if (currentUser.characters && currentUser.characters.length > 0) {
+  // 3. 异步后台静默同步云端，网络延时不阻塞页面操作
+  const session = readSession();
+  if (session) {
+    updateSyncStatus(true, `正在同步云端 · ${session.login || '冒险者'}…`);
+    loadAccount().then(account => {
+      currentUser = account;
+      if (currentUser?.characters && currentUser.characters.length > 0) {
         characters = currentUser.characters.map(normalizeCharacter);
         activeCharIndex = 0;
-      } else {
-        loadLocalFallback();
+        saveLocal(); // 同步缓存至本地
+        renderVaultCharList();
+        renderAll();
       }
-      updateSyncStatus(true, `云端在线 · ${currentUser.login || '冒险者'}`);
-    } else {
-      loadLocalFallback();
-    }
-  } catch (err) {
-    console.warn('Session check fallback:', err.message);
-    loadLocalFallback();
+      updateSyncStatus(true, `云端已同步 · ${currentUser.login || '冒险者'}`);
+    }).catch(err => {
+      console.warn('Background sync deferred:', err.message);
+      updateSyncStatus(true, `本地模式 · ${session.login || '冒险者'}`);
+    });
+  } else {
+    updateSyncStatus(false, '本地离线模式');
   }
-
-  renderAll();
 }
 
 function loadLocalFallback() {
