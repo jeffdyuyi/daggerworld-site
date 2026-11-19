@@ -1,4 +1,5 @@
 import { loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
+import { itemArt, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
 
 // Global App State
 let db = null;
@@ -979,6 +980,7 @@ function renderEquipmentSlots(stats) {
       const item = eq[k];
       itemEl.textContent = item ? item.名称 : '空置';
       itemEl.style.color = item ? 'var(--text-main)' : 'var(--text-muted)';
+      renderSlotArt(k, item);
     }
   }
 
@@ -991,6 +993,44 @@ function renderEquipmentSlots(stats) {
 
   el('wp-spare-name').textContent = eq.weapon_spare?.名称 || '空置';
   el('wp-spare-stats').textContent = eq.weapon_spare ? `${eq.weapon_spare.距离 || '近程'} · ${eq.weapon_spare.伤害 || '1d6'}` : '-';
+  for (const slot of ['weapon_main', 'weapon_off', 'weapon_spare']) renderSlotArt(slot, eq[slot]);
+  renderPaperdoll(c, stats.isSuitActive);
+}
+
+function renderSlotArt(slot, item) {
+  const icon = el(`slot-icon-${slot.replace('_', '-')}`);
+  const source = item ? spriteUrl(itemArt(item)) : slotIconMap[slot];
+  if (icon && source) {
+    icon.style.backgroundImage = `url("${source}")`;
+    icon.classList.toggle('pixel-item', Boolean(item));
+  }
+}
+
+function itemImage(item) {
+  const img = document.createElement('img');
+  img.className = 'pixel-item-image';
+  img.src = spriteUrl(itemArt(item));
+  img.alt = '';
+  img.loading = 'lazy';
+  return img;
+}
+
+function renderPaperdoll(character, suitActive) {
+  const look = character.sheet.paperdoll ?? {};
+  el('paperdoll-skin').value = look.skin ?? '';
+  el('paperdoll-hair').value = look.hair ?? 'brown';
+  el('paperdoll-beard').checked = Boolean(look.beard);
+  const exportButton = el('paperdoll-export');
+  const status = el('paperdoll-status');
+  exportButton.disabled = true;
+  status.hidden = true;
+  void paintPaperdoll(el('paperdoll'), character.sheet, suitActive)
+    .then(painted => { if (painted) exportButton.disabled = false; })
+    .catch(() => {
+      if (!exportButton.disabled) return;
+      status.textContent = '立绘加载失败';
+      status.hidden = false;
+    });
 }
 
 function renderFoundations(clsObj) {
@@ -1192,18 +1232,20 @@ function createCardElement(card, isEquipped, index) {
   return div;
 }
 
+function bagCapacity(bags) {
+  const mainCap = Number(bags.main_bag?.capacity ?? bags.main_bag?.容量) || 10;
+  const p1Cap = Number(bags.pouch_1?.capacity ?? bags.pouch_1?.容量) || 0;
+  const p2Cap = Number(bags.pouch_2?.capacity ?? bags.pouch_2?.容量) || 0;
+  const s1Cap = Number(bags.satchel_1?.capacity ?? bags.satchel_1?.容量) || 0;
+  const s2Cap = Number(bags.satchel_2?.capacity ?? bags.satchel_2?.容量) || 0;
+  const extraCap = p1Cap + p2Cap + s1Cap + s2Cap;
+  return { mainCap, p1Cap, p2Cap, s1Cap, s2Cap, extraCap, totalSlots: mainCap + extraCap };
+}
+
 function renderInventory(stats) {
   const c = curChar();
   const bags = c.sheet.bags || {};
-
-  // Bag Equipment Slots
-  const mainCap = bags.main_bag?.capacity || 10;
-  const p1Cap = bags.pouch_1?.capacity || 0;
-  const p2Cap = bags.pouch_2?.capacity || 0;
-  const s1Cap = bags.satchel_1?.capacity || 0;
-  const s2Cap = bags.satchel_2?.capacity || 0;
-  const extraCap = p1Cap + p2Cap + s1Cap + s2Cap;
-  const totalSlots = mainCap + extraCap;
+  const { mainCap, p1Cap, p2Cap, s1Cap, s2Cap, extraCap, totalSlots } = bagCapacity(bags);
 
   el('bag-base-slots').textContent = mainCap;
   el('bag-extra-slots').textContent = extraCap;
@@ -1214,6 +1256,7 @@ function renderInventory(stats) {
   el('bag-name-pouch2').textContent = bags.pouch_2 ? `${bags.pouch_2.名称} (+${p2Cap}格)` : '空腰带位 (0格)';
   el('bag-name-satchel1').textContent = bags.satchel_1 ? `${bags.satchel_1.名称} (+${s1Cap}格)` : '空挎包位 (0格)';
   el('bag-name-satchel2').textContent = bags.satchel_2 ? `${bags.satchel_2.名称} (+${s2Cap}格)` : '空挎包位 (0格)';
+  for (const slot of ['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2']) renderSlotArt(slot, bags[slot]);
 
   // Visual Grid
   const grid = el('inventory-grid');
@@ -1226,10 +1269,11 @@ function renderInventory(stats) {
     cell.className = `grid-cell ${item ? 'occupied' : ''}`;
     if (item) {
       cell.innerHTML = `
-        <span class="cell-icon">${item.icon || '📦'}</span>
+        <span class="cell-icon"></span>
         <span class="cell-name">${item.name}</span>
         ${item.qty > 1 ? `<span class="cell-qty">x${item.qty}</span>` : ''}
       `;
+      cell.querySelector('.cell-icon').append(itemImage(item));
       cell.title = `${item.name}: ${item.desc || '物品'}\n(点击操作)`;
       cell.addEventListener('click', () => {
         openItemActionModal(i);
@@ -1618,6 +1662,17 @@ function setupEventListeners() {
 
   // Add Item to Bag
   el('btn-add-item').addEventListener('click', () => openAddItemModal());
+  el('btn-loot-catalog').addEventListener('click', () => openItemPicker('loot'));
+  for (const field of ['skin', 'hair', 'beard']) {
+    el(`paperdoll-${field}`).addEventListener('change', event => {
+      const character = curChar();
+      const value = field === 'beard' ? event.target.checked : event.target.value;
+      character.sheet.paperdoll = { ...character.sheet.paperdoll, [field]: value };
+      saveLocal();
+      renderPaperdoll(character, calculateStats(character).isSuitActive);
+    });
+  }
+  el('paperdoll-export').addEventListener('click', () => downloadToken(el('paperdoll'), curChar().avatar_name));
   el('btn-clean-bag').addEventListener('click', () => {
     const c = curChar();
     c.sheet.inventoryItems = (c.sheet.inventoryItems || []).filter(Boolean);
@@ -1697,11 +1752,17 @@ let currentPickerCandidates = [];
 function openItemPicker(slotKey) {
   currentPickerSlot = slotKey;
   el('item-picker-modal').hidden = false;
-  el('picker-title').textContent = `选择装备 · 【${getSlotTitle(slotKey)}】`;
-  el('picker-search-input').value = '';
+  const isLoot = slotKey === 'loot';
+  el('picker-title').textContent = isLoot ? '战利品与消耗品' : `选择装备 · ${getSlotTitle(slotKey)}`;
+  const search = el('picker-search-input');
+  search.value = '';
+  search.placeholder = isLoot ? '搜索物品' : '搜索装备';
+  el('picker-unequip-btn').hidden = isLoot;
 
   let candidates = [];
-  if (slotKey.startsWith('weapon_')) {
+  if (isLoot) {
+    candidates = db?.loot || [];
+  } else if (slotKey.startsWith('weapon_')) {
     candidates = db?.weapons || [];
   } else if (slotKey === 'suit') {
     candidates = (db?.armor || []).filter(a => a.类型?.includes('套装') || a.名称?.includes('甲'));
@@ -1742,7 +1803,7 @@ function renderPickerList(items) {
   list.innerHTML = '';
 
   if (!items.length) {
-    list.innerHTML = '<div style="color:var(--text-muted);padding:16px;">没有找到匹配的装备。</div>';
+    list.innerHTML = '<div style="color:var(--text-muted);padding:16px;">未找到物品。</div>';
     return;
   }
 
@@ -1753,14 +1814,38 @@ function renderPickerList(items) {
       <div class="picker-item-title">${item.名称}</div>
       <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? `伤害 ${item.伤害}` : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
       <div class="picker-item-desc">${renderMarkdown(item.描述 || '')}</div>
-      <button class="picker-item-equip-btn">装备此物品</button>
+      <button type="button" class="picker-item-equip-btn">${currentPickerSlot === 'loot' ? '放入背包' : '装备'}</button>
     `;
+    card.querySelector('.picker-item-title').prepend(itemImage(item));
     card.addEventListener('click', () => {
-      equipItemToSlot(currentPickerSlot, item);
+      if (currentPickerSlot === 'loot') {
+        if (!putLootInBag(item)) return;
+      } else {
+        equipItemToSlot(currentPickerSlot, item);
+      }
       el('item-picker-modal').hidden = true;
     });
     list.appendChild(card);
   });
+}
+
+function putLootInBag(item) {
+  const character = curChar();
+  const stats = calculateStats(character);
+  const items = character.sheet.inventoryItems;
+  const existing = items.find(entry => entry.resourceId === item.ID && item.ID);
+  if (existing) {
+    existing.qty = (existing.qty || 1) + 1;
+  } else {
+    if (items.length >= bagCapacity(character.sheet.bags).totalSlots) {
+      alert('背包已满');
+      return false;
+    }
+    items.push({ resourceId: item.ID, name: item.名称, desc: item.描述 || '', type: item.类型, qty: 1 });
+  }
+  saveLocal();
+  renderInventory(stats);
+  return true;
 }
 
 function equipItemToSlot(slotKey, item) {
