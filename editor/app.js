@@ -258,7 +258,7 @@ async function init() {
       updateSyncStatus(true, `云端已同步 · ${currentUser.login || '冒险者'}`);
     }).catch(err => {
       console.warn('Background sync deferred:', err.message);
-      updateSyncStatus(true, `本地模式 · ${session.login || '冒险者'}`);
+      updateSyncStatus(false, `本地模式 · ${session.login || '冒险者'}`);
     });
   } else {
     updateSyncStatus(false, '本地离线模式');

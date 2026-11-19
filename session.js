@@ -16,14 +16,27 @@ function storeSession(session) {
 async function jsonRequest(path, options, token) {
   const headers = { apikey: key, 'Content-Type': 'application/json', ...options.headers };
   if (token) headers.Authorization = 'Bearer ' + token;
-  const response = await fetch(base + path, { ...options, headers });
-  const body = response.status === 204 ? null : await response.json();
-  if (!response.ok) {
-    const error = new Error(body?.error_description || body?.message || body?.error || '请求失败，请稍后重试。');
-    error.status = response.status;
-    throw error;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  try {
+    const response = await fetch(base + path, { ...options, headers, signal: controller.signal });
+    clearTimeout(timeoutId);
+    const body = response.status === 204 ? null : await response.json();
+    if (!response.ok) {
+      const error = new Error(body?.error_description || body?.message || body?.error || '请求失败，请稍后重试。');
+      error.status = response.status;
+      throw error;
+    }
+    return body;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const error = new Error('云端网络连接超时 (海外节点无响应)');
+      error.status = 408;
+      throw error;
+    }
+    throw err;
   }
-  return body;
 }
 
 function subject(token) {
