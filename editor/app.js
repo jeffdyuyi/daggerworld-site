@@ -36,7 +36,7 @@ const slotIconMap = {
   satchel_2: './assets/icons/slot-satchel-2.svg'
 };
 
-// Domain Color Map
+// Domain Color Map (Matching all 11 Chinese domains)
 const domainColors = {
   '利刃': '#b91c1c', '刀锋': '#b91c1c',
   '骸骨': '#9a3412', '骨骼': '#9a3412',
@@ -114,13 +114,71 @@ function createDefaultCharacter(name = '新晋冒险者') {
   };
 }
 
+// Critical Schema Normalizer (Guarantees every field exists, preventing runtime exceptions!)
+function normalizeCharacter(char) {
+  if (!char || typeof char !== 'object') return createDefaultCharacter();
+  const defaultChar = createDefaultCharacter();
+  const defaultSheet = defaultChar.sheet;
+
+  char.avatar_name = char.avatar_name || '深水城探索者';
+  char.level = Number(char.level) || 1;
+  char.notes = char.notes || '';
+  char.id = char.id || ('local_' + Date.now());
+
+  if (!char.sheet || typeof char.sheet !== 'object') {
+    char.sheet = {};
+  }
+  const s = char.sheet;
+
+  s.ancestryId = s.ancestryId || defaultSheet.ancestryId;
+  s.communityId = s.communityId || defaultSheet.communityId;
+  s.classId = s.classId || defaultSheet.classId;
+  s.subclassId = s.subclassId || defaultSheet.subclassId;
+
+  s.hp = {
+    cur: typeof s.hp?.cur === 'number' ? s.hp.cur : defaultSheet.hp.cur,
+    max: typeof s.hp?.max === 'number' ? s.hp.max : defaultSheet.hp.max
+  };
+  s.stress = {
+    cur: typeof s.stress?.cur === 'number' ? s.stress.cur : defaultSheet.stress.cur,
+    max: typeof s.stress?.max === 'number' ? s.stress.max : defaultSheet.stress.max
+  };
+  s.hope = {
+    cur: typeof s.hope?.cur === 'number' ? s.hope.cur : defaultSheet.hope.cur,
+    max: typeof s.hope?.max === 'number' ? s.hope.max : defaultSheet.hope.max
+  };
+  s.armorPips = {
+    cur: typeof s.armorPips?.cur === 'number' ? s.armorPips.cur : 0
+  };
+
+  s.attributes = {
+    agility: typeof s.attributes?.agility === 'number' ? s.attributes.agility : 0,
+    strength: typeof s.attributes?.strength === 'number' ? s.attributes.strength : 2,
+    finesse: typeof s.attributes?.finesse === 'number' ? s.attributes.finesse : 1,
+    instinct: typeof s.attributes?.instinct === 'number' ? s.attributes.instinct : 1,
+    presence: typeof s.attributes?.presence === 'number' ? s.attributes.presence : 0,
+    knowledge: typeof s.attributes?.knowledge === 'number' ? s.attributes.knowledge : -1
+  };
+
+  s.advancements = Array.isArray(s.advancements) ? s.advancements : [];
+  s.equipment = s.equipment && typeof s.equipment === 'object' ? s.equipment : { ...defaultSheet.equipment };
+  s.bags = s.bags && typeof s.bags === 'object' ? s.bags : { ...defaultSheet.bags };
+  s.inventoryItems = Array.isArray(s.inventoryItems) ? s.inventoryItems : [...defaultSheet.inventoryItems];
+  s.currency = s.currency && typeof s.currency === 'object' ? s.currency : { ...defaultSheet.currency };
+  s.equippedDomainCards = Array.isArray(s.equippedDomainCards) ? s.equippedDomainCards : [];
+  s.vaultDomainCards = Array.isArray(s.vaultDomainCards) ? s.vaultDomainCards : [];
+  s.customDomainCards = Array.isArray(s.customDomainCards) ? s.customDomainCards : [];
+
+  return char;
+}
+
 // Active Character Helper
 function curChar() {
   if (!characters.length) {
     characters.push(createDefaultCharacter());
     activeCharIndex = 0;
   }
-  return characters[activeCharIndex];
+  return normalizeCharacter(characters[activeCharIndex]);
 }
 
 // Application Initialization
@@ -143,17 +201,10 @@ async function init() {
     currentUser = await loadAccount();
     if (currentUser) {
       if (currentUser.characters && currentUser.characters.length > 0) {
-        characters = currentUser.characters;
+        characters = currentUser.characters.map(normalizeCharacter);
         activeCharIndex = 0;
       } else {
-        // Logged in but has no cloud characters yet
-        const localData = localStorage.getItem('daggerworld.vault.v1');
-        if (localData) {
-          try { characters = JSON.parse(localData); }
-          catch { characters = [createDefaultCharacter()]; }
-        } else {
-          characters = [createDefaultCharacter()];
-        }
+        loadLocalFallback();
       }
       updateSyncStatus(true, `云端在线 · ${currentUser.login || '冒险者'}`);
     } else {
@@ -171,7 +222,8 @@ function loadLocalFallback() {
   const localData = localStorage.getItem('daggerworld.vault.v1');
   if (localData) {
     try {
-      characters = JSON.parse(localData);
+      const parsed = JSON.parse(localData);
+      characters = (Array.isArray(parsed) && parsed.length > 0) ? parsed.map(normalizeCharacter) : [createDefaultCharacter()];
     } catch {
       characters = [createDefaultCharacter()];
     }
@@ -188,9 +240,11 @@ function saveLocal() {
 function updateSyncStatus(online, text) {
   const badge = el('sync-status');
   const span = el('sync-text');
-  span.textContent = text;
-  if (online) badge.classList.remove('offline');
-  else badge.classList.add('offline');
+  if (span) span.textContent = text;
+  if (badge) {
+    if (online) badge.classList.remove('offline');
+    else badge.classList.add('offline');
+  }
 }
 
 // Setup Static Slot Background Icons
@@ -227,9 +281,15 @@ function populateSelectOptions() {
   const selComm = el('fn-select-community');
   const selClass = el('fn-select-class');
 
-  selAncestry.innerHTML = db.ancestries.map(a => `<option value="${a.ID}">${a.名称}</option>`).join('');
-  selComm.innerHTML = db.communities.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
-  selClass.innerHTML = db.classes.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
+  if (selAncestry && db.ancestries) {
+    selAncestry.innerHTML = db.ancestries.map(a => `<option value="${a.ID}">${a.名称}</option>`).join('');
+  }
+  if (selComm && db.communities) {
+    selComm.innerHTML = db.communities.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
+  }
+  if (selClass && db.classes) {
+    selClass.innerHTML = db.classes.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
+  }
 
   updateSubclassOptions();
 }
@@ -242,11 +302,12 @@ function updateSubclassOptions() {
 
   const subList = db.subclasses.filter(sc => sc.主职 === className);
   const selSub = el('fn-select-subclass');
-  selSub.innerHTML = subList.map(sc => `<option value="${sc.ID}">${sc.名称} (${sc.等级})</option>`).join('');
-
-  if (selSub.options.length > 0) {
-    if (![...selSub.options].some(o => o.value === c.sheet.subclassId)) {
-      c.sheet.subclassId = selSub.options[0].value;
+  if (selSub) {
+    selSub.innerHTML = subList.map(sc => `<option value="${sc.ID}">${sc.名称} (${sc.等级})</option>`).join('');
+    if (selSub.options.length > 0) {
+      if (![...selSub.options].some(o => o.value === c.sheet.subclassId)) {
+        c.sheet.subclassId = selSub.options[0].value;
+      }
     }
   }
 }
@@ -376,9 +437,11 @@ function renderAll() {
 
   // Advancements checkboxes
   const advContainer = el('advancements-container');
-  advContainer.querySelectorAll('input[data-adv]').forEach(cb => {
-    cb.checked = (s.advancements || []).includes(cb.dataset.adv);
-  });
+  if (advContainer) {
+    advContainer.querySelectorAll('input[data-adv]').forEach(cb => {
+      cb.checked = (s.advancements || []).includes(cb.dataset.adv);
+    });
+  }
 
   const tier = c.level <= 4 ? 1 : (c.level <= 7 ? 2 : 3);
   el('cur-tier-tag').textContent = `第 ${tier} 阶位 (${tier === 1 ? '1-4级' : (tier === 2 ? '5-7级' : '8-10级')})`;
@@ -387,9 +450,11 @@ function renderAll() {
   renderEquipmentSlots(stats);
 
   // 4. Attributes Column
-  for (const [attr, mod] of Object.entries(s.attributes)) {
-    const modEl = el(`attr-mod-${attr}`);
-    if (modEl) modEl.textContent = (mod >= 0 ? `+${mod}` : `${mod}`);
+  if (s.attributes) {
+    for (const [attr, mod] of Object.entries(s.attributes)) {
+      const modEl = el(`attr-mod-${attr}`);
+      if (modEl) modEl.textContent = (mod >= 0 ? `+${mod}` : `${mod}`);
+    }
   }
 
   // 5. Foundations Page
@@ -428,7 +493,7 @@ function renderEquipmentSlots(stats) {
   const eq = c.sheet.equipment || {};
 
   el('suit-mode-tag').textContent = stats.isSuitActive ? `套装生效：${stats.suitItem.名称}` : '散件细分累加计算';
-  el('suit-mode-tag').style.borderColor = stats.isSuitActive ? 'var(--accent-cinnabar)' : 'var(--border-brass)';
+  el('suit-mode-tag').style.borderColor = stats.isSuitActive ? 'var(--accent-health)' : 'var(--border-bo3)';
 
   const slotKeys = ['head', 'chest', 'wrists', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'suit', 'costume'];
   for (const k of slotKeys) {
@@ -456,10 +521,10 @@ function renderFoundations(clsObj) {
   const s = c.sheet;
 
   el('fn-char-name').value = c.avatar_name || '';
-  if (s.ancestryId) el('fn-select-ancestry').value = s.ancestryId;
-  if (s.communityId) el('fn-select-community').value = s.communityId;
-  if (s.classId) el('fn-select-class').value = s.classId;
-  if (s.subclassId) el('fn-select-subclass').value = s.subclassId;
+  if (s.ancestryId && el('fn-select-ancestry')) el('fn-select-ancestry').value = s.ancestryId;
+  if (s.communityId && el('fn-select-community')) el('fn-select-community').value = s.communityId;
+  if (s.classId && el('fn-select-class')) el('fn-select-class').value = s.classId;
+  if (s.subclassId && el('fn-select-subclass')) el('fn-select-subclass').value = s.subclassId;
   el('fn-gm-notes').value = c.notes || '';
 
   // Ancestry Cards
@@ -818,7 +883,7 @@ function setupEventListeners() {
       updateSyncStatus(true, '正在刷新云端…');
       const account = await loadAccount();
       if (account?.characters?.length) {
-        characters = account.characters;
+        characters = account.characters.map(normalizeCharacter);
         activeCharIndex = 0;
         updateSyncStatus(true, `云端已同步 · ${account.login || '冒险者'}`);
         renderVaultCharList();
@@ -853,23 +918,44 @@ function setupEventListeners() {
     }
   });
 
-  // More Dropdown
+  // Fixed More Dropdown (Toggle class 'show' and close on outside click)
   const moreBtn = el('btn-more-toggle');
   const moreDropdown = el('more-dropdown');
   moreBtn.addEventListener('click', e => {
     e.stopPropagation();
-    moreDropdown.hidden = !moreDropdown.hidden;
+    moreDropdown.classList.toggle('show');
   });
-  document.addEventListener('click', () => { moreDropdown.hidden = true; });
+  document.addEventListener('click', e => {
+    if (moreDropdown.classList.contains('show') && !moreDropdown.contains(e.target) && e.target !== moreBtn) {
+      moreDropdown.classList.remove('show');
+    }
+  });
 
-  el('btn-create-char').addEventListener('click', createNewAvatar);
-  el('btn-export-json').addEventListener('click', exportCharacterJson);
-  el('import-json-file').addEventListener('change', importCharacterJson);
-  el('btn-roll-init').addEventListener('click', () => openDiceRoll('agility'));
+  el('btn-create-char').addEventListener('click', () => {
+    moreDropdown.classList.remove('show');
+    createNewAvatar();
+  });
+  el('btn-export-json').addEventListener('click', () => {
+    moreDropdown.classList.remove('show');
+    exportCharacterJson();
+  });
+  el('import-json-file').addEventListener('change', e => {
+    moreDropdown.classList.remove('show');
+    importCharacterJson(e);
+  });
+  el('btn-roll-init').addEventListener('click', () => {
+    moreDropdown.classList.remove('show');
+    openDiceRoll('agility');
+  });
 
   // Picker Modal
   el('item-picker-close').addEventListener('click', () => el('item-picker-modal').hidden = true);
   el('picker-unequip-btn').addEventListener('click', unequipCurrentSlot);
+
+  // Search in item picker
+  el('picker-search-input').addEventListener('input', e => {
+    filterPickerItems(e.target.value.trim().toLowerCase());
+  });
 
   // Dice Modal
   el('dice-roll-close').addEventListener('click', () => el('dice-roll-modal').hidden = true);
@@ -954,20 +1040,29 @@ function openItemActionModal(index) {
   el('item-action-modal').hidden = false;
 }
 
+// Cached picker candidates
+let currentPickerCandidates = [];
+
 // Item Picker Modal Logic
 function openItemPicker(slotKey) {
   currentPickerSlot = slotKey;
   el('item-picker-modal').hidden = false;
   el('picker-title').textContent = `选择装备 · 【${getSlotTitle(slotKey)}】`;
-
-  const list = el('picker-items-list');
-  list.innerHTML = '';
+  el('picker-search-input').value = '';
 
   let candidates = [];
   if (slotKey.startsWith('weapon_')) {
     candidates = db?.weapons || [];
   } else if (slotKey === 'suit') {
     candidates = (db?.armor || []).filter(a => a.类型?.includes('套装') || a.名称?.includes('甲'));
+  } else if (slotKey === 'costume') {
+    candidates = [
+      { 名称: '深水城冒险常服', 描述: '轻便体面的冒险常服。' },
+      { 名称: '北地游侠披风服', 描述: '耐磨防尘的荒野旅行装束。' },
+      { 名称: '晨曦神殿见习长袍', 描述: '绣有金线的圣职法衣。' },
+      { 名称: '暗夜潜行紧身衣', 描述: '黑蚕丝与软皮拼接的隐匿装束。' },
+      { 名称: '深水城贵族锦袍', 描述: '用昂贵天鹅绒精制的社交盛装。' }
+    ];
   } else if (slotKey.includes('bag') || slotKey.includes('pouch') || slotKey.includes('satchel')) {
     candidates = (db?.modular_gear || []).filter(g => g.部位 === 'pouch' || g.部位 === 'satchel' || g.部位 === 'main-bag');
   } else {
@@ -975,16 +1070,43 @@ function openItemPicker(slotKey) {
     candidates = (db?.modular_gear || []).filter(g => g.部位 === part || g.类型 === getSlotTitle(slotKey));
   }
 
-  candidates.forEach(item => {
+  currentPickerCandidates = candidates;
+  renderPickerList(candidates);
+}
+
+function filterPickerItems(kw) {
+  if (!kw) {
+    renderPickerList(currentPickerCandidates);
+    return;
+  }
+  const filtered = currentPickerCandidates.filter(item => 
+    (item.名称 && item.名称.toLowerCase().includes(kw)) ||
+    (item.描述 && item.描述.toLowerCase().includes(kw)) ||
+    (item.类型 && item.类型.toLowerCase().includes(kw))
+  );
+  renderPickerList(filtered);
+}
+
+function renderPickerList(items) {
+  const list = el('picker-items-list');
+  list.innerHTML = '';
+
+  if (!items.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);padding:16px;">没有找到匹配的装备。</div>';
+    return;
+  }
+
+  items.forEach(item => {
     const card = document.createElement('div');
     card.className = 'picker-item-card';
     card.innerHTML = `
       <div class="picker-item-title">${item.名称}</div>
       <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? `伤害 ${item.伤害}` : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
       <div class="picker-item-desc">${item.描述 || ''}</div>
+      <button class="picker-item-equip-btn">装备此物品</button>
     `;
     card.addEventListener('click', () => {
-      equipItemToSlot(slotKey, item);
+      equipItemToSlot(currentPickerSlot, item);
       el('item-picker-modal').hidden = true;
     });
     list.appendChild(card);
@@ -1057,10 +1179,10 @@ function executeDualityRoll(attr) {
   const verdictEl = el('roll-verdict');
   if (hopeDie > fearDie) {
     verdictEl.textContent = `🌟 带着希望成功！(总检定值 ${total})，化身获得 1 点希望！`;
-    verdictEl.style.color = '#74ccf4';
+    verdictEl.style.color = '#72b5dc';
   } else if (fearDie > hopeDie) {
     verdictEl.textContent = `⚠️ 带着恐惧推进！(总检定值 ${total})，主持人获得 1 点恐惧！`;
-    verdictEl.style.color = '#ff765e';
+    verdictEl.style.color = '#f87171';
   } else {
     verdictEl.textContent = `⚡ 双骰同值！【关键成功】(CRITICAL SUCCESS)！获得希望，并清除全部压力！`;
     verdictEl.style.color = 'var(--text-gold)';
@@ -1095,7 +1217,7 @@ function renderVaultCharList() {
       </div>
       <div class="vault-char-actions">
         <button class="dw-btn dw-btn-outline" style="padding:4px 8px;font-size:11px;" data-idx="${idx}">切换载入</button>
-        ${characters.length > 1 ? `<button class="dw-btn dw-btn-outline" style="padding:4px 8px;font-size:11px;color:var(--accent-cinnabar-bright);" data-del-idx="${idx}">删除</button>` : ''}
+        ${characters.length > 1 ? `<button class="dw-btn dw-btn-outline" style="padding:4px 8px;font-size:11px;color:var(--accent-health);" data-del-idx="${idx}">删除</button>` : ''}
       </div>
     `;
 
@@ -1198,7 +1320,7 @@ function importCharacterJson(e) {
       const imported = JSON.parse(ev.target.result);
       if (!imported.sheet) throw new Error('无效的角色卡格式');
       imported.id = 'imported_' + Date.now();
-      characters.push(imported);
+      characters.push(normalizeCharacter(imported));
       activeCharIndex = characters.length - 1;
       saveLocal();
       renderAll();

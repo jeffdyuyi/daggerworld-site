@@ -1,34 +1,40 @@
 /* ==========================================================================
    匕首世界 · Web RPG 角色库与化身卡全局样式
-   Tabletop & Velundra Dark Fantasy Aesthetic
+   三局两胜 (BO3 Studio) TRPG 官方社区主题风配色与现代桌游排版
+   Brand Primary: #4D698E (BO3 Steel Blue)
    ========================================================================== */
 
 :root {
-  --bg-dark: #110e0c;
-  --bg-card: #1c1714;
-  --bg-surface: #241e1a;
-  --bg-input: #161210;
-  --bg-hover: #2e2621;
+  /* BO3 Studio Palette */
+  --bo3-primary: #4d698e;
+  --bo3-primary-hover: #5d7fa9;
+  --bo3-primary-deep: #324660;
+  --bo3-blue-light: #5fa8d3;
 
-  --border-gold: #c89b3c;
-  --border-gold-glow: rgba(200, 155, 60, 0.35);
-  --border-subtle: #41352d;
-  --border-brass: #8f6d40;
+  --bg-dark: #0f141c;
+  --bg-header: #141b26;
+  --bg-card: #18202c;
+  --bg-surface: #1f2a3a;
+  --bg-input: #121822;
+  --bg-hover: #263447;
 
-  --text-main: #f0e6d6;
-  --text-muted: #a39281;
-  --text-gold: #e5b958;
-  --text-cinnabar: #e2614b;
+  --border-bo3: #34465d;
+  --border-subtle: #232f3f;
+  --border-gold: #e5b358;
+  --border-glow: rgba(77, 105, 142, 0.4);
 
-  --accent-cinnabar: #853b2b;
-  --accent-cinnabar-bright: #bf432f;
-  --accent-gold: #d4a34b;
-  --accent-hope: #3ca9d4;
+  --text-main: #eaf0f8;
+  --text-muted: #7e92ab;
+  --text-gold: #f3c878;
+  --text-blue: #72b5dc;
+
+  --accent-health: #e25b45;
   --accent-stress: #d88936;
-  --accent-armor: #8a99a8;
+  --accent-hope: #5fa8d3;
+  --accent-armor: #8ba2be;
 
   --font-serif: Georgia, "Microsoft YaHei", "Songti SC", serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "SF Mono", Consolas, Monaco, monospace;
 }
 
@@ -38,19 +44,23 @@
   padding: 0;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body.dw-theme {
   background-color: var(--bg-dark);
   color: var(--text-main);
-  font-family: var(--font-serif);
-  font-size: 15px;
+  font-family: var(--font-sans);
+  font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(133, 59, 43, 0.15) 0%, transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(200, 155, 60, 0.08) 0%, transparent 50%);
+    radial-gradient(circle at 50% 0%, rgba(77, 105, 142, 0.22) 0%, transparent 65%),
+    radial-gradient(circle at 100% 100%, rgba(35, 47, 63, 0.3) 0%, transparent 50%);
 }
 
 /* Scrollbars */
@@ -62,19 +72,20 @@ body.dw-theme {
   background: var(--bg-dark);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--border-bo3);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-brass);
+  background: var(--bo3-primary);
 }
 
 /* ==========================================================================
-   Header & Vault Top Bar
+   Header & Vault Top Bar (BO3 Steel Style)
    ========================================================================== */
 .dw-header {
-  background: rgba(24, 19, 16, 0.96);
-  border-bottom: 2px solid var(--border-subtle);
+  background: rgba(20, 27, 38, 0.95);
+  border-bottom: 2px solid var(--border-bo3);
+  border-top: 3px solid var(--bo3-primary);
   padding: 10px 24px;
   display: flex;
   align-items: center;
@@ -83,7 +94,7 @@ body.dw-theme {
   top: 0;
   z-index: 100;
   backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
 }
 
 .header-left {
@@ -102,7 +113,7 @@ body.dw-theme {
 
 .brand-icon {
   font-size: 24px;
-  filter: drop-shadow(0 0 6px var(--border-gold));
+  filter: drop-shadow(0 0 6px var(--bo3-blue-light));
 }
 
 .brand-text {
@@ -112,13 +123,14 @@ body.dw-theme {
 
 .sub-title {
   font-size: 11px;
-  color: var(--text-gold);
+  color: var(--text-blue);
   letter-spacing: 1px;
   text-transform: uppercase;
+  font-weight: bold;
 }
 
 .main-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: bold;
   letter-spacing: 0.5px;
   color: var(--text-main);
@@ -134,7 +146,7 @@ body.dw-theme {
   align-items: center;
   gap: 10px;
   background: var(--bg-surface);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 24px;
   padding: 6px 16px;
   cursor: pointer;
@@ -143,9 +155,9 @@ body.dw-theme {
 }
 
 .vault-switcher-pill:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
-  box-shadow: 0 0 12px var(--border-gold-glow);
+  box-shadow: 0 0 12px var(--border-glow);
 }
 
 .vault-avatar-icon {
@@ -166,7 +178,7 @@ body.dw-theme {
 
 .cur-char-class {
   font-size: 11px;
-  color: var(--text-gold);
+  color: var(--text-blue);
 }
 
 .dropdown-chevron {
@@ -177,7 +189,7 @@ body.dw-theme {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .sync-badge {
@@ -192,19 +204,19 @@ body.dw-theme {
 }
 
 .status-dot {
-  color: #55bb55;
+  color: #4ade80;
   font-size: 10px;
 }
 
 .sync-badge.offline .status-dot {
-  color: #e2614b;
+  color: #f87171;
 }
 
 /* Buttons */
 .dw-btn {
   font-family: inherit;
   font-size: 13px;
-  padding: 7px 14px;
+  padding: 6px 14px;
   border-radius: 4px;
   cursor: pointer;
   display: inline-flex;
@@ -217,34 +229,34 @@ body.dw-theme {
 }
 
 .dw-btn-outline {
-  background: transparent;
+  background: var(--bg-surface);
   color: var(--text-main);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
 }
 
 .dw-btn-outline:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
-  color: var(--text-gold);
+  color: #fff;
 }
 
 .dw-btn-gold {
-  background: linear-gradient(180deg, #c89b3c 0%, #9e7526 100%);
-  color: #1a1208;
-  border: 1px solid #e5b958;
+  background: linear-gradient(180deg, #4d698e 0%, #364d6b 100%);
+  color: #fff;
+  border: 1px solid var(--bo3-blue-light);
   font-weight: bold;
 }
 
 .dw-btn-gold:hover {
-  background: linear-gradient(180deg, #d8ac4d 0%, #b3852d 100%);
-  box-shadow: 0 0 10px var(--border-gold-glow);
+  background: linear-gradient(180deg, #5b7da8 0%, #415c80 100%);
+  box-shadow: 0 0 10px var(--border-glow);
 }
 
 .dw-btn-icon {
-  background: transparent;
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-bo3);
   color: var(--text-main);
-  padding: 7px 10px;
+  padding: 6px 10px;
   border-radius: 4px;
 }
 
@@ -252,19 +264,24 @@ body.dw-theme {
   position: relative;
 }
 
+/* Fixed Dropdown Menu (No longer stuck open!) */
 .more-dropdown {
   position: absolute;
   right: 0;
-  top: 110%;
+  top: 125%;
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--bo3-primary);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
   border-radius: 6px;
-  min-width: 170px;
-  display: flex;
+  min-width: 190px;
+  display: none; /* Default Hidden */
   flex-direction: column;
-  z-index: 110;
+  z-index: 200;
   padding: 6px 0;
+}
+
+.more-dropdown.show {
+  display: flex !important;
 }
 
 .more-dropdown button,
@@ -286,7 +303,7 @@ body.dw-theme {
 .more-dropdown .dropdown-link:hover,
 .more-dropdown .dropdown-file-label:hover {
   background: var(--bg-hover);
-  color: var(--text-gold);
+  color: var(--bo3-blue-light);
 }
 
 .more-dropdown hr {
@@ -299,10 +316,10 @@ body.dw-theme {
    Combat Dashboard (Top Resource Bar)
    ========================================================================== */
 .combat-dashboard {
-  background: linear-gradient(180deg, #181411 0%, #13100e 100%);
-  border-bottom: 2px solid var(--border-subtle);
+  background: linear-gradient(180deg, #141b26 0%, #10151e 100%);
+  border-bottom: 2px solid var(--border-bo3);
   padding: 16px 24px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 
 .char-summary-strip {
@@ -319,29 +336,29 @@ body.dw-theme {
 }
 
 .level-badge {
-  background: var(--accent-cinnabar);
+  background: var(--bo3-primary);
   color: #fff;
   font-size: 12px;
   font-weight: bold;
   padding: 2px 8px;
   border-radius: 4px;
-  border: 1px solid var(--border-gold);
+  border: 1px solid var(--bo3-blue-light);
 }
 
 .name-badge {
   font-size: 20px;
   font-weight: bold;
-  color: var(--text-gold);
+  color: var(--text-main);
   letter-spacing: 0.5px;
 }
 
 .class-badge {
-  font-size: 14px;
-  color: var(--text-muted);
+  font-size: 13px;
+  color: var(--text-blue);
   background: var(--bg-surface);
   padding: 2px 10px;
   border-radius: 12px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-bo3);
 }
 
 .level-control {
@@ -354,7 +371,7 @@ body.dw-theme {
 
 .stepper-btn {
   background: var(--bg-surface);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   color: var(--text-main);
   width: 26px;
   height: 26px;
@@ -363,10 +380,12 @@ body.dw-theme {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-weight: bold;
 }
 .stepper-btn:hover {
-  background: var(--border-gold);
-  color: #000;
+  background: var(--bo3-primary);
+  color: #fff;
+  border-color: var(--bo3-blue-light);
 }
 
 .resource-tracks-grid {
@@ -386,7 +405,7 @@ body.dw-theme {
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4);
 }
 
-.health-card { border-top: 3px solid var(--accent-cinnabar-bright); }
+.health-card { border-top: 3px solid var(--accent-health); }
 .stress-card { border-top: 3px solid var(--accent-stress); }
 .hope-card   { border-top: 3px solid var(--accent-hope); }
 .armor-card  { border-top: 3px solid var(--accent-armor); }
@@ -427,10 +446,14 @@ body.dw-theme {
   transition: all 0.15s ease;
 }
 
-.pip.filled-health { background: var(--accent-cinnabar-bright); border-color: #ff765e; box-shadow: 0 0 6px rgba(226, 97, 75, 0.5); }
-.pip.filled-stress { background: var(--accent-stress); border-color: #f7a956; box-shadow: 0 0 6px rgba(216, 137, 54, 0.5); }
-.pip.filled-hope   { background: var(--accent-hope); border-color: #74ccf4; box-shadow: 0 0 6px rgba(60, 169, 212, 0.5); }
-.pip.filled-armor  { background: var(--accent-armor); border-color: #c0d1e0; box-shadow: 0 0 6px rgba(138, 153, 168, 0.5); }
+.pip:hover {
+  transform: scale(1.15);
+}
+
+.pip.filled-health { background: var(--accent-health); border-color: #ff8573; box-shadow: 0 0 6px rgba(226, 91, 69, 0.6); }
+.pip.filled-stress { background: var(--accent-stress); border-color: #f7a956; box-shadow: 0 0 6px rgba(216, 137, 54, 0.6); }
+.pip.filled-hope   { background: var(--accent-hope); border-color: #92d4f8; box-shadow: 0 0 6px rgba(95, 168, 211, 0.6); }
+.pip.filled-armor  { background: var(--accent-armor); border-color: #c0d1e0; box-shadow: 0 0 6px rgba(139, 162, 190, 0.6); }
 
 .res-stepper {
   display: flex;
@@ -442,26 +465,27 @@ body.dw-theme {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
-  padding: 3px;
+  padding: 4px;
   font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: bold;
 }
 .res-btn:hover {
   background: var(--bg-hover);
-  border-color: var(--border-brass);
+  border-color: var(--bo3-blue-light);
 }
 
 /* Thresholds Summary Card */
 .thresholds-summary-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  border-top: 3px solid var(--border-gold);
+  border-top: 3px solid var(--bo3-primary);
 }
 
 .threshold-col {
@@ -493,7 +517,7 @@ body.dw-theme {
    Navigation Tabs (4 Pages)
    ========================================================================== */
 .page-tabs {
-  background: #171310;
+  background: #121822;
   display: flex;
   border-bottom: 2px solid var(--border-subtle);
   padding: 0 24px;
@@ -506,7 +530,7 @@ body.dw-theme {
   border-bottom: 3px solid transparent;
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
   padding: 14px 20px;
   cursor: pointer;
@@ -522,9 +546,9 @@ body.dw-theme {
 }
 
 .tab-btn.active {
-  color: var(--text-gold);
-  border-bottom-color: var(--border-gold);
-  background: rgba(200, 155, 60, 0.05);
+  color: var(--bo3-blue-light);
+  border-bottom-color: var(--bo3-blue-light);
+  background: rgba(77, 105, 142, 0.12);
 }
 
 /* ==========================================================================
@@ -565,9 +589,9 @@ body.dw-theme {
 }
 
 .section-title-bar h2 {
-  font-size: 18px;
-  color: var(--text-gold);
-  font-weight: normal;
+  font-size: 17px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .suit-mode-tag {
@@ -575,14 +599,14 @@ body.dw-theme {
   padding: 2px 10px;
   border-radius: 12px;
   background: var(--bg-surface);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   color: var(--text-gold);
 }
 
 /* Paperdoll Silhouette Container */
 .paperdoll-container {
   display: grid;
-  grid-template-columns: 200px 1fr 200px;
+  grid-template-columns: 210px 1fr 210px;
   align-items: center;
   gap: 16px;
   background: var(--bg-card);
@@ -604,14 +628,14 @@ body.dw-theme {
 .silhouette-img {
   max-height: 440px;
   object-fit: contain;
-  filter: drop-shadow(0 0 16px rgba(200, 155, 60, 0.25));
-  opacity: 0.88;
+  filter: drop-shadow(0 0 16px rgba(77, 105, 142, 0.4));
+  opacity: 0.9;
 }
 
 .silhouette-pedestal {
   width: 180px;
   height: 24px;
-  background: radial-gradient(ellipse at center, rgba(200, 155, 60, 0.3) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(77, 105, 142, 0.35) 0%, transparent 70%);
   border-radius: 50%;
   margin-top: -12px;
 }
@@ -628,7 +652,7 @@ body.dw-theme {
   align-items: center;
   gap: 12px;
   background: var(--bg-surface);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
@@ -636,20 +660,20 @@ body.dw-theme {
 }
 
 .gear-slot:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .suit-slot-highlight {
-  border-color: var(--accent-cinnabar);
-  background: rgba(133, 59, 43, 0.2);
+  border-color: var(--accent-health);
+  background: rgba(185, 56, 40, 0.15);
 }
 
 .costume-slot-highlight {
-  border-color: #a855f7;
-  background: rgba(168, 85, 247, 0.15);
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.12);
 }
 
 .slot-icon-box {
@@ -664,6 +688,7 @@ body.dw-theme {
   background-size: 26px 26px;
   background-position: center;
   background-repeat: no-repeat;
+  flex-shrink: 0;
 }
 
 .slot-info {
@@ -699,7 +724,7 @@ body.dw-theme {
   align-items: center;
   gap: 12px;
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;
@@ -707,7 +732,7 @@ body.dw-theme {
 }
 
 .weapon-slot:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
 }
 
@@ -729,7 +754,7 @@ body.dw-theme {
   background: var(--bg-surface);
   padding: 1px 6px;
   border-radius: 4px;
-  color: var(--text-gold);
+  color: var(--text-blue);
 }
 
 .wp-name {
@@ -745,7 +770,7 @@ body.dw-theme {
   color: var(--text-muted);
 }
 
-/* Right 1/4: Attributes Column */
+/* Right 1/4: Attributes Column with Steppers */
 .attributes-defense-section {
   display: flex;
   flex-direction: column;
@@ -753,7 +778,7 @@ body.dw-theme {
 }
 
 .attr-hint {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
@@ -775,7 +800,7 @@ body.dw-theme {
 }
 
 .attr-card:hover {
-  border-color: var(--border-brass);
+  border-color: var(--border-bo3);
 }
 
 .attr-header {
@@ -792,37 +817,40 @@ body.dw-theme {
 
 .attr-step-btn {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-bo3);
   color: var(--text-main);
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 4px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: bold;
   line-height: 1;
   transition: all 0.15s ease;
 }
 
 .attr-step-btn:hover {
-  background: var(--border-gold);
-  color: #000;
-  border-color: var(--border-gold);
+  background: var(--bo3-primary);
+  color: #fff;
+  border-color: var(--bo3-blue-light);
 }
 
 .attr-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: var(--text-main);
 }
 
 .attr-mod {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: bold;
   color: var(--text-gold);
   font-family: var(--font-mono);
+  min-width: 24px;
+  text-align: center;
 }
 
 .attr-desc {
@@ -832,8 +860,8 @@ body.dw-theme {
 
 .roll-trigger-btn {
   background: var(--bg-surface);
-  border: 1px solid var(--border-brass);
-  color: var(--text-gold);
+  border: 1px solid var(--border-bo3);
+  color: var(--text-blue);
   padding: 5px;
   border-radius: 4px;
   font-size: 12px;
@@ -844,13 +872,14 @@ body.dw-theme {
 }
 
 .roll-trigger-btn:hover {
-  background: var(--border-gold);
-  color: #000;
+  background: var(--bo3-primary);
+  color: #fff;
+  border-color: var(--bo3-blue-light);
 }
 
 .defense-stats-box {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 14px;
   display: flex;
@@ -870,7 +899,7 @@ body.dw-theme {
 }
 
 .def-val {
-  font-size: 20px;
+  font-size: 19px;
   color: var(--text-gold);
   font-family: var(--font-mono);
 }
@@ -895,18 +924,18 @@ body.dw-theme {
 }
 
 .levelup-title h3 {
-  font-size: 16px;
-  color: var(--text-gold);
-  font-weight: normal;
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .levelup-tier-tag {
   font-size: 11px;
   background: var(--bg-surface);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   padding: 2px 8px;
   border-radius: 12px;
-  color: var(--text-muted);
+  color: var(--text-blue);
 }
 
 .advancement-options {
@@ -936,7 +965,7 @@ body.dw-theme {
 
 .foundations-select-bar {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 16px 20px;
   display: grid;
@@ -952,7 +981,8 @@ body.dw-theme {
 
 .f-select-group label {
   font-size: 12px;
-  color: var(--text-gold);
+  color: var(--text-blue);
+  font-weight: bold;
 }
 
 .dw-input, .dw-select, .dw-textarea {
@@ -960,7 +990,7 @@ body.dw-theme {
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   padding: 8px 12px;
   border-radius: 4px;
   outline: none;
@@ -968,27 +998,27 @@ body.dw-theme {
 }
 
 .dw-input:focus, .dw-select:focus, .dw-textarea:focus {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
 }
 
 .spellcasting-highlight-card {
-  background: linear-gradient(90deg, rgba(88, 28, 135, 0.4) 0%, rgba(30, 20, 40, 0.8) 100%);
-  border: 1px solid #a855f7;
+  background: linear-gradient(90deg, rgba(77, 105, 142, 0.35) 0%, rgba(20, 27, 38, 0.8) 100%);
+  border: 1px solid var(--bo3-blue-light);
   border-radius: 8px;
   padding: 14px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 4px 16px rgba(95, 168, 211, 0.2);
 }
 
 .sp-icon {
-  font-size: 30px;
+  font-size: 28px;
 }
 
 .sp-content h4 {
-  font-size: 16px;
-  color: #d8b4fe;
+  font-size: 15px;
+  color: var(--text-blue);
   margin-bottom: 2px;
 }
 
@@ -1023,31 +1053,32 @@ body.dw-theme {
 
 .f-badge {
   font-size: 11px;
-  background: var(--accent-cinnabar);
+  background: var(--bo3-primary);
   color: #fff;
   padding: 2px 8px;
   border-radius: 4px;
+  font-weight: bold;
 }
 
 .gm-badge {
-  background: #4338ca;
+  background: #3b82f6;
 }
 
 .f-card-header h3 {
-  font-size: 16px;
-  color: var(--text-gold);
-  font-weight: normal;
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .f-card-body {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-main);
   line-height: 1.7;
 }
 
 .gm-notes-card {
   grid-column: span 2;
-  border-color: #3730a3;
+  border-color: var(--border-bo3);
 }
 
 /* ==========================================================================
@@ -1061,7 +1092,7 @@ body.dw-theme {
 
 .skills-toolbar {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 12px 20px;
   display: flex;
@@ -1090,9 +1121,9 @@ body.dw-theme {
 }
 
 .domain-pill:hover, .domain-pill.active {
-  background: var(--border-gold);
-  color: #000;
-  border-color: var(--border-gold);
+  background: var(--bo3-primary);
+  color: #fff;
+  border-color: var(--bo3-blue-light);
   font-weight: bold;
 }
 
@@ -1107,9 +1138,10 @@ body.dw-theme {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--text-gold);
+  color: var(--text-blue);
   cursor: pointer;
   user-select: none;
+  font-weight: 500;
 }
 
 .domain-sub-header {
@@ -1121,9 +1153,9 @@ body.dw-theme {
 }
 
 .domain-sub-header h3 {
-  font-size: 16px;
-  color: var(--text-gold);
-  font-weight: normal;
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .sub-hint {
@@ -1140,7 +1172,7 @@ body.dw-theme {
 /* Authentic Daggerheart Domain Card Layout */
 .dh-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 10px;
   padding: 14px 16px;
   display: flex;
@@ -1154,14 +1186,14 @@ body.dw-theme {
 }
 
 .dh-card:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   transform: translateY(-3px);
-  box-shadow: 0 6px 20px var(--border-gold-glow);
+  box-shadow: 0 6px 20px var(--border-glow);
 }
 
 .dh-card.equipped {
-  border-color: var(--border-gold);
-  background: linear-gradient(180deg, #251e18 0%, #1a1613 100%);
+  border-color: var(--bo3-blue-light);
+  background: linear-gradient(180deg, #1f2b3b 0%, #17202c 100%);
 }
 
 .dh-card-banner {
@@ -1177,6 +1209,7 @@ body.dw-theme {
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: bold;
+  color: #fff;
 }
 
 .dh-card-title {
@@ -1205,7 +1238,7 @@ body.dw-theme {
 
 .dh-card-action {
   font-size: 12px;
-  color: var(--text-gold);
+  color: var(--text-blue);
   text-align: right;
   margin-top: 4px;
 }
@@ -1222,7 +1255,7 @@ body.dw-theme {
 /* Bag Equipment Panel */
 .bag-equipment-panel {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 16px 20px;
 }
@@ -1235,14 +1268,14 @@ body.dw-theme {
 }
 
 .bag-panel-title h3 {
-  font-size: 16px;
-  color: var(--text-gold);
-  font-weight: normal;
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .bag-summary-badge {
   font-size: 13px;
-  color: var(--text-main);
+  color: var(--text-blue);
 }
 
 .bag-slots-strip {
@@ -1264,7 +1297,7 @@ body.dw-theme {
 }
 
 .bag-slot-card:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
 }
 
@@ -1276,7 +1309,7 @@ body.dw-theme {
 
 .bag-type {
   font-size: 11px;
-  color: var(--text-gold);
+  color: var(--text-blue);
 }
 
 .bag-name {
@@ -1303,9 +1336,9 @@ body.dw-theme {
 }
 
 .grid-panel-header h3 {
-  font-size: 16px;
-  color: var(--text-gold);
-  font-weight: normal;
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .grid-actions {
@@ -1340,12 +1373,12 @@ body.dw-theme {
 }
 
 .grid-cell:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
 }
 
 .grid-cell.occupied {
-  border-color: var(--border-brass);
+  border-color: var(--border-bo3);
   background: var(--bg-surface);
 }
 
@@ -1381,7 +1414,7 @@ body.dw-theme {
 
 .currency-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 14px 18px;
   display: flex;
@@ -1419,10 +1452,10 @@ body.dw-theme {
 /* Modular Armor Formula Card */
 .armor-formula-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-brass);
+  border: 1px solid var(--border-bo3);
   border-radius: 8px;
   padding: 20px;
-  border-top: 3px solid var(--border-gold);
+  border-top: 3px solid var(--bo3-primary);
 }
 
 .formula-header {
@@ -1439,8 +1472,9 @@ body.dw-theme {
 }
 
 .formula-header h3 {
-  font-size: 16px;
-  color: var(--text-gold);
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .formula-subtitle {
@@ -1449,7 +1483,7 @@ body.dw-theme {
 }
 
 .formula-body {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.8;
   color: var(--text-main);
 }
@@ -1463,7 +1497,7 @@ body.dw-theme {
 }
 
 .formula-rule-badge {
-  background: var(--accent-cinnabar);
+  background: var(--bo3-primary);
   color: #fff;
   font-size: 11px;
   padding: 2px 6px;
@@ -1476,12 +1510,12 @@ body.dw-theme {
 .dw-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(8, 12, 18, 0.82);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 250;
   padding: 20px;
 }
 
@@ -1491,14 +1525,14 @@ body.dw-theme {
 
 .dw-modal-window {
   background: var(--bg-card);
-  border: 2px solid var(--border-brass);
+  border: 2px solid var(--border-bo3);
   border-radius: 12px;
   width: 100%;
   max-width: 580px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
   animation: modalIn 0.2s ease-out;
 }
 
@@ -1511,7 +1545,7 @@ body.dw-theme {
 }
 
 @keyframes modalIn {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
 
@@ -1524,8 +1558,9 @@ body.dw-theme {
 }
 
 .modal-header h2 {
-  font-size: 18px;
-  color: var(--text-gold);
+  font-size: 17px;
+  color: var(--text-main);
+  font-weight: bold;
 }
 
 .modal-close-btn {
@@ -1536,7 +1571,7 @@ body.dw-theme {
   cursor: pointer;
 }
 .modal-close-btn:hover {
-  color: var(--text-main);
+  color: #fff;
 }
 
 .modal-body {
@@ -1585,13 +1620,13 @@ body.dw-theme {
 }
 
 .vault-char-card:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
 }
 
 .vault-char-card.active {
-  border-color: var(--border-gold);
-  background: rgba(200, 155, 60, 0.1);
+  border-color: var(--bo3-blue-light);
+  background: rgba(77, 105, 142, 0.18);
 }
 
 .vault-char-left {
@@ -1601,7 +1636,7 @@ body.dw-theme {
 }
 
 .vault-char-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
   color: var(--text-main);
 }
@@ -1638,15 +1673,15 @@ body.dw-theme {
 }
 
 .hope-die {
-  background: linear-gradient(135deg, #1e3a5f 0%, #0d1e33 100%);
-  border-color: var(--accent-hope);
-  color: #74ccf4;
+  background: linear-gradient(135deg, #1c324a 0%, #101c2a 100%);
+  border-color: var(--bo3-blue-light);
+  color: #72b5dc;
 }
 
 .fear-die {
-  background: linear-gradient(135deg, #5c2017 0%, #2e0d08 100%);
-  border-color: var(--accent-cinnabar-bright);
-  color: #ff765e;
+  background: linear-gradient(135deg, #4f1d18 0%, #290d0a 100%);
+  border-color: #f87171;
+  color: #fca5a5;
 }
 
 .die-label {
@@ -1679,8 +1714,8 @@ body.dw-theme {
   padding: 10px;
   border-radius: 6px;
   background: var(--bg-surface);
-  border: 1px solid var(--border-brass);
-  font-size: 15px;
+  border: 1px solid var(--border-bo3);
+  font-size: 14px;
   font-weight: bold;
 }
 
@@ -1702,16 +1737,16 @@ body.dw-theme {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
-  padding: 10px;
+  padding: 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   transition: all 0.15s ease;
 }
 
 .picker-item-card:hover {
-  border-color: var(--border-gold);
+  border-color: var(--bo3-blue-light);
   background: var(--bg-hover);
 }
 
@@ -1729,6 +1764,21 @@ body.dw-theme {
 .picker-item-desc {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.picker-item-equip-btn {
+  margin-top: 4px;
+  background: var(--bo3-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.picker-item-equip-btn:hover {
+  background: var(--bo3-blue-light);
 }
 
 /* ==========================================================================
