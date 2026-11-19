@@ -1,48 +1,237 @@
 .dw-workspace { max-width: min(95vw, 105rem); margin: auto; padding: 0 clamp(0.5rem, 2vw, 2rem) 2.5rem; }
 .dw-page { color: #f1e5d4; display: grid; gap: 1rem; min-width: 0; }
-.dw-page-heading { padding: 1.5rem clamp(1rem, 4vw, 3rem); border: 1px solid #684c37; border-radius: .7rem; background: linear-gradient(110deg,#382621,#1f2029 78%); }
-.dw-page-heading p { margin: 0 0 .35rem; color: #dec097; font-size: .85rem; }
-.dw-page-heading h1 { margin: 0; font-size: clamp(1.55rem, 4vw, 2.55rem); letter-spacing: .08em; }
+.dw-page-heading { padding: 1.25rem clamp(1rem, 4vw, 2.5rem); border: 1px solid #684c37; border-radius: .7rem; background: linear-gradient(110deg,#382621,#1f2029 78%); }
+.dw-page-heading p { margin: 0 0 .35rem; color: #dec097; font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; }
+.dw-page-heading h1 { margin: 0; font-size: clamp(1.55rem, 4vw, 2.45rem); letter-spacing: .08em; }
+
 .dw-panel, .dw-page .question-layout, .dw-page .advancement-region {
-  min-width: 0; padding: clamp(.85rem, 2vw, 1.3rem); border: 1px solid #56473f;
+  min-width: 0; padding: clamp(.85rem, 2vw, 1.25rem); border: 1px solid #56473f;
   border-radius: .65rem; background: #24232b;
 }
-.dw-panel h2, .dw-page .question-layout h2, .dw-page .advancement-region h2 { margin: 0 0 .9rem; color: #f1ce9a; font-size: 1.05rem; }
-.dw-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap: .9rem; align-items: start; }
+.dw-panel h2, .dw-page .question-layout h2, .dw-page .advancement-region h2 {
+  margin: 0 0 .85rem; color: #f1ce9a; font-size: 1.05rem; display: flex; align-items: center; gap: .5rem;
+}
+
+.dw-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap: .85rem; align-items: start; }
 .dw-page .question-layout, .dw-page .advancement-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap: 1rem; }
 .dw-page .question-pair { margin-bottom: .65rem; }
 .dw-experience { display: grid; grid-template-columns: minmax(0,1fr) minmax(4rem,7rem); gap: .75rem; margin-bottom: .65rem; }
-.dw-table { min-height: 25rem; margin-top: 1rem; }
-.dw-loadout { display: grid; grid-template: "armor figure ." minmax(8rem,auto) "main figure off" minmax(8rem,auto) ". figure ." minmax(5rem,auto) / minmax(0,1fr) minmax(10rem,17rem) minmax(0,1fr); gap: .8rem 1.4rem; align-items: center; margin-block: 1rem; }
-.dw-figure { grid-area: figure; display: grid; place-items: center; min-height: 19rem; border-radius: 48% 48% .55rem .55rem; background: radial-gradient(ellipse,#805b363d,transparent 72%); border: 1px solid #715336; }
-.dw-figure img { display: block; width: min(78%, 12rem); height: auto; filter: invert(1) sepia(1) saturate(1.1); mix-blend-mode: screen; opacity: .78; clip-path: inset(2px); }
-.dw-slot { min-width: 0; padding: .8rem; border-radius: .6rem; border: 1px solid #795b42; background: #312a2d; position: relative; }
-.dw-slot h3 { margin: 0 0 .55rem; color: #e9bc82; font-size: .95rem; display: flex; align-items: center; gap: .45rem; }
-.dw-slot-icon { width: 1.15rem; height: 1.15rem; fill: #d8b168; opacity: .9; flex-shrink: 0; }
-.dw-slot-torso { grid-area: armor; }
+.dw-table { min-height: 25rem; margin-top: .75rem; }
+
+/* -------------------------------------------------------------
+ * 概览页 (Overview): 3/4 装备纸娃娃 + 1/4 属性看板
+ * ------------------------------------------------------------- */
+.dw-overview-body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: start;
+}
+.dw-overview-equip { min-width: 0; }
+.dw-overview-stats { min-width: 0; display: flex; flex-direction: column; gap: .85rem; }
+.dw-stats-col-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .65rem;
+}
+
+/* -------------------------------------------------------------
+ * 环形纸娃娃 (Paper Doll Loadout v2 - 仿 Velundra)
+ * ------------------------------------------------------------- */
+.dw-loadout-v2 {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.25fr) minmax(160px, 1.8fr) minmax(130px, 1.25fr);
+  grid-template-areas:
+    "head    figure  main"
+    "chest   figure  off"
+    "back    figure  spare"
+    "wrists  figure  ring1"
+    "legs    figure  ring2"
+    "feet    figure  trinket1"
+    ".       figure  trinket2"
+    "suit    suit    costume";
+  gap: .65rem;
+  align-items: center;
+  background: #1e1d24;
+  padding: clamp(.75rem, 2vw, 1.25rem);
+  border: 1px solid #5b4637;
+  border-radius: .65rem;
+  position: relative;
+}
+.dw-figure {
+  grid-area: figure;
+  display: grid;
+  place-items: center;
+  min-height: 22rem;
+  border-radius: 48% 48% .55rem .55rem;
+  background: radial-gradient(ellipse at center, #805b3644 0%, #1e1d2400 74%);
+  border: 1px solid #715336;
+  position: relative;
+}
+.dw-figure img {
+  display: block;
+  width: min(80%, 12.5rem);
+  height: auto;
+  filter: invert(1) sepia(1) saturate(1.1);
+  mix-blend-mode: screen;
+  opacity: .82;
+  clip-path: inset(2px);
+}
+
+.dw-slot {
+  min-width: 0;
+  padding: .65rem .75rem;
+  border-radius: .55rem;
+  border: 1px solid #795b42;
+  background: #2c262a;
+  position: relative;
+  transition: border-color .15s, background .15s;
+}
+.dw-slot:hover { border-color: #d8b168; background: #352b31; }
+.dw-slot h3 {
+  margin: 0 0 .4rem;
+  color: #e9bc82;
+  font-size: .88rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  letter-spacing: .03em;
+}
+.dw-slot-icon { width: 1.15rem; height: 1.15rem; fill: #dec097; opacity: .88; flex-shrink: 0; }
+
+.dw-slot-head { grid-area: head; }
+.dw-slot-chest { grid-area: chest; }
+.dw-slot-back { grid-area: back; }
+.dw-slot-wrists { grid-area: wrists; }
+.dw-slot-legs { grid-area: legs; }
+.dw-slot-feet { grid-area: feet; }
+
 .dw-slot-main { grid-area: main; }
 .dw-slot-off { grid-area: off; }
-.dw-slot-main::after, .dw-slot-off::before, .dw-slot-torso::after { content: ""; position: absolute; top: 50%; width: 1.4rem; border-top: 1px dashed #b89260; }
-.dw-slot-main::after, .dw-slot-torso::after { left: 100%; }
-.dw-slot-off::before { right: 100%; }
-@media (max-width: 860px) {
-  .dw-loadout { grid-template: "figure figure" "armor armor" "main off" / minmax(0,1fr) minmax(0,1fr); gap: .7rem; }
-  .dw-figure { min-height: 14rem; }
+.dw-slot-spare { grid-area: spare; }
+.dw-slot-ring1 { grid-area: ring1; }
+.dw-slot-ring2 { grid-area: ring2; }
+.dw-slot-trinket1 { grid-area: trinket1; }
+.dw-slot-trinket2 { grid-area: trinket2; }
+
+.dw-slot-suit {
+  grid-area: suit;
+  border-color: #9c6d3d;
+  background: #332622;
+}
+.dw-slot-costume {
+  grid-area: costume;
+  border-color: #7b587a;
+  background: #2b2230;
+}
+
+/* -------------------------------------------------------------
+ * 基石页 (Foundations): 施法焦点
+ * ------------------------------------------------------------- */
+.dw-spellcast-banner {
+  padding: 1rem 1.25rem;
+  background: linear-gradient(90deg, #2a2033, #22232d);
+  border: 1px solid #7c5885;
+  border-radius: .65rem;
+}
+.dw-spellcast-banner h3 { margin: 0 0 .35rem; color: #deb7f0; font-size: 1rem; }
+.dw-spellcast-banner p { margin: 0; color: #d0c2db; font-size: .88rem; line-height: 1.5; }
+
+/* -------------------------------------------------------------
+ * 技能页 (Skills): 主持人特许开关
+ * ------------------------------------------------------------- */
+.dw-skill-controls { display: grid; gap: .75rem; margin-bottom: .85rem; }
+.dw-gm-override-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .65rem 1rem;
+  background: #2d2426;
+  border: 1px dashed #b89260;
+  border-radius: .45rem;
+  color: #f1e5d4;
+  font-size: .9rem;
+}
+.dw-gm-override-box input { accent-color: #b89260; margin-right: .5rem; }
+
+/* -------------------------------------------------------------
+ * 背包页 (Grid Inventory): 格子化物品栏
+ * ------------------------------------------------------------- */
+.dw-inventory-grid-wrap {
+  background: #1e1d24;
+  border: 1px solid #5b4637;
+  border-radius: .65rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.dw-inventory-grid-wrap h3 { margin: 0 0 .75rem; color: #f1ce9a; font-size: .95rem; }
+.dw-grid-slots-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: .5rem;
+}
+.dw-grid-slot {
+  aspect-ratio: 1;
+  border: 1px solid #4a3c33;
+  border-radius: .4rem;
+  background: #25222c;
+  display: grid;
+  place-items: center;
+  color: #8c7663;
+  font-size: .8rem;
+  font-weight: bold;
+  user-select: none;
+  transition: border-color .15s, background .15s;
+}
+.dw-grid-slot:hover { border-color: #d8b168; background: #332d3a; color: #dec097; }
+
+/* -------------------------------------------------------------
+ * 屏幕自适应响应式适配
+ * ------------------------------------------------------------- */
+@media (max-width: 980px) {
+  .dw-overview-body {
+    grid-template-columns: 1fr;
+  }
+  .dw-stats-col-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .dw-loadout-v2 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "figure   figure"
+      "main     off"
+      "head     chest"
+      "back     spare"
+      "wrists   legs"
+      "feet     ring1"
+      "ring2    trinket1"
+      "trinket2 costume"
+      "suit     suit";
+    gap: .5rem;
+    padding: .65rem;
+  }
+  .dw-figure { min-height: 15rem; }
   .dw-figure img { width: 8rem; }
-  .dw-slot-main::after, .dw-slot-off::before, .dw-slot-torso::after { display: none; }
 }
-@media (max-width: 520px) {
-  .dw-workspace { padding-inline: .4rem; }
-  .dw-page-heading { padding: 1rem 1.1rem; }
-  .dw-loadout { grid-template: "figure" "armor" "main" "off" / 1fr; gap: .6rem; }
-  .dw-figure { min-height: 11rem; }
-  .dw-figure img { width: 6.5rem; }
-  .dw-experience { grid-template-columns: 1fr auto; gap: .5rem; }
+
+@media (max-width: 440px) {
+  .dw-workspace { padding-inline: .35rem; }
+  .dw-page-heading { padding: .85rem 1rem; }
+  .dw-loadout-v2 {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "figure" "main" "off" "head" "chest" "back"
+      "wrists" "legs" "feet" "spare" "ring1" "ring2"
+      "trinket1" "trinket2" "suit" "costume";
+  }
+  .dw-grid-slots-preview {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
-@media (min-width: 1200px) {
-  .dw-grid { gap: 1.2rem; grid-template-columns: repeat(auto-fit,minmax(min(100%,15rem),1fr)); }
-  .dw-loadout { gap: 1.2rem 2rem; }
-}
+
 @media print {
   .dw-page, .dw-page-heading, .dw-panel, .dw-slot, .dw-page .question-layout, .dw-page .advancement-region { background: white; color: #171717; }
   .dw-page h1, .dw-page h2, .dw-page h3, .dw-page-heading p { color: #171717; }
