@@ -8,8 +8,7 @@ let activeCharIndex = 0;
 let currentPickerSlot = null;
 let activeRollAttr = 'agility';
 let activeBagItemIndex = null;
-const rollHistoryLimit = 10;
-const rollHistoryCache = new Map();
+const lastRollCache = new Map();
 const rollAttributeNames = { agility: '敏捷', strength: '力量', finesse: '灵巧', instinct: '本能', presence: '风采', knowledge: '知识' };
 
 // Class Icon Mapping for RPG Avatars
@@ -859,7 +858,7 @@ function updateCreatorSubclassOptions() {
 
 function renderAll() {
   const c = curChar();
-  renderRollHistory(c);
+  renderLastRoll(c);
   const s = c.sheet;
   const stats = calculateStats(c);
 
@@ -1808,28 +1807,29 @@ function rollHistoryKey(character) {
   return `daggerworld.roll-history.v1:${JSON.stringify([currentUser?.owner ?? 'local', character.id])}`;
 }
 
-function readRollHistory(key) {
-  if (!rollHistoryCache.has(key)) {
-    let entries = [];
+function readLastRoll(key) {
+  if (!lastRollCache.has(key)) {
+    let entry = null;
     try {
-      const stored = JSON.parse(localStorage.getItem(key) ?? '[]');
-      if (Array.isArray(stored)) entries = stored.filter(entry => entry && typeof entry === 'object').slice(0, rollHistoryLimit);
-    } catch { /* A fresh list remains available if storage is unavailable. */ }
-    rollHistoryCache.set(key, entries);
+      const stored = JSON.parse(localStorage.getItem(key) ?? 'null');
+      entry = Array.isArray(stored) ? stored[0] ?? null : stored;
+      if (Array.isArray(stored)) localStorage.setItem(key, JSON.stringify(entry));
+    } catch { /* The last roll remains available in memory. */ }
+    lastRollCache.set(key, entry);
   }
-  return rollHistoryCache.get(key);
+  return lastRollCache.get(key);
 }
 
-function renderRollHistory(character) {
-  const rows = readRollHistory(rollHistoryKey(character)).map(entry => {
-    const row = document.createElement('li');
-    const time = new Date(entry.at).toLocaleTimeString('zh-CN', { hour12: false });
-    const modifier = entry.mod >= 0 ? `+${entry.mod}` : String(entry.mod);
-    row.textContent = `${time} · ${rollAttributeNames[entry.attr] ?? '属性'} · 希望 ${entry.hope} / 恐惧 ${entry.fear} · 修正 ${modifier} · 合计 ${entry.total} · ${entry.outcome}`;
-    return row;
-  });
-  el('roll-history-list').replaceChildren(...rows);
-  el('roll-history-empty').hidden = rows.length > 0;
+function renderLastRoll(character) {
+  const entry = readLastRoll(rollHistoryKey(character));
+  const display = el('last-roll');
+  display.hidden = !entry;
+  if (!entry) {
+    display.textContent = '';
+    return;
+  }
+  const modifier = entry.mod >= 0 ? `+${entry.mod}` : String(entry.mod);
+  display.textContent = `上一次检定 · ${rollAttributeNames[entry.attr] ?? '属性'} · 希望 ${entry.hope} / 恐惧 ${entry.fear} · 修正 ${modifier} · 合计 ${entry.total} · ${entry.outcome}`;
 }
 
 function openDiceRoll(attr) {
@@ -1870,11 +1870,10 @@ function executeDualityRoll(attr) {
     verdictEl.style.color = 'var(--text-gold)';
   }
   const key = rollHistoryKey(c);
-  const entry = { at: Date.now(), attr, hope: hopeDie, fear: fearDie, mod, total, outcome };
-  const history = [entry, ...readRollHistory(key)].slice(0, rollHistoryLimit);
-  rollHistoryCache.set(key, history);
-  try { localStorage.setItem(key, JSON.stringify(history)); } catch { /* Keep this session's rolls. */ }
-  renderRollHistory(c);
+  const entry = { attr, hope: hopeDie, fear: fearDie, mod, total, outcome };
+  lastRollCache.set(key, entry);
+  try { localStorage.setItem(key, JSON.stringify(entry)); } catch { /* Keep the last roll in memory. */ }
+  renderLastRoll(c);
 }
 
 // Character Vault Modal Management

@@ -3023,13 +3023,12 @@ body.dw-theme {
     align-items: flex-start;
   }
 }
-.roll-history {
+.last-roll {
   margin-block: .65rem;
   padding: .65rem .8rem;
   border: 1px solid currentColor;
   border-radius: .4rem;
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
-.roll-history summary { cursor: pointer; font-weight: 600; }
-.roll-history p { font-size: .85rem; margin: .45rem 0; }
-.roll-history ol { padding-inline-start: 1.3rem; margin-block: .4rem; }
-.roll-history li { padding-block: .3rem; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
