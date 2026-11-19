@@ -32,7 +32,7 @@
 
     <div class="header-right">
       <span class="sync-badge" id="sync-status">
-        <span class="status-dot">●</span> <span id="sync-text">本地离线</span>
+        <span class="status-dot">●</span> <span id="sync-text">正在连接云端…</span>
       </span>
       <button class="dw-btn dw-btn-outline" id="btn-save-cloud" title="立即保存至云端">☁️ 保存</button>
       <button class="dw-btn dw-btn-outline" id="btn-open-vault">📋 角色库</button>
@@ -178,7 +178,7 @@
         <div class="equipment-paperdoll-section">
           <div class="section-title-bar">
             <h2>角色随身装备</h2>
-            <div class="suit-mode-tag" id="suit-mode-tag">散件计算中</div>
+            <div class="suit-mode-tag" id="suit-mode-tag">散件细分累加计算</div>
           </div>
 
           <div class="paperdoll-container">
@@ -253,7 +253,7 @@
                 <div class="slot-icon-box" id="slot-icon-costume"></div>
                 <div class="slot-info">
                   <span class="slot-name">外观时装</span>
-                  <span class="slot-item" id="slot-name-costume">冒险常服</span>
+                  <span class="slot-item" id="slot-name-costume">深水城冒险常服</span>
                 </div>
               </div>
 
@@ -298,7 +298,7 @@
               <div class="weapon-info">
                 <div class="wp-title-row">
                   <span class="wp-slot-tag">主手武器</span>
-                  <strong class="wp-name" id="wp-main-name">简易近战武器</strong>
+                  <strong class="wp-name" id="wp-main-name">精钢长剑</strong>
                 </div>
                 <div class="wp-stats" id="wp-main-stats">近战 · 物理 · 1d8+力量</div>
               </div>
@@ -309,9 +309,9 @@
               <div class="weapon-info">
                 <div class="wp-title-row">
                   <span class="wp-slot-tag">副手装备</span>
-                  <strong class="wp-name" id="wp-off-name">空手 / 盾牌</strong>
+                  <strong class="wp-name" id="wp-off-name">硬木鸢盾</strong>
                 </div>
-                <div class="wp-stats" id="wp-off-stats">-</div>
+                <div class="wp-stats" id="wp-off-stats">+1 护甲</div>
               </div>
             </div>
 
@@ -320,7 +320,7 @@
               <div class="weapon-info">
                 <div class="wp-title-row">
                   <span class="wp-slot-tag">备用武器</span>
-                  <strong class="wp-name" id="wp-spare-name">备用匕首</strong>
+                  <strong class="wp-name" id="wp-spare-name">猎手小刀</strong>
                 </div>
                 <div class="wp-stats" id="wp-spare-stats">近程/远投 · 1d6+敏捷</div>
               </div>
@@ -328,66 +328,90 @@
           </div>
         </div>
 
-        <!-- Right 1/4: Attributes Column -->
+        <!-- Right 1/4: Attributes Column with Steppers -->
         <div class="attributes-defense-section">
           <div class="section-title-bar">
             <h2>角色属性</h2>
-            <span class="attr-hint">点击骰子检定</span>
+            <span class="attr-hint">点击步进调整，点击检定掷骰</span>
           </div>
 
           <div class="attributes-list">
             <div class="attr-card" data-attr="agility">
               <div class="attr-header">
                 <span class="attr-name">敏捷 (Agility)</span>
-                <span class="attr-mod" id="attr-mod-agility">+0</span>
+                <div class="attr-stepper">
+                  <button class="attr-step-btn" data-attr-step="agility" data-delta="-1">-</button>
+                  <span class="attr-mod" id="attr-mod-agility">+0</span>
+                  <button class="attr-step-btn" data-attr-step="agility" data-delta="1">+</button>
+                </div>
               </div>
               <p class="attr-desc">冲刺 · 闪避 · 杂技 · 移动</p>
-              <button class="roll-trigger-btn" data-attr-roll="agility">🎲 检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="agility">🎲 双元骰检定</button>
             </div>
 
             <div class="attr-card" data-attr="strength">
               <div class="attr-header">
                 <span class="attr-name">力量 (Strength)</span>
-                <span class="attr-mod" id="attr-mod-strength">+0</span>
+                <div class="attr-stepper">
+                  <button class="attr-step-btn" data-attr-step="strength" data-delta="-1">-</button>
+                  <span class="attr-mod" id="attr-mod-strength">+2</span>
+                  <button class="attr-step-btn" data-attr-step="strength" data-delta="1">+</button>
+                </div>
               </div>
               <p class="attr-desc">粉碎 · 举重 · 近战 · 坚韧</p>
-              <button class="roll-trigger-btn" data-attr-roll="strength">🎲 检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="strength">🎲 双元骰检定</button>
             </div>
 
             <div class="attr-card" data-attr="finesse">
               <div class="attr-header">
                 <span class="attr-name">灵巧 (Finesse)</span>
-                <span class="attr-mod" id="attr-mod-finesse">+0</span>
+                <div class="attr-stepper">
+                  <button class="attr-step-btn" data-attr-step="finesse" data-delta="-1">-</button>
+                  <span class="attr-mod" id="attr-mod-finesse">+1</span>
+                  <button class="attr-step-btn" data-attr-step="finesse" data-delta="1">+</button>
+                </div>
               </div>
               <p class="attr-desc">瞄准 · 潜行 · 巧手 · 锁匠</p>
-              <button class="roll-trigger-btn" data-attr-roll="finesse">🎲 检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="finesse">🎲 双元骰检定</button>
             </div>
 
             <div class="attr-card" data-attr="instinct">
               <div class="attr-header">
                 <span class="attr-name">本能 (Instinct)</span>
-                <span class="attr-mod" id="attr-mod-instinct">+0</span>
+                <div class="attr-stepper">
+                  <button class="attr-step-btn" data-attr-step="instinct" data-delta="-1">-</button>
+                  <span class="attr-mod" id="attr-mod-instinct">+1</span>
+                  <button class="attr-step-btn" data-attr-step="instinct" data-delta="1">+</button>
+                </div>
               </div>
               <p class="attr-desc">洞察 · 察觉 · 野性 · 直觉</p>
-              <button class="roll-trigger-btn" data-attr-roll="instinct">🎲 检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="instinct">🎲 双元骰检定</button>
             </div>
 
             <div class="attr-card" data-attr="presence">
               <div class="attr-header">
                 <span class="attr-name">风采 (Presence)</span>
-                <span class="attr-mod" id="attr-mod-presence">+0</span>
+                <div class="attr-stepper">
+                  <button class="attr-step-btn" data-attr-step="presence" data-delta="-1">-</button>
+                  <span class="attr-mod" id="attr-mod-presence">+0</span>
+                  <button class="attr-step-btn" data-attr-step="presence" data-delta="1">+</button>
+                </div>
               </div>
               <p class="attr-desc">魅力 · 威吓 · 说服 · 领导</p>
-              <button class="roll-trigger-btn" data-attr-roll="presence">🎲 检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="presence">🎲 双元骰检定</button>
             </div>
 
             <div class="attr-card" data-attr="knowledge">
               <div class="attr-header">
                 <span class="attr-name">知识 (Knowledge)</span>
-                <span class="attr-mod" id="attr-mod-knowledge">+0</span>
+                <div class="attr-stepper">
+                  <button class="attr-step-btn" data-attr-step="knowledge" data-delta="-1">-</button>
+                  <span class="attr-mod" id="attr-mod-knowledge">-1</span>
+                  <button class="attr-step-btn" data-attr-step="knowledge" data-delta="1">+</button>
+                </div>
               </div>
               <p class="attr-desc">回想 · 分析 · 奥术 · 调查</p>
-              <button class="roll-trigger-btn" data-attr-roll="knowledge">🎲 检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="knowledge">🎲 双元骰检定</button>
             </div>
           </div>
 
@@ -416,12 +440,12 @@
           <span class="levelup-tier-tag" id="cur-tier-tag">第 1 阶位 (1-4级)</span>
         </div>
         <div class="advancement-options" id="advancements-container">
-          <label class="adv-choice"><input type="checkbox" data-adv="attr1"> +1 属性值</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="attr2"> +1 额外属性值</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="hp1"> +1 生命上限</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="hp1"> +1 生命槽上限</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="hp2"> +1 额外生命上限</label>
           <label class="adv-choice"><input type="checkbox" data-adv="stress1"> +1 压力上限</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="prof"> +1 伤害熟练度</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="domain"> 额外领域卡牌</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="stress2"> +1 额外压力上限</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="prof"> +1 熟练度加值</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="hope"> +1 希望槽上限</label>
         </div>
       </div>
     </section>
@@ -542,7 +566,7 @@
         <!-- Filter Toolbar -->
         <div class="skills-toolbar">
           <div class="domain-filters" id="domain-filters-bar">
-            <!-- Dynamically populated or all domains -->
+            <!-- Dynamically populated -->
           </div>
 
           <div class="skills-controls-right">
@@ -643,7 +667,7 @@
           </div>
           
           <div class="visual-slots-grid" id="inventory-grid">
-            <!-- 10+ slots rendered as real Diablo/Velundra style grid cells -->
+            <!-- Rendered Diablo/Velundra style grid cells -->
           </div>
         </div>
 
@@ -778,15 +802,17 @@
         <div class="f-select-group">
           <label>归属领域</label>
           <select id="cc-domain" class="dw-select">
-            <option value="刀锋">刀锋 (Blade)</option>
-            <option value="骨骼">骨骼 (Bone)</option>
-            <option value="秘典">秘典 (Codex)</option>
+            <option value="利刃">利刃 (Blade)</option>
+            <option value="骸骨">骸骨 (Bone)</option>
+            <option value="典籍">典籍 (Codex)</option>
             <option value="优雅">优雅 (Grace)</option>
             <option value="午夜">午夜 (Midnight)</option>
-            <option value="智者">智者 (Sage)</option>
-            <option value="辉光">辉光 (Splendor)</option>
+            <option value="贤者">贤者 (Sage)</option>
+            <option value="辉耀">辉耀 (Splendor)</option>
             <option value="勇气">勇气 (Valor)</option>
             <option value="奥术">奥术 (Arcana)</option>
+            <option value="恐怖">恐怖 (Dread)</option>
+            <option value="秘密">秘密 (Secret)</option>
           </select>
         </div>
         <div class="f-select-group">
@@ -804,6 +830,29 @@
       </div>
       <div class="modal-footer">
         <button class="dw-btn dw-btn-gold" id="cc-submit-btn">保存至化身领域秘藏</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Item Action Modal (Bag Click) -->
+  <div class="dw-modal-backdrop" id="item-action-modal" hidden>
+    <div class="dw-modal-window narrow-modal">
+      <div class="modal-header">
+        <h2 id="item-action-title">物品操作</h2>
+        <button class="modal-close-btn" id="item-action-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="item-action-desc" style="font-size:13px;color:var(--text-main);"></p>
+        <div class="item-qty-control" style="display:flex;align-items:center;gap:12px;margin-top:10px;">
+          <span style="font-size:13px;color:var(--text-muted);">物品持有数量：</span>
+          <button class="stepper-btn" id="item-qty-minus">-</button>
+          <strong id="item-qty-val" style="font-size:16px;color:var(--text-gold);">1</strong>
+          <button class="stepper-btn" id="item-qty-plus">+</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="dw-btn dw-btn-outline" style="color:var(--accent-cinnabar-bright);" id="item-action-delete">🗑️ 丢弃</button>
+        <button class="dw-btn dw-btn-gold" id="item-action-use">🧪 使用/消耗 1个</button>
       </div>
     </div>
   </div>

@@ -7,8 +7,9 @@ let characters = [];
 let activeCharIndex = 0;
 let currentPickerSlot = null;
 let activeRollAttr = 'agility';
+let activeBagItemIndex = null;
 
-// DOM Elements
+// DOM Helper
 const el = id => document.getElementById(id);
 
 // Slot SVG Icon mapping
@@ -35,6 +36,21 @@ const slotIconMap = {
   satchel_2: './assets/icons/slot-satchel-2.svg'
 };
 
+// Domain Color Map
+const domainColors = {
+  '利刃': '#b91c1c', '刀锋': '#b91c1c',
+  '骸骨': '#9a3412', '骨骼': '#9a3412',
+  '典籍': '#1d4ed8', '秘典': '#1d4ed8',
+  '优雅': '#ec4899',
+  '午夜': '#4c1d95',
+  '贤者': '#047857', '智者': '#047857',
+  '辉耀': '#d97706', '辉光': '#d97706',
+  '勇气': '#b45309',
+  '奥术': '#7c3aed',
+  '恐怖': '#831843',
+  '秘密': '#0f766e'
+};
+
 // Default Character Template
 function createDefaultCharacter(name = '新晋冒险者') {
   return {
@@ -43,10 +59,10 @@ function createDefaultCharacter(name = '新晋冒险者') {
     level: 1,
     notes: '',
     sheet: {
-      ancestryId: '血统:人类',
-      communityId: '社群:漫游者',
+      ancestryId: '种族:人类',
+      communityId: '社群:巧手匠',
       classId: '职业:战士',
-      subclassId: '子职:战士:杀手:基础',
+      subclassId: '子职:战士:勇气呼唤:基础',
       hp: { cur: 6, max: 6 },
       stress: { cur: 0, max: 6 },
       hope: { cur: 2, max: 6 },
@@ -71,7 +87,7 @@ function createDefaultCharacter(name = '新晋冒险者') {
         ring2: null,
         trinket1: null,
         trinket2: null,
-        suit: null, // Suit set item
+        suit: null,
         costume: { 名称: '深水城冒险者常服' },
         weapon_main: { 名称: '精钢长剑', 伤害: '1d8+力量', 距离: '近战', 属性: '力量', 伤害类型: '物理' },
         weapon_off: { 名称: '硬木鸢盾', 护甲值: 1, 描述: '提供招架与抵挡' },
@@ -107,7 +123,7 @@ function curChar() {
   return characters[activeCharIndex];
 }
 
-// Initialize Application
+// Application Initialization
 async function init() {
   setupTabs();
   setupSlotIcons();
@@ -125,15 +141,26 @@ async function init() {
   // 2. Load User Session and Characters
   try {
     currentUser = await loadAccount();
-    if (currentUser?.characters?.length) {
-      characters = currentUser.characters;
-      activeCharIndex = 0;
+    if (currentUser) {
+      if (currentUser.characters && currentUser.characters.length > 0) {
+        characters = currentUser.characters;
+        activeCharIndex = 0;
+      } else {
+        // Logged in but has no cloud characters yet
+        const localData = localStorage.getItem('daggerworld.vault.v1');
+        if (localData) {
+          try { characters = JSON.parse(localData); }
+          catch { characters = [createDefaultCharacter()]; }
+        } else {
+          characters = [createDefaultCharacter()];
+        }
+      }
       updateSyncStatus(true, `云端在线 · ${currentUser.login || '冒险者'}`);
     } else {
       loadLocalFallback();
     }
   } catch (err) {
-    console.warn('Using local fallback session:', err.message);
+    console.warn('Session check fallback:', err.message);
     loadLocalFallback();
   }
 
@@ -176,7 +203,7 @@ function setupSlotIcons() {
   }
 }
 
-// Setup Tab Navigation (4 Pages)
+// Setup Tab Navigation
 function setupTabs() {
   const tabs = document.querySelectorAll('.tab-btn');
   tabs.forEach(btn => {
@@ -192,7 +219,7 @@ function setupTabs() {
   });
 }
 
-// Populate Select Dropdowns on Foundations Page
+// Populate Select Dropdowns
 function populateSelectOptions() {
   if (!db) return;
 
@@ -216,20 +243,46 @@ function updateSubclassOptions() {
   const subList = db.subclasses.filter(sc => sc.主职 === className);
   const selSub = el('fn-select-subclass');
   selSub.innerHTML = subList.map(sc => `<option value="${sc.ID}">${sc.名称} (${sc.等级})</option>`).join('');
+
+  if (selSub.options.length > 0) {
+    if (![...selSub.options].some(o => o.value === c.sheet.subclassId)) {
+      c.sheet.subclassId = selSub.options[0].value;
+    }
+  }
 }
 
-// Calculation Engine: Modular Armor & Damage Thresholds
-function calculateDefenseAndThresholds(char) {
+// Dynamic Defense, Maximum Resources, and Damage Thresholds Engine
+function calculateStats(char) {
   const lvl = char.level || 1;
-  const eq = char.sheet.equipment || {};
+  const s = char.sheet || {};
+  const eq = s.equipment || {};
+  const advs = s.advancements || [];
 
+  // Base Max HP and Stress from Class & Advancements
+  const clsObj = db?.classes?.find(x => x.ID === s.classId || x.名称 === s.classId);
+  const baseHp = Number(clsObj?.生命点 || 6);
+  const hpBonus = advs.filter(a => a.startsWith('hp')).length;
+  const maxHp = baseHp + hpBonus;
+
+  const stressBonus = advs.filter(a => a.startsWith('stress')).length;
+  const maxStress = 6 + stressBonus;
+
+  const hopeBonus = advs.filter(a => a === 'hope').length;
+  const maxHope = 6 + hopeBonus;
+
+  // Base Proficiency
+  const baseProf = Math.max(1, Math.floor((lvl - 1) / 3) + 1);
+  const profBonus = advs.filter(a => a === 'prof').length;
+  const totalProf = baseProf + profBonus;
+
+  // Armor & Thresholds Calculation
   let baseArmor = 0;
   let majorBonus = 0;
   let severeBonus = 0;
   let isSuitActive = false;
   let suitItem = null;
 
-  // Check if a full suit is equipped (e.g., 皮甲套装, 锁甲套装, 板甲套装)
+  // Check if a full suit is equipped (e.g. 皮甲套装, 锁甲套装, 板甲套装)
   if (eq.suit && eq.suit.名称 && eq.suit.名称 !== '无套装 (无甲)') {
     isSuitActive = true;
     suitItem = eq.suit;
@@ -258,6 +311,10 @@ function calculateDefenseAndThresholds(char) {
   const severeThreshold = (lvl * 2) + severeBonus;
 
   return {
+    maxHp,
+    maxStress,
+    maxHope,
+    totalProf,
     baseArmor,
     majorThreshold,
     severeThreshold,
@@ -272,7 +329,16 @@ function calculateDefenseAndThresholds(char) {
 function renderAll() {
   const c = curChar();
   const s = c.sheet;
-  const def = calculateDefenseAndThresholds(c);
+  const stats = calculateStats(c);
+
+  // Sync Max limits to state
+  s.hp.max = stats.maxHp;
+  s.stress.max = stats.maxStress;
+  s.hope.max = stats.maxHope;
+  if (s.hp.cur > s.hp.max) s.hp.cur = s.hp.max;
+  if (s.stress.cur > s.stress.max) s.stress.cur = s.stress.max;
+  if (s.hope.cur > s.hope.max) s.hope.cur = s.hope.max;
+  if (s.armorPips.cur > stats.baseArmor) s.armorPips.cur = stats.baseArmor;
 
   // 1. Top Header Info
   el('cur-char-name').textContent = c.avatar_name || '无名化身';
@@ -287,7 +353,7 @@ function renderAll() {
   renderPips('hp', s.hp.cur, s.hp.max, 'filled-health');
   renderPips('stress', s.stress.cur, s.stress.max, 'filled-stress');
   renderPips('hope', s.hope.cur, s.hope.max, 'filled-hope');
-  renderPips('armor', s.armorPips.cur, def.baseArmor, 'filled-armor');
+  renderPips('armor', s.armorPips.cur, stats.baseArmor, 'filled-armor');
 
   el('hp-cur').textContent = s.hp.cur;
   el('hp-max').textContent = s.hp.max;
@@ -296,20 +362,29 @@ function renderAll() {
   el('hope-cur').textContent = s.hope.cur;
   el('hope-max').textContent = s.hope.max;
   el('armor-cur').textContent = s.armorPips.cur;
-  el('armor-max').textContent = def.baseArmor;
+  el('armor-max').textContent = stats.baseArmor;
 
   // Thresholds Dashboard Readout
-  el('th-minor').textContent = `1 ~ ${def.majorThreshold - 1}`;
-  el('th-major').textContent = `${def.majorThreshold} ~ ${def.severeThreshold - 1}`;
-  el('th-severe').textContent = `${def.severeThreshold}+`;
+  el('th-minor').textContent = `1 ~ ${stats.majorThreshold - 1}`;
+  el('th-major').textContent = `${stats.majorThreshold} ~ ${stats.severeThreshold - 1}`;
+  el('th-severe').textContent = `${stats.severeThreshold}+`;
 
   // Defense Stats
-  el('stat-armor-score').textContent = def.baseArmor;
+  el('stat-armor-score').textContent = stats.baseArmor;
   el('stat-evasion').textContent = clsObj?.闪避值 || 8;
-  el('stat-proficiency').textContent = Math.max(1, Math.floor((c.level - 1) / 3) + 1);
+  el('stat-proficiency').textContent = stats.totalProf;
+
+  // Advancements checkboxes
+  const advContainer = el('advancements-container');
+  advContainer.querySelectorAll('input[data-adv]').forEach(cb => {
+    cb.checked = (s.advancements || []).includes(cb.dataset.adv);
+  });
+
+  const tier = c.level <= 4 ? 1 : (c.level <= 7 ? 2 : 3);
+  el('cur-tier-tag').textContent = `第 ${tier} 阶位 (${tier === 1 ? '1-4级' : (tier === 2 ? '5-7级' : '8-10级')})`;
 
   // 3. Equipment Loadout Slots
-  renderEquipmentSlots(def);
+  renderEquipmentSlots(stats);
 
   // 4. Attributes Column
   for (const [attr, mod] of Object.entries(s.attributes)) {
@@ -324,7 +399,7 @@ function renderAll() {
   renderDomainCards();
 
   // 7. Inventory Page
-  renderInventory(def);
+  renderInventory(stats);
 }
 
 function renderPips(type, cur, max, fillClass) {
@@ -348,12 +423,12 @@ function renderPips(type, cur, max, fillClass) {
   }
 }
 
-function renderEquipmentSlots(def) {
+function renderEquipmentSlots(stats) {
   const c = curChar();
   const eq = c.sheet.equipment || {};
 
-  el('suit-mode-tag').textContent = def.isSuitActive ? `套装生效：${def.suitItem.名称}` : '散件细分累加计算';
-  el('suit-mode-tag').style.borderColor = def.isSuitActive ? 'var(--accent-cinnabar)' : 'var(--border-brass)';
+  el('suit-mode-tag').textContent = stats.isSuitActive ? `套装生效：${stats.suitItem.名称}` : '散件细分累加计算';
+  el('suit-mode-tag').style.borderColor = stats.isSuitActive ? 'var(--accent-cinnabar)' : 'var(--border-brass)';
 
   const slotKeys = ['head', 'chest', 'wrists', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'suit', 'costume'];
   for (const k of slotKeys) {
@@ -433,11 +508,11 @@ function renderDomainCards() {
   const isGMOverride = el('gm-override-domains').checked;
 
   const clsObj = db?.classes?.find(cls => cls.ID === s.classId || cls.名称 === s.classId);
-  const classDomains = clsObj?.领域 ? clsObj.领域.split(/[+、,]/) : ['刀锋', '骨骼'];
+  const classDomains = clsObj?.领域 ? clsObj.领域.split(/[+、,]/) : ['利刃', '骸骨'];
 
   // Domain filter tabs
   const filterBar = el('domain-filters-bar');
-  const allDomains = ['全部', '刀锋', '骨骼', '秘典', '优雅', '午夜', '智者', '辉光', '勇气', '奥术'];
+  const allDomains = ['全部', '利刃', '骸骨', '典籍', '优雅', '午夜', '贤者', '辉耀', '勇气', '奥术', '恐怖', '秘密'];
   const allowed = isGMOverride ? allDomains : ['全部', ...classDomains];
 
   filterBar.innerHTML = allowed.map(d => `<button class="domain-pill ${d === '全部' ? 'active' : ''}" data-domain="${d}">${d}</button>`).join('');
@@ -466,12 +541,12 @@ function filterDomainCardsDisplay(filterDomain, isGMOverride, classDomains) {
     equippedContainer.appendChild(createCardElement(card, true, idx));
   });
 
-  // Vault Cards from Database + Custom
+  // Vault Cards
   const customCards = s.customDomainCards || [];
   let available = [...(db?.domain_cards || []), ...customCards];
 
   if (!isGMOverride) {
-    available = available.filter(card => classDomains.some(cd => card.领域 && card.领域.includes(cd)));
+    available = available.filter(card => classDomains.some(cd => card.领域 && (card.领域.includes(cd) || cd.includes(card.领域))));
   }
 
   if (filterDomain !== '全部') {
@@ -493,7 +568,7 @@ function createCardElement(card, isEquipped, index) {
   div.className = `dh-card ${isEquipped ? 'equipped' : ''}`;
   div.innerHTML = `
     <div class="dh-card-banner">
-      <span class="dh-domain-tag" style="background:${getDomainColor(card.领域)}">${card.领域 || '战役'} · ${card.等级 || '1级'}</span>
+      <span class="dh-domain-tag" style="background:${domainColors[card.领域] || '#475569'}">${card.领域 || '战役'} · ${card.等级 || '1级'}</span>
       <span class="dh-card-recall">⚡ ${card.回想 || '0⚡'}</span>
     </div>
     <div class="dh-card-title">${card.名称}</div>
@@ -519,15 +594,7 @@ function createCardElement(card, isEquipped, index) {
   return div;
 }
 
-function getDomainColor(domain) {
-  const map = {
-    '刀锋': '#b91c1c', '骨骼': '#9a3412', '秘典': '#1d4ed8', '优雅': '#ec4899',
-    '午夜': '#4c1d95', '智者': '#047857', '辉光': '#d97706', '勇气': '#b45309', '奥术': '#7c3aed'
-  };
-  return map[domain] || '#475569';
-}
-
-function renderInventory(def) {
+function renderInventory(stats) {
   const c = curChar();
   const bags = c.sheet.bags || {};
 
@@ -567,11 +634,7 @@ function renderInventory(def) {
       `;
       cell.title = `${item.name}: ${item.desc || '物品'}\n(点击操作)`;
       cell.addEventListener('click', () => {
-        if (confirm(`是否从背包中丢弃或使用【${item.name}】？`)) {
-          items.splice(i, 1);
-          saveLocal();
-          renderInventory(def);
-        }
+        openItemActionModal(i);
       });
     } else {
       cell.innerHTML = `<span style="color:rgba(255,255,255,0.08);font-size:11px;">#${i + 1}</span>`;
@@ -597,12 +660,12 @@ function renderInventory(def) {
     </div>
     <div class="formula-row">
       <span>防具计算模式：</span>
-      <span class="formula-rule-badge">${def.isSuitActive ? '套装覆盖模式 (SRD 套装规则)' : '散件细分累加模式'}</span>
+      <span class="formula-rule-badge">${stats.isSuitActive ? '套装覆盖模式 (SRD 套装规则)' : '散件细分累加模式'}</span>
     </div>
-    ${def.isSuitActive ? `
+    ${stats.isSuitActive ? `
       <div class="formula-row" style="color:var(--text-gold);">
-        <span>当前生效套装：<strong>${def.suitItem.名称}</strong></span>
-        <span>基础护甲 ${def.baseArmor} | 重度阈值 +${def.majorBonus} (总 ${def.majorThreshold}) | 严重阈值 +${def.severeBonus} (总 ${def.severeThreshold})</span>
+        <span>当前生效套装：<strong>${stats.suitItem.名称}</strong></span>
+        <span>基础护甲 ${stats.baseArmor} | 重度阈值 +${stats.majorBonus} (总 ${stats.majorThreshold}) | 严重阈值 +${stats.severeBonus} (总 ${stats.severeThreshold})</span>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
         ※ 穿戴了整套护甲（如皮甲套装、锁甲套装），系统已自动覆盖头部、身躯、腿部等散件护甲值，以套装统一防护力进行严谨判定。
@@ -610,7 +673,7 @@ function renderInventory(def) {
     ` : `
       <div class="formula-row" style="color:var(--text-main);">
         <span>散件部件加成累加：</span>
-        <span>散件提供护甲 +${def.baseArmor} | 重度加成 +${def.majorBonus} (总 ${def.majorThreshold}) | 严重加成 +${def.severeBonus} (总 ${def.severeThreshold})</span>
+        <span>散件提供护甲 +${stats.baseArmor} | 重度加成 +${stats.majorBonus} (总 ${stats.majorThreshold}) | 严重加成 +${stats.severeBonus} (总 ${stats.severeThreshold})</span>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
         ※ 未装备整套套装时，角色自由组合穿戴的头盔、身躯、护腕、护胫等部件将各自叠加护甲槽与阈值加成。
@@ -638,8 +701,37 @@ function setupEventListeners() {
   el('stress-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.stress.cur > 0) { c.sheet.stress.cur--; saveLocal(); renderAll(); } });
   el('hope-plus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hope.cur < c.sheet.hope.max) { c.sheet.hope.cur++; saveLocal(); renderAll(); } });
   el('hope-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hope.cur > 0) { c.sheet.hope.cur--; saveLocal(); renderAll(); } });
-  el('armor-plus').addEventListener('click', () => { const c = curChar(); const def = calculateDefenseAndThresholds(c); if (c.sheet.armorPips.cur < def.baseArmor) { c.sheet.armorPips.cur++; saveLocal(); renderAll(); } });
+  el('armor-plus').addEventListener('click', () => { const c = curChar(); const st = calculateStats(c); if (c.sheet.armorPips.cur < st.baseArmor) { c.sheet.armorPips.cur++; saveLocal(); renderAll(); } });
   el('armor-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.armorPips.cur > 0) { c.sheet.armorPips.cur--; saveLocal(); renderAll(); } });
+
+  // Attribute Steppers (+ / -)
+  document.querySelectorAll('.attr-step-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const attr = btn.dataset.attrStep;
+      const delta = parseInt(btn.dataset.delta, 10);
+      const c = curChar();
+      const curVal = c.sheet.attributes[attr] || 0;
+      c.sheet.attributes[attr] = Math.max(-2, Math.min(5, curVal + delta));
+      saveLocal();
+      renderAll();
+    });
+  });
+
+  // Advancements Checkboxes
+  document.querySelectorAll('input[data-adv]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const adv = cb.dataset.adv;
+      const c = curChar();
+      if (!c.sheet.advancements) c.sheet.advancements = [];
+      if (cb.checked) {
+        if (!c.sheet.advancements.includes(adv)) c.sheet.advancements.push(adv);
+      } else {
+        c.sheet.advancements = c.sheet.advancements.filter(a => a !== adv);
+      }
+      saveLocal();
+      renderAll();
+    });
+  });
 
   // Gear Slot Clicks (Open Picker Modal)
   document.querySelectorAll('.gear-slot, .weapon-slot, .bag-slot-card').forEach(slot => {
@@ -684,6 +776,7 @@ function setupEventListeners() {
     const c = curChar();
     c.sheet.classId = e.target.value;
     updateSubclassOptions();
+    c.sheet.subclassId = el('fn-select-subclass').value;
     saveLocal();
     renderAll();
   });
@@ -720,21 +813,40 @@ function setupEventListeners() {
   el('btn-open-vault').addEventListener('click', openVaultModal);
   el('vault-modal-close').addEventListener('click', closeVaultModal);
   el('vault-create-btn').addEventListener('click', createNewAvatar);
+  el('vault-refresh-btn').addEventListener('click', async () => {
+    try {
+      updateSyncStatus(true, '正在刷新云端…');
+      const account = await loadAccount();
+      if (account?.characters?.length) {
+        characters = account.characters;
+        activeCharIndex = 0;
+        updateSyncStatus(true, `云端已同步 · ${account.login || '冒险者'}`);
+        renderVaultCharList();
+        renderAll();
+      } else {
+        alert('云端暂无其他化身。');
+      }
+    } catch (err) {
+      alert('刷新失败：' + err.message);
+    }
+  });
 
   el('btn-save-cloud').addEventListener('click', async () => {
     try {
       const c = curChar();
       updateSyncStatus(true, '正在上传云端…');
+      const isExistingCloudRecord = c.id && !c.id.startsWith('local_') && !c.id.startsWith('imported_') && c.updated_at;
       const saved = await saveCharacter({
         avatar_name: c.avatar_name,
         level: c.level,
         sheet: c.sheet,
         notes: c.notes
-      }, c.id.startsWith('local_') ? null : c);
+      }, isExistingCloudRecord ? c : null);
       c.id = saved.id;
       c.updated_at = saved.updated_at;
       saveLocal();
       updateSyncStatus(true, '云端已同步！');
+      alert(`化身【${c.avatar_name}】已成功同步至云端！`);
     } catch (err) {
       alert('保存至云端失败：' + err.message);
       updateSyncStatus(false, '保存失败 (已存本地)');
@@ -753,6 +865,7 @@ function setupEventListeners() {
   el('btn-create-char').addEventListener('click', createNewAvatar);
   el('btn-export-json').addEventListener('click', exportCharacterJson);
   el('import-json-file').addEventListener('change', importCharacterJson);
+  el('btn-roll-init').addEventListener('click', () => openDiceRoll('agility'));
 
   // Picker Modal
   el('item-picker-close').addEventListener('click', () => el('item-picker-modal').hidden = true);
@@ -773,8 +886,72 @@ function setupEventListeners() {
     const c = curChar();
     c.sheet.inventoryItems = (c.sheet.inventoryItems || []).filter(Boolean);
     saveLocal();
-    renderInventory(calculateDefenseAndThresholds(c));
+    renderInventory(calculateStats(c));
   });
+
+  // Item Action Modal
+  el('item-action-close').addEventListener('click', () => el('item-action-modal').hidden = true);
+  el('item-qty-plus').addEventListener('click', () => {
+    if (activeBagItemIndex === null) return;
+    const c = curChar();
+    const item = c.sheet.inventoryItems[activeBagItemIndex];
+    if (item) {
+      item.qty = (item.qty || 1) + 1;
+      el('item-qty-val').textContent = item.qty;
+      saveLocal();
+      renderInventory(calculateStats(c));
+    }
+  });
+  el('item-qty-minus').addEventListener('click', () => {
+    if (activeBagItemIndex === null) return;
+    const c = curChar();
+    const item = c.sheet.inventoryItems[activeBagItemIndex];
+    if (item && item.qty > 1) {
+      item.qty -= 1;
+      el('item-qty-val').textContent = item.qty;
+      saveLocal();
+      renderInventory(calculateStats(c));
+    }
+  });
+  el('item-action-use').addEventListener('click', () => {
+    if (activeBagItemIndex === null) return;
+    const c = curChar();
+    const item = c.sheet.inventoryItems[activeBagItemIndex];
+    if (item) {
+      if (item.qty > 1) {
+        item.qty -= 1;
+      } else {
+        c.sheet.inventoryItems.splice(activeBagItemIndex, 1);
+      }
+      saveLocal();
+      renderInventory(calculateStats(c));
+      el('item-action-modal').hidden = true;
+    }
+  });
+  el('item-action-delete').addEventListener('click', () => {
+    if (activeBagItemIndex === null) return;
+    const c = curChar();
+    const item = c.sheet.inventoryItems[activeBagItemIndex];
+    if (item && confirm(`确定要丢弃【${item.name}】吗？`)) {
+      c.sheet.inventoryItems.splice(activeBagItemIndex, 1);
+      saveLocal();
+      renderInventory(calculateStats(c));
+      el('item-action-modal').hidden = true;
+    }
+  });
+}
+
+// Item Action Modal
+function openItemActionModal(index) {
+  activeBagItemIndex = index;
+  const c = curChar();
+  const item = c.sheet.inventoryItems[index];
+  if (!item) return;
+
+  el('item-action-title').textContent = `物品：【${item.name}】`;
+  el('item-action-desc').textContent = item.desc || '行装杂物';
+  el('item-qty-val').textContent = item.qty || 1;
+  el('item-action-modal').hidden = false;
 }
 
 // Item Picker Modal Logic
@@ -794,7 +971,6 @@ function openItemPicker(slotKey) {
   } else if (slotKey.includes('bag') || slotKey.includes('pouch') || slotKey.includes('satchel')) {
     candidates = (db?.modular_gear || []).filter(g => g.部位 === 'pouch' || g.部位 === 'satchel' || g.部位 === 'main-bag');
   } else {
-    // Modular armor piece or ring/trinket
     const part = slotKey.replace(/[0-9]/g, '');
     candidates = (db?.modular_gear || []).filter(g => g.部位 === part || g.类型 === getSlotTitle(slotKey));
   }
@@ -854,7 +1030,7 @@ function getSlotTitle(k) {
   return titles[k] || k;
 }
 
-// Duality Dice Rolling Logic (D12 Hope + D12 Fear)
+// Duality Dice Rolling Logic (1d12 Hope + 1d12 Fear)
 function openDiceRoll(attr) {
   activeRollAttr = attr;
   el('dice-roll-modal').hidden = false;
@@ -935,7 +1111,7 @@ function renderVaultCharList() {
       delBtn.addEventListener('click', async e => {
         e.stopPropagation();
         if (confirm(`确定要彻底删除化身【${char.avatar_name}】吗？`)) {
-          if (!char.id.startsWith('local_')) {
+          if (!char.id.startsWith('local_') && !char.id.startsWith('imported_')) {
             try { await deleteCharacter(char.id); } catch (err) { console.warn(err); }
           }
           characters.splice(idx, 1);
@@ -1000,7 +1176,7 @@ function openAddItemModal(gridIndex = null) {
     c.sheet.inventoryItems.push(item);
   }
   saveLocal();
-  renderInventory(calculateDefenseAndThresholds(c));
+  renderInventory(calculateStats(c));
 }
 
 // Export / Import JSON
