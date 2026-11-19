@@ -53,8 +53,13 @@ write(assets/"communities.json", communities)
 merge("domain-cards", domains+srd["domains"])
 skin = package/"skins/daggerworld"
 skin.mkdir(exist_ok=True)
-skin_css = (package/"skins/skin-KimiK3/skin.css").read_text(encoding="utf-8")
-skin_css += """
+kimi_css_path = package/"skins/skin-KimiK3/skin.css"
+if kimi_css_path.exists():
+    skin_css = kimi_css_path.read_text(encoding="utf-8")
+else:
+    skin_css = (skin/"skin.css").read_text(encoding="utf-8") if (skin/"skin.css").exists() else ""
+if "--skin-cinnabar" not in skin_css:
+    skin_css += """
 :scope {
   --skin-cinnabar: #853b2b;
   --skin-cinnabar-deep: #5d2e27;
@@ -68,13 +73,16 @@ skin_css += """
 """
 (skin/"skin.css").write_text(skin_css,encoding="utf-8")
 manifest = read(package/"manifest.json")
-base = next(x for x in manifest["skins"] if x["ID"]=="skin-KimiK3")
-manifest["skins"]=[x for x in manifest["skins"] if x["ID"]!="daggerworld"]
+base = next((x for x in manifest.get("skins", []) if x["ID"]=="skin-KimiK3"), None)
+if not base:
+    base = next((x for x in manifest.get("skins", []) if x["ID"]=="daggerworld"), {
+        "ID": "daggerworld", "名称": "匕首世界", "css": "skins/daggerworld/skin.css", "推荐框架配色": "dark"
+    })
+manifest["skins"]=[x for x in manifest.get("skins", []) if x["ID"]!="daggerworld"]
 manifest["skins"].append({**base,"ID":"daggerworld","名称":"匕首世界","css":"skins/daggerworld/skin.css"})
 manifest["defaultSkin"]="daggerworld"
 manifest["名称"]="匕首世界 · 内测角色卡"
-# A new package version invalidates stale browser caches without changing module IDs.
-manifest["版本"]="1.0.1"
+manifest["版本"]="1.2.0"
 write(package/"manifest.json",manifest)
 print("可选主职", len(live_classes), "秘密卡", len(domains), "框架社群", len(communities))
 

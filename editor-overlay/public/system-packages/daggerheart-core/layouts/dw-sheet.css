@@ -97,7 +97,34 @@
   gap: .4rem;
   letter-spacing: .03em;
 }
-.dw-slot-icon { width: 1.15rem; height: 1.15rem; fill: #dec097; opacity: .88; flex-shrink: 0; }
+.dw-slot-icon {
+  display: inline-block;
+  width: 1.15rem;
+  height: 1.15rem;
+  vertical-align: -0.2rem;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: .88;
+  flex-shrink: 0;
+}
+.dw-slot-icon-head { background-image: url("assets/icons/slot-head.svg"); }
+.dw-slot-icon-armor { background-image: url("assets/icons/slot-armor.svg"); }
+.dw-slot-icon-back { background-image: url("assets/icons/slot-back.svg"); }
+.dw-slot-icon-wrists { background-image: url("assets/icons/slot-wrists.svg"); }
+.dw-slot-icon-legs { background-image: url("assets/icons/slot-legs.svg"); }
+.dw-slot-icon-feet { background-image: url("assets/icons/slot-feet.svg"); }
+.dw-slot-icon-ring-1, .dw-slot-icon-ring-2 { background-image: url("assets/icons/slot-ring-1.svg"); }
+.dw-slot-icon-trinket-1, .dw-slot-icon-trinket-2 { background-image: url("assets/icons/slot-trinket-1.svg"); }
+.dw-slot-icon-costume { background-image: url("assets/icons/slot-costume.svg"); }
+.dw-slot-icon-suit { background-image: url("assets/icons/slot-suit.svg"); }
+.dw-slot-icon-main-bag { background-image: url("assets/icons/slot-main-bag.svg"); }
+.dw-slot-icon-pouch-1, .dw-slot-icon-pouch-2 { background-image: url("assets/icons/slot-pouch-1.svg"); }
+.dw-slot-icon-satchel-1, .dw-slot-icon-satchel-2 { background-image: url("assets/icons/slot-satchel-1.svg"); }
+.dw-slot-icon-primary-weapon { background-image: url("assets/icons/slot-primary-weapon.svg"); }
+.dw-slot-icon-secondary-weapon { background-image: url("assets/icons/slot-secondary-weapon.svg"); }
+.dw-slot-icon-backup-weapon-1 { background-image: url("assets/icons/slot-backup-weapon-1.svg"); }
+.dw-slot-icon-backup-weapon-2 { background-image: url("assets/icons/slot-backup-weapon-2.svg"); }
 
 .dw-slot-head { grid-area: head; }
 .dw-slot-chest { grid-area: chest; }

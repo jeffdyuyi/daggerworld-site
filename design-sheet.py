@@ -11,10 +11,6 @@ if not upstream.exists():
 package = upstream / "public/system-packages/daggerheart-core"
 layouts = package / "layouts"
 
-with open(root / "editor-overlay/src/styles/slot-icons.json", encoding="utf-8") as f:
-    SLOT_ICONS = json.load(f)
-
-
 def modules(*ids):
     return "".join(f'<pb-module id="{id}"></pb-module>' for id in ids)
 
@@ -30,12 +26,11 @@ def grid(content, cls="dw-grid"):
 
 
 def equipment_slot(title, key, position):
-    icon = SLOT_ICONS.get(key, "")
     has_picker = key in ("armor", "primary-weapon", "secondary-weapon", "backup-weapon-1", "backup-weapon-2")
     picker = modules(f"pick-{key}") if has_picker else ""
     return (
         f'<article class="dw-slot dw-slot-{position}">'
-        f'<h3>{icon}{title}</h3>'
+        f'<h3><span class="dw-slot-icon dw-slot-icon-{key}"></span>{title}</h3>'
         f'{modules(f"{key}-name")}{picker}{modules(f"{key}-description")}'
         f'</article>'
     )
@@ -93,7 +88,7 @@ paper_doll = (
     + '</div>'
 )
 
-equip_section = panel("随身装配与纸娃娃", paper_doll, "guide-equipment")
+equip_section = panel("随身装配与纸娃娃", paper_doll, "guide-loadout")
 
 stats_section = (
     panel("核心属性", grid(modules("agility", "strength", "finesse", "instinct", "presence", "knowledge"), "dw-stats-col-grid"), "guide-traits")
@@ -134,7 +129,8 @@ skill_tools = (
     '<div class="dw-skill-controls">'
     + grid(modules("pick-domain-card", "pick-other-resources"))
     + '<div class="dw-gm-override-box">'
-    + '<label><input type="checkbox" id="dw-gm-override-cb"> 👑 主持人特许模式（解除本职业双领域限制）</label>'
+    + '<span class="dw-gm-badge">👑 主持人特许模式（全领域与自制牌已就绪）</span>'
+    + '<p class="dw-gm-note">默认受职业所属双领域筛选限制。主持人可通过管理特权解锁更多领域或注入专属秘奥。</p>'
     + '</div>'
     + '</div>'
 )
