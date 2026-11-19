@@ -8,6 +8,9 @@ let activeCharIndex = 0;
 let currentPickerSlot = null;
 let activeRollAttr = 'agility';
 let activeBagItemIndex = null;
+const rollHistoryLimit = 10;
+const rollHistoryCache = new Map();
+const rollAttributeNames = { agility: '敏捷', strength: '力量', finesse: '灵巧', instinct: '本能', presence: '风采', knowledge: '知识' };
 
 // Class Icon Mapping for RPG Avatars
 const classIconMap = {
@@ -856,6 +859,7 @@ function updateCreatorSubclassOptions() {
 
 function renderAll() {
   const c = curChar();
+  renderRollHistory(c);
   const s = c.sheet;
   const stats = calculateStats(c);
 
@@ -1800,40 +1804,77 @@ function getSlotTitle(k) {
 }
 
 // Duality Dice Rolling Logic (1d12 Hope + 1d12 Fear)
+function rollHistoryKey(character) {
+  return `daggerworld.roll-history.v1:${JSON.stringify([currentUser?.owner ?? 'local', character.id])}`;
+}
+
+function readRollHistory(key) {
+  if (!rollHistoryCache.has(key)) {
+    let entries = [];
+    try {
+      const stored = JSON.parse(localStorage.getItem(key) ?? '[]');
+      if (Array.isArray(stored)) entries = stored.filter(entry => entry && typeof entry === 'object').slice(0, rollHistoryLimit);
+    } catch { /* A fresh list remains available if storage is unavailable. */ }
+    rollHistoryCache.set(key, entries);
+  }
+  return rollHistoryCache.get(key);
+}
+
+function renderRollHistory(character) {
+  const rows = readRollHistory(rollHistoryKey(character)).map(entry => {
+    const row = document.createElement('li');
+    const time = new Date(entry.at).toLocaleTimeString('zh-CN', { hour12: false });
+    const modifier = entry.mod >= 0 ? `+${entry.mod}` : String(entry.mod);
+    row.textContent = `${time} · ${rollAttributeNames[entry.attr] ?? '属性'} · 希望 ${entry.hope} / 恐惧 ${entry.fear} · 修正 ${modifier} · 合计 ${entry.total} · ${entry.outcome}`;
+    return row;
+  });
+  el('roll-history-list').replaceChildren(...rows);
+  el('roll-history-empty').hidden = rows.length > 0;
+}
+
 function openDiceRoll(attr) {
   activeRollAttr = attr;
   el('dice-roll-modal').hidden = false;
-  const attrNames = { agility: '敏捷', strength: '力量', finesse: '灵巧', instinct: '本能', presence: '风采', knowledge: '知识' };
-  el('roll-attr-title').textContent = `双元掷骰检定 · 【${attrNames[attr] || attr}】`;
+  el('roll-attr-title').textContent = `双元骰检定 · ${rollAttributeNames[attr]}`;
   executeDualityRoll(attr);
 }
 
 function executeDualityRoll(attr) {
   const c = curChar();
-  const mod = c.sheet.attributes[attr] || 0;
+  const mod = Number(c.sheet.attributes[attr]) || 0;
 
   const hopeDie = Math.floor(Math.random() * 12) + 1;
   const fearDie = Math.floor(Math.random() * 12) + 1;
-  const higherDie = Math.max(hopeDie, fearDie);
-  const total = higherDie + mod;
+  const diceSum = hopeDie + fearDie;
+  const total = diceSum + mod;
 
   el('dice-hope-val').textContent = hopeDie;
   el('dice-fear-val').textContent = fearDie;
-  el('roll-high-val').textContent = higherDie;
+  el('roll-sum-val').textContent = diceSum;
   el('roll-mod-val').textContent = mod >= 0 ? `+${mod}` : `${mod}`;
   el('roll-total-val').textContent = total;
 
   const verdictEl = el('roll-verdict');
+  let outcome;
   if (hopeDie > fearDie) {
-    verdictEl.textContent = `🌟 带着希望成功！(总检定值 ${total})，化身获得 1 点希望！`;
+    outcome = '带着希望';
+    verdictEl.textContent = '带着希望。请与检定难度比较。';
     verdictEl.style.color = '#72b5dc';
   } else if (fearDie > hopeDie) {
-    verdictEl.textContent = `⚠️ 带着恐惧推进！(总检定值 ${total})，主持人获得 1 点恐惧！`;
+    outcome = '带着恐惧';
+    verdictEl.textContent = '带着恐惧。请与检定难度比较。';
     verdictEl.style.color = '#f87171';
   } else {
-    verdictEl.textContent = `⚡ 双骰同值！【关键成功】(CRITICAL SUCCESS)！获得希望，并清除全部压力！`;
+    outcome = '关键成功';
+    verdictEl.textContent = '关键成功。行动检定获得 1 点希望，并清除 1 点压力。';
     verdictEl.style.color = 'var(--text-gold)';
   }
+  const key = rollHistoryKey(c);
+  const entry = { at: Date.now(), attr, hope: hopeDie, fear: fearDie, mod, total, outcome };
+  const history = [entry, ...readRollHistory(key)].slice(0, rollHistoryLimit);
+  rollHistoryCache.set(key, history);
+  try { localStorage.setItem(key, JSON.stringify(history)); } catch { /* Keep this session's rolls. */ }
+  renderRollHistory(c);
 }
 
 // Character Vault Modal Management

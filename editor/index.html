@@ -440,6 +440,12 @@
             <h2>角色属性</h2>
             <span class="attr-hint">点击步进调整，点击检定掷骰</span>
           </div>
+          <details class="roll-history" id="roll-history">
+            <summary>最近 10 次检定</summary>
+            <p>此浏览器内的化身记录</p>
+            <p id="roll-history-empty">暂无检定记录。</p>
+            <ol id="roll-history-list"></ol>
+          </details>
 
           <div class="attributes-list">
             <div class="attr-card" data-attr="agility">
@@ -1202,11 +1208,11 @@
           </div>
         </div>
         <div class="roll-math-row">
-          <span>骰值大者: <strong id="roll-high-val">-</strong></span>
+          <span>双骰合计 <strong id="roll-sum-val">-</strong></span>
           <span>+ 属性修正: <strong id="roll-mod-val">+0</strong></span>
           <span>= 总检定值: <strong id="roll-total-val" class="highlight-total">-</strong></span>
         </div>
-        <div class="roll-verdict" id="roll-verdict">
+        <div class="roll-verdict" id="roll-verdict" aria-live="polite">
           点击下方按钮掷出双元骰！
         </div>
       </div>
