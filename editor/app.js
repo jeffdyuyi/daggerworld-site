@@ -83,8 +83,7 @@ function renderMarkdown(str) {
 // Clean title extractor from strings like ":red[**运气操控者**]：描述"
 function cleanTitle(str, fallback = '特性') {
   if (!str) return fallback;
-  const m = str.match(/(?::[a-z]+\[)?(?:\*\*)?([^\*\]:：
-]+)(?:\*\*)?(?:\])?[:：]?/);
+  const m = str.match(/(?::[a-z]+\[)?(?:\*\*)?([^\*\]:：\r\n]+)(?:\*\*)?(?:\])?[:：]?/);
   if (m && m[1] && m[1].trim().length > 0 && m[1].trim().length < 35) {
     return m[1].trim();
   }
@@ -342,19 +341,20 @@ function populateSelectOptions() {
 }
 
 function updateSubclassOptions() {
-  if (!db) return;
+  if (!db || !db.subclasses) return;
   const c = curChar();
-  const classObj = db.classes.find(cls => cls.ID === c.sheet.classId || cls.名称 === c.sheet.classId);
+  const classObj = db.classes?.find(cls => cls.ID === c.sheet?.classId || cls.名称 === c.sheet?.classId);
   const className = classObj ? classObj.名称 : '战士';
 
-  const subList = db.subclasses.filter(sc => sc.主职 === className);
+  const subList = db.subclasses.filter(sc => sc.主职 === className || sc.ID.includes(className));
   const selSub = el('fn-select-subclass');
   if (selSub) {
-    selSub.innerHTML = subList.map(sc => `<option value="${sc.ID}">${sc.名称} (${sc.等级})</option>`).join('');
-    if (selSub.options.length > 0) {
-      if (![...selSub.options].some(o => o.value === c.sheet.subclassId)) {
-        c.sheet.subclassId = selSub.options[0].value;
+    selSub.innerHTML = subList.map(sc => `<option value="${sc.ID}">${sc.名称} (${sc.等级 || '基础'})</option>`).join('');
+    if (subList.length > 0) {
+      if (!subList.some(o => o.ID === c.sheet.subclassId)) {
+        c.sheet.subclassId = subList[0].ID;
       }
+      selSub.value = c.sheet.subclassId;
     }
   }
 }
