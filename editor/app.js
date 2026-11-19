@@ -1,4 +1,4 @@
-import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels } from './sheet-rules.js';
+import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels } from './sheet-rules.js';
 import { loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
 import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
 
@@ -246,7 +246,7 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
         satchel_2: null
       },
       inventoryItems: [],
-      currency: { gold: 0, bags: 0, dust: 0 },
+      currency: { handfuls: 0, bags: 0, chests: 0 },
       equippedDomainCards: [],
       vaultDomainCards: [],
       customDomainCards: []
@@ -505,7 +505,8 @@ function calculateStats(char) {
   // Base Proficiency
   const baseProf = tierForLevel(lvl);
   const profBonus = advs.filter(a => a === 'prof').length + upgrades.filter(a => a === 'prof').length;
-  const totalProf = baseProf + profBonus;
+  const earnedProficiency = baseProf + profBonus;
+  const totalProf = Math.max(0, earnedProficiency + (Number(s.proficiencyAdjustment) || 0));
 
   // Armor & Thresholds Calculation
   let baseArmor = 0;
@@ -547,6 +548,8 @@ function calculateStats(char) {
     maxStress,
     maxHope,
     totalProf,
+    earnedProficiency,
+    armorMax: Math.max(0, baseArmor + (Number(s.armorLimitAdjustment) || 0)),
     baseArmor,
     majorThreshold,
     severeThreshold,
@@ -867,7 +870,7 @@ function renderAll() {
   if (s.hp.cur > s.hp.max) s.hp.cur = s.hp.max;
   if (s.stress.cur > s.stress.max) s.stress.cur = s.stress.max;
   if (s.hope.cur > s.hope.max) s.hope.cur = s.hope.max;
-  if (s.armorPips.cur > stats.baseArmor) s.armorPips.cur = stats.baseArmor;
+  if (s.armorPips.cur > stats.armorMax) s.armorPips.cur = stats.armorMax;
 
   // 1. Top Header Info
   el('cur-char-name').textContent = c.avatar_name || '无名角色';
@@ -876,6 +879,7 @@ function renderAll() {
 
   el('dash-name').textContent = c.avatar_name || '无名角色';
   el('dash-class').textContent = clsObj?.名称 || '战士';
+  el('dash-ancestry').textContent = db?.ancestries?.find(item => item.ID === s.ancestryId)?.名称 ?? s.ancestryId?.split(':').at(-1) ?? '—';
   el('dash-level').textContent = `Lv ${c.level}`;
 
   const genderEl = el('dash-gender');
@@ -889,7 +893,7 @@ function renderAll() {
   renderPips('hp', s.hp.cur, s.hp.max, 'filled-health');
   renderPips('stress', s.stress.cur, s.stress.max, 'filled-stress');
   renderPips('hope', s.hope.cur, s.hope.max, 'filled-hope');
-  renderPips('armor', s.armorPips.cur, stats.baseArmor, 'filled-armor');
+  renderPips('armor', s.armorPips.cur, stats.armorMax, 'filled-armor');
 
   el('hp-cur').textContent = s.hp.cur;
   el('hp-max').textContent = s.hp.max;
@@ -898,7 +902,7 @@ function renderAll() {
   el('hope-cur').textContent = s.hope.cur;
   el('hope-max').textContent = s.hope.max;
   el('armor-cur').textContent = s.armorPips.cur;
-  el('armor-max').textContent = stats.baseArmor;
+  el('armor-max').textContent = stats.armorMax;
 
   el('threshold-a').textContent = stats.majorThreshold;
   el('threshold-b').textContent = stats.severeThreshold;
@@ -910,10 +914,6 @@ function renderAll() {
   }
 
   // Thresholds Dashboard Readout
-  el('th-minor').textContent = damageRange(1, stats.majorThreshold - 1);
-  el('th-major').textContent = damageRange(stats.majorThreshold, stats.severeThreshold - 1);
-  el('th-severe').textContent = `${stats.severeThreshold}+`;
-
   el('stat-armor-score').textContent = stats.baseArmor;
   const evasionAdjustment = Number(s.evasionAdjustment) || 0;
   const evasionAdvances = Object.entries(s.levelAdvancements ?? {})
@@ -925,7 +925,10 @@ function renderAll() {
   evasion.textContent = clsObj?.闪避值 != null ? Number(clsObj.闪避值) + armorEvasion + evasionAdjustment + evasionAdvances : '—';
   el('evasion-breakdown').textContent = clsObj?.闪避值 != null
     ? `职业 ${clsObj.闪避值} · 护甲 ${armorEvasion} · 升级 ${evasionAdvances}` : '';
-  el('evasion-adjustment').value = evasionAdjustment;
+  el('evasion-adjustment').value = evasion.textContent === '—' ? '' : evasion.textContent;
+  el('evasion-adjustment').dataset.base = Number(clsObj?.闪避值 ?? 0) + armorEvasion + evasionAdvances;
+  el('proficiency-current').value = stats.totalProf;
+  el('armor-limit').value = stats.armorMax;
   el('stat-proficiency').textContent = stats.totalProf;
   const tier = tierForLevel(c.level);
   el('cur-tier-tag').textContent = `位阶 ${tier} · ${['1', '2–4', '5–7', '8–10'][tier - 1]} 级`;
@@ -938,7 +941,7 @@ function renderAll() {
   if (s.attributes) {
     for (const [attr, mod] of Object.entries(s.attributes)) {
       const modEl = el(`attr-mod-${attr}`);
-      if (modEl) modEl.textContent = (mod >= 0 ? `+${mod}` : `${mod}`);
+      if (modEl) modEl.value = mod;
     }
   }
 
@@ -971,11 +974,6 @@ function renderPips(type, cur, max, fillClass) {
     });
     container.appendChild(pip);
   }
-}
-
-function damageRange(min, max) {
-  if (max < min) return '—';
-  return min === max ? String(min) : `${min}–${max}`;
 }
 
 function renderEquipmentSlots(stats) {
@@ -1104,6 +1102,7 @@ function renderFoundations(clsObj) {
   const lockStatusEl = el('fn-lock-status');
   const alertNoticeEl = el('gm-alert-notice');
   const gmToggleBtn = el('btn-gm-override-toggle');
+  if (gmToggleBtn) gmToggleBtn.hidden = currentUser?.role !== 'gm';
   const lockedInputs = [
     el('fn-char-name'),
     el('fn-select-ancestry'),
@@ -1319,7 +1318,7 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
 }
 
 function bagCapacity(bags) {
-  const mainCap = Number(bags.main_bag?.capacity ?? bags.main_bag?.容量) || 10;
+  const mainCap = Number(bags.main_bag?.capacity ?? bags.main_bag?.容量) || 0;
   const p1Cap = Number(bags.pouch_1?.capacity ?? bags.pouch_1?.容量) || 0;
   const p2Cap = Number(bags.pouch_2?.capacity ?? bags.pouch_2?.容量) || 0;
   const s1Cap = Number(bags.satchel_1?.capacity ?? bags.satchel_1?.容量) || 0;
@@ -1337,7 +1336,7 @@ function renderInventory(stats) {
   el('bag-extra-slots').textContent = extraCap;
   el('bag-total-slots').textContent = totalSlots;
 
-  el('bag-name-main').textContent = bags.main_bag?.名称 || '10格标准行囊';
+  el('bag-name-main').textContent = bags.main_bag?.名称 || '空置';
   el('bag-name-pouch1').textContent = bags.pouch_1 ? `${bags.pouch_1.名称} (+${p1Cap}格)` : '空腰带位 (0格)';
   el('bag-name-pouch2').textContent = bags.pouch_2 ? `${bags.pouch_2.名称} (+${p2Cap}格)` : '空腰带位 (0格)';
   el('bag-name-satchel1').textContent = bags.satchel_1 ? `${bags.satchel_1.名称} (+${s1Cap}格)` : '空挎包位 (0格)';
@@ -1349,7 +1348,13 @@ function renderInventory(stats) {
   grid.innerHTML = '';
   const items = c.sheet.inventoryItems || [];
 
-  for (let i = 0; i < totalSlots; i++) {
+  const overflow = el('inventory-overflow');
+  overflow.replaceChildren();
+  overflow.hidden = items.length <= totalSlots;
+  const note = el('inventory-space-note');
+  note.hidden = totalSlots > 0 && overflow.hidden;
+  note.textContent = overflow.hidden ? '尚无容器。' : '容量不足，溢出物品可取用。';
+  for (let i = 0; i < Math.max(totalSlots, items.length); i++) {
     const item = items[i];
     const cell = document.createElement('div');
     cell.className = `grid-cell ${item ? 'occupied' : ''}`;
@@ -1370,14 +1375,15 @@ function renderInventory(stats) {
         openAddItemModal(i);
       });
     }
-    grid.appendChild(cell);
+    (i < totalSlots ? grid : overflow).appendChild(cell);
   }
 
   // Currency
-  const curr = c.sheet.currency || { gold: 15, bags: 1, dust: 0 };
-  el('coin-gold').value = curr.gold;
-  el('coin-bags').value = curr.bags;
-  el('coin-dust').value = curr.dust;
+  const curr = c.sheet.currency;
+  for (const unit of ['handfuls', 'bags', 'chests']) el('coin-' + unit).value = curr[unit] ?? 0;
+  const legacyWealth = el('legacy-wealth');
+  legacyWealth.hidden = !curr.gold && !curr.dust;
+  legacyWealth.textContent = '旧档记录：' + [curr.gold && `${curr.gold} 枚金币`, curr.dust && `${curr.dust} 粉末`].filter(Boolean).join(' · ');
 
   // Armor Formula Breakdown Readout
   const fb = el('armor-formula-breakdown');
@@ -1424,30 +1430,19 @@ const advancementOptions = {
 
 function markedTraits(character, targetLevel) {
   const tier = tierForLevel(targetLevel);
-  return new Set(Object.entries(character.sheet.levelTraitMarks ?? {})
+  const marks = new Set(Object.entries(character.sheet.levelTraitMarks ?? {})
     .filter(([level]) => Number(level) <= targetLevel && tierForLevel(Number(level)) === tier)
     .flatMap(([, keys]) => keys));
+  for (const [key, checked] of Object.entries(character.sheet.traitMarkOverrides?.[tier] ?? {})) {
+    if (checked) marks.add(key); else marks.delete(key);
+  }
+  return marks;
 }
 
 function renderAdvancements(character) {
-  const controls = el('initial-trait-controls');
-  el('initial-traits').hidden = character.level !== 1 || Boolean(character.sheet.initialTraitsConfirmed);
-  if (!el('initial-traits').hidden) {
-    controls.replaceChildren(...Object.entries(traits).map(([key, name]) => {
-      const label = document.createElement('label');
-      const select = document.createElement('select');
-      select.id = 'initial-trait-' + key;
-      for (const value of [2, 1, 0, -1]) select.add(new Option(value > 0 ? '+' + value : String(value), value));
-      select.value = String(character.sheet.attributes[key]);
-      label.append(name + ' ', select);
-      return label;
-    }));
-  }
   const marked = markedTraits(character, character.level);
-  document.querySelectorAll('[data-attr-roll]').forEach(button => {
-    const card = button.closest('.attr-card');
-    const name = card?.querySelector('.attr-name');
-    if (name) name.textContent = traits[button.dataset.attrRoll] + (marked.has(button.dataset.attrRoll) ? ' · 已标记' : '');
+  document.querySelectorAll('[data-trait-mark]').forEach(input => {
+    input.checked = marked.has(input.dataset.traitMark);
   });
   el('lvl-up').disabled = character.level >= 10;
   el('lvl-down').hidden = currentUser?.role !== 'gm';
@@ -1464,7 +1459,6 @@ function advanceCharacter() {
   const character = curChar();
   const sheet = character.sheet;
   if (character.level >= 10) return;
-  if (character.level === 1 && !sheet.initialTraitsConfirmed) return alert('请先确认初始属性。');
   const level = character.level + 1;
   const tier = tierForLevel(level);
   const usedSlots = Object.values(sheet.levelAdvancementSlots ?? {}).flat();
@@ -1544,6 +1538,7 @@ function advanceCharacter() {
     if (choices.includes('traits')) {
       for (const key of selectedTraits) sheet.attributes[key]++;
       sheet.levelTraitMarks = { ...sheet.levelTraitMarks, [level]: selectedTraits };
+      for (const key of selectedTraits) delete sheet.traitMarkOverrides?.[tier]?.[key];
     }
     if (choices.includes('subclass')) {
       sheet.subclassUpgradeIds = [...(sheet.subclassUpgradeIds ?? []), nextSubclass.ID];
@@ -1589,13 +1584,46 @@ function setupEventListeners() {
   el('stress-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.stress.cur > 0) { c.sheet.stress.cur--; saveLocal(); renderAll(); } });
   el('hope-plus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hope.cur < c.sheet.hope.max) { c.sheet.hope.cur++; saveLocal(); renderAll(); } });
   el('hope-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hope.cur > 0) { c.sheet.hope.cur--; saveLocal(); renderAll(); } });
-  el('armor-plus').addEventListener('click', () => { const c = curChar(); const st = calculateStats(c); if (c.sheet.armorPips.cur < st.baseArmor) { c.sheet.armorPips.cur++; saveLocal(); renderAll(); } });
+  el('armor-plus').addEventListener('click', () => { const c = curChar(); const st = calculateStats(c); if (c.sheet.armorPips.cur < st.armorMax) { c.sheet.armorPips.cur++; saveLocal(); renderAll(); } });
   el('armor-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.armorPips.cur > 0) { c.sheet.armorPips.cur--; saveLocal(); renderAll(); } });
 
-  el('evasion-adjustment').addEventListener('change', event => {
-    curChar().sheet.evasionAdjustment = Math.trunc(Number(event.target.value)) || 0;
-    saveLocal();
-    renderAll();
+  const adjustments = {
+    'evasion-adjustment': ['evasionAdjustment', () => Number(el('evasion-adjustment').dataset.base)],
+    'proficiency-current': ['proficiencyAdjustment', character => calculateStats(character).earnedProficiency],
+    'armor-limit': ['armorLimitAdjustment', character => calculateStats(character).baseArmor],
+  };
+  for (const [id, [field, base]] of Object.entries(adjustments)) {
+    el(id).addEventListener('change', event => {
+      const character = curChar();
+      character.sheet[field] = Math.max(0, Math.trunc(Number(event.target.value)) || 0) - base(character);
+      saveLocal();
+      renderAll();
+    });
+  }
+  document.querySelectorAll('[data-adjust]').forEach(button => {
+    button.addEventListener('click', () => {
+      const input = el(button.dataset.adjust);
+      input.value = Math.max(0, (Number(input.value) || 0) + Number(button.dataset.delta));
+      input.dispatchEvent(new Event('change'));
+    });
+  });
+  document.querySelectorAll('[data-trait]').forEach(input => {
+    input.setAttribute('aria-label', traits[input.dataset.trait]);
+    input.addEventListener('change', () => {
+      curChar().sheet.attributes[input.dataset.trait] = Math.trunc(Number(input.value)) || 0;
+      saveLocal();
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-trait-mark]').forEach(input => {
+    input.addEventListener('change', () => {
+      const character = curChar();
+      const tier = tierForLevel(character.level);
+      const overrides = character.sheet.traitMarkOverrides ??= {};
+      overrides[tier] = { ...overrides[tier], [input.dataset.traitMark]: input.checked };
+      saveLocal();
+      renderAll();
+    });
   });
   for (const condition of ['vulnerable', 'restrained', 'hidden']) {
     el('condition-' + condition).addEventListener('change', event => {
@@ -1604,18 +1632,7 @@ function setupEventListeners() {
       saveLocal();
     });
   }
-  el('save-initial-traits').addEventListener('click', () => {
-    const character = curChar();
-    if (character.level !== 1 || character.sheet.initialTraitsConfirmed) return;
-    const entries = Object.keys(traits).map(key => [key, Number(el('initial-trait-' + key).value)]);
-    if (entries.map(([, value]) => value).sort((a, b) => a - b).join() !== startingModifiers.join()) {
-      return alert('请按初始属性的六个数值分配。');
-    }
-    character.sheet.attributes = Object.fromEntries(entries);
-    character.sheet.initialTraitsConfirmed = true;
-    saveLocal();
-    renderAll();
-  });
+
 
   // Gear Slot Clicks (Open Picker Modal)
   document.querySelectorAll('.gear-slot, .weapon-slot, .bag-slot-card').forEach(slot => {
@@ -1646,6 +1663,7 @@ function setupEventListeners() {
   const gmToggleBtn = el('btn-gm-override-toggle');
   if (gmToggleBtn) {
     gmToggleBtn.addEventListener('click', () => {
+      if (currentUser?.role !== 'gm') return;
       isGmOverrideActive = !isGmOverrideActive;
       const c = curChar();
       const clsObj = db?.classes?.find(cls => cls.ID === c.sheet.classId || cls.名称 === c.sheet.classId);
@@ -1703,16 +1721,14 @@ function setupEventListeners() {
   });
 
   // Currency Inputs
-  ['gold', 'bags', 'dust'].forEach(type => {
+  ['handfuls', 'bags', 'chests'].forEach(type => {
     el(`coin-${type}`).addEventListener('change', e => {
       const c = curChar();
-      c.sheet.currency[type] = Number(e.target.value) || 0;
+      c.sheet.currency[type] = Math.max(0, Math.trunc(Number(e.target.value)) || 0);
+      e.target.value = c.sheet.currency[type];
       saveLocal();
     });
   });
-
-  // GM Override Domains Toggle
-
 
   // Top Bar Actions & Two-Tier Layer Switching
   el('btn-back-vault')?.addEventListener('click', () => {
@@ -3099,6 +3115,8 @@ function clearWorkshopLibrary() {
 
 // 背包放入物品模态框 (智能结合 Kenney 图标解析)
 function openAddItemModal(gridIndex = null) {
+  const character = curChar();
+  if (character.sheet.inventoryItems.length >= bagCapacity(character.sheet.bags).totalSlots) return alert('背包容量不足。');
   const name = prompt('物品名称');
   if (!name) return;
   const desc = prompt('物品描述');

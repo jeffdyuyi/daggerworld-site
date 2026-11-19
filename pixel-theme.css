@@ -1,0 +1,155 @@
+@font-face {
+  font-family: "Fusion Pixel";
+  src: url("./assets/fonts/fusion-pixel-12px-proportional-zh_hans.otf.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  --pixel-font: "Fusion Pixel", "Microsoft YaHei", sans-serif;
+  --pixel-text: "Microsoft YaHei", system-ui, sans-serif;
+  --pixel-ink: #382b22;
+  --pixel-paper: #f5e7c9;
+  --pixel-surface: #fff3d5;
+  --pixel-edge: #ae8054;
+  --pixel-shadow: #604035;
+  --pixel-focus: #e7a95a;
+  --pixel-panel: #33272f;
+  --pixel-night: #211a23;
+}
+
+body { font-family: var(--pixel-text); }
+h1, h2, h3, h4, nav a, .tab-btn, .dw-btn, .button, .main-title, .level-badge {
+  font-family: var(--pixel-font);
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+button, input, select, textarea { font-family: inherit; }
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--pixel-focus);
+  outline-offset: 3px;
+}
+
+:where(button, .button, .action, .tab-btn, input, select, textarea) {
+  border-radius: 0;
+}
+
+body:has(.route) { color: var(--pixel-ink); background: var(--pixel-paper); }
+body:has(.route) main { background: var(--pixel-paper); }
+body:has(.route) header { background: var(--pixel-surface); border-color: var(--pixel-edge); }
+body:has(.route) header strong { font-family: var(--pixel-font); font-weight: 400; }
+body:has(.route) nav { background: #47313b; border-color: #ae8054; }
+body:has(.route) nav a[aria-current="page"] { background: #764735; box-shadow: inset 0 -3px #e7a95a; }
+.route :is(.panel, .paper, .box, .version, .ability, .community),
+.srd-modal-card, .srd-subclass-card {
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #93663f55, inset 0 0 0 2px #c69b6a55;
+}
+.route :is(.button, button), .srd-modal-card :is(button, input, select) { border-radius: 0; }
+
+body:has(#login) { background: var(--pixel-night); color: var(--pixel-ink); }
+body:has(#login) main {
+  border-radius: 0;
+  background: var(--pixel-surface);
+  border-color: var(--pixel-edge);
+  box-shadow: 5px 5px 0 #110e17, inset 0 0 0 3px #e0c297;
+}
+body:has(#login) :is(button, .action, input) { border-radius: 0; }
+body:has(#login) :is(button, .action) { font-family: var(--pixel-font); font-synthesis: none; }
+
+.dw-theme {
+  --font-serif: var(--pixel-font);
+  --font-sans: var(--pixel-text);
+  --bg-dark: var(--pixel-night);
+  --bg-header: #392931;
+  --bg-card: var(--pixel-panel);
+  --bg-surface: #423139;
+  --bg-input: #261e27;
+  --bg-hover: #514037;
+  --border-bo3: #946a4c;
+  --border-subtle: #775340;
+  --text-main: #fff1d6;
+  --text-muted: #dbbea3;
+  --text-gold: #f5c77e;
+}
+
+.dw-theme :is(
+  .dw-header, .vault-hero, .vault-char-card, .creation-panel, .resource-card,
+  .defense-stats-box, .paperdoll-container, .gear-slot, .weapon-slot, .slot-icon-box,
+  .attr-card, .bag-equipment-panel, .bag-slot-card, .inventory-grid-panel, .grid-cell,
+  .currency-card, .levelup-bottom-bar, .armor-formula-card, .f-card, .dh-card,
+  .dw-modal-window, .picker-item-card, .level-dialog, .ws-workbench, .ws-preview-box
+) {
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #160f18, inset 0 0 0 2px #ac7a5033;
+}
+
+.dw-theme :is(.dw-btn, .res-btn, .stepper-btn, .tab-btn, .roll-trigger-btn, .dw-input, .dw-select, .dw-textarea, .coin-input) {
+  border-radius: 0;
+}
+.dw-theme :is(.dw-btn, .res-btn, .stepper-btn, .tab-btn, .roll-trigger-btn) { box-shadow: 2px 2px 0 #171018; }
+.dw-theme .tab-btn.active { box-shadow: inset 0 -3px var(--pixel-focus); }
+.dw-theme .avatar-tag { flex-wrap: wrap; }
+.dw-theme .avatar-tag :is(.gender-badge, .ancestry-badge, .class-badge, .level-badge) {
+  padding: 3px 7px;
+  border: 1px solid var(--border-bo3);
+  border-radius: 0;
+  background: #2c2330;
+}
+.dw-theme .ancestry-badge { color: var(--text-muted); }
+.dw-theme .resource-tracks-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.dw-theme .resource-card { grid-column: span 2; }
+.dw-theme .defense-stats-box { grid-column: span 4; align-items: center; }
+.life-thresholds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .65rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--border-bo3);
+  color: var(--text-muted);
+  font-size: .82rem;
+}
+.life-thresholds strong { color: var(--text-gold); }
+.quick-value { display: inline-flex; align-items: center; }
+.quick-value button {
+  min-width: 1.65rem;
+  min-height: 1.8rem;
+  background: var(--bg-input);
+  color: var(--text-gold);
+  border: 1px solid var(--border-bo3);
+  cursor: pointer;
+}
+.dw-theme .quick-value input { width: 2.9rem; padding: .25rem; text-align: center; }
+.limit-control { color: var(--text-muted); font-size: .82rem; }
+.dw-theme .overview-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
+.dw-theme .attr-stepper { flex-wrap: wrap; justify-content: end; }
+.dw-theme input.attr-mod {
+  width: 3rem;
+  border: 1px solid var(--border-bo3);
+  background: var(--bg-input);
+  color: var(--text-gold);
+  font-size: .9rem;
+  text-align: center;
+}
+.trait-mark { color: var(--text-muted); font-size: .82rem; white-space: nowrap; }
+.wallet-section h3 { margin: 0 0 .55rem; }
+.dw-theme .wallet-section .currency-panel { margin: 0; }
+.dw-theme .wallet-section .currency-card { justify-content: space-between; }
+.wallet-section small { display: block; margin-top: .4rem; color: var(--text-muted); }
+.dw-theme .inventory-container { margin-top: .8rem; }
+#inventory-space-note { color: var(--text-muted); }
+.inventory-overflow { margin-top: .8rem; }
+
+@media (max-width: 1100px) {
+  .dw-theme .overview-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 768px) {
+  .dw-theme .resource-tracks-grid { grid-template-columns: minmax(0, 1fr); }
+  .dw-theme .resource-card, .dw-theme .defense-stats-box { grid-column: auto; }
+  .dw-theme .defense-stats-box { flex-wrap: wrap; gap: .7rem; }
+  .dw-theme .wallet-section .currency-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dw-theme .wallet-section .currency-card { padding: .35rem; gap: .25rem; }
+  .dw-theme .wallet-section .coin-input { width: 100%; min-width: 0; }
+}

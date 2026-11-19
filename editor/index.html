@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>角色库</title>
   <link rel="stylesheet" href="./app.css">
+  <link rel="stylesheet" href="../pixel-theme.css">
 </head>
 <body class="dw-theme">
   <!-- Top Navigation & Vault Bar -->
@@ -162,10 +163,11 @@
   <section class="combat-dashboard" id="combat-dashboard">
     <div class="char-summary-strip">
       <div class="avatar-tag">
-        <span class="level-badge" id="dash-level">Lv 1</span>
         <span class="name-badge" id="dash-name">无名角色</span>
         <span class="gender-badge" id="dash-gender">♂ 男</span>
-        <span class="class-badge" id="dash-class">战士</span>
+        <span class="ancestry-badge" id="dash-ancestry">—</span>
+        <span class="class-badge" id="dash-class">—</span>
+        <span class="level-badge" id="dash-level">Lv 1</span>
       </div>
       <div class="level-control">
         <button class="stepper-btn" id="lvl-down" title="降级">-</button>
@@ -177,6 +179,11 @@
     <div class="resource-tracks-grid">
       <!-- Health Track -->
       <div class="resource-card health-card">
+        <div class="life-thresholds" aria-label="伤害阈值">
+          <span>重度 <strong id="threshold-a">—</strong></span>
+          <span>严重 <strong id="threshold-b">—</strong></span>
+          <span>致死 <strong id="threshold-c">—</strong></span>
+        </div>
         <div class="res-header">
           <span class="res-title">生命点 · 剩余</span>
           <div class="res-counter">
@@ -220,6 +227,25 @@
         </div>
       </div>
 
+      <div class="defense-stats-box" role="group" aria-label="战斗数值">
+        <div class="def-item">
+          <span class="def-label">闪避</span>
+          <strong class="def-val" id="stat-evasion">—</strong>
+          <label for="evasion-adjustment">当前值</label>
+          <small id="evasion-breakdown"></small>
+          <span class="quick-value"><button type="button" data-adjust="evasion-adjustment" data-delta="-1" aria-label="减少闪避">−</button><input id="evasion-adjustment" type="number" min="0" step="1" class="dw-input" value="0"><button type="button" data-adjust="evasion-adjustment" data-delta="1" aria-label="增加闪避">+</button></span>
+        </div>
+        <div class="def-item">
+          <span class="def-label">基础护甲</span>
+          <strong class="def-val" id="stat-armor-score">0</strong>
+        </div>
+        <div class="def-item">
+          <span class="def-label">熟练值</span>
+          <strong class="def-val" id="stat-proficiency">1</strong>
+          <label class="limit-control">当前熟练 <span class="quick-value"><button type="button" data-adjust="proficiency-current" data-delta="-1" aria-label="减少熟练值">−</button><input id="proficiency-current" type="number" min="0" step="1" value="1" class="dw-input"><button type="button" data-adjust="proficiency-current" data-delta="1" aria-label="增加熟练值">+</button></span></label>
+        </div>
+      </div>
+
       <!-- Armor Track & Thresholds Dashboard -->
       <div class="resource-card armor-card">
         <div class="res-header">
@@ -229,27 +255,10 @@
           </div>
         </div>
         <div class="res-pips-bar" id="armor-pips"></div>
+        <label class="limit-control">当前上限 <span class="quick-value"><button type="button" data-adjust="armor-limit" data-delta="-1" aria-label="减少护甲上限">−</button><input id="armor-limit" type="number" min="0" step="1" value="0" class="dw-input"><button type="button" data-adjust="armor-limit" data-delta="1" aria-label="增加护甲上限">+</button></span></label>
         <div class="res-stepper">
           <button class="res-btn" id="armor-minus">-1</button>
           <button class="res-btn" id="armor-plus">+1</button>
-        </div>
-      </div>
-
-      <div class="defense-stats-box" role="group" aria-label="战斗数值">
-        <div class="def-item">
-          <span class="def-label">闪避</span>
-          <strong class="def-val" id="stat-evasion">—</strong>
-          <label for="evasion-adjustment">额外修正</label>
-          <small id="evasion-breakdown"></small>
-          <input id="evasion-adjustment" type="number" step="1" class="dw-input" value="0">
-        </div>
-        <div class="def-item">
-          <span class="def-label">基础护甲</span>
-          <strong class="def-val" id="stat-armor-score">0</strong>
-        </div>
-        <div class="def-item">
-          <span class="def-label">熟练值</span>
-          <strong class="def-val" id="stat-proficiency">1</strong>
         </div>
       </div>
 
@@ -260,45 +269,19 @@
         <label><input type="checkbox" id="condition-restrained"> 束缚</label>
         <label><input type="checkbox" id="condition-hidden"> 隐藏</label>
       </div>
-      <!-- Damage Thresholds Readout -->
-      <div class="thresholds-summary-card" id="thresholds-card" aria-label="伤害阈值">
-        <p class="threshold-bounds">重度阈值 <strong id="threshold-a">—</strong> · 严重阈值 <strong id="threshold-b">—</strong></p>
-        <div class="threshold-col minor">
-          <span class="th-label">轻度伤害</span>
-          <span class="th-val" id="th-minor">—</span>
-          <span class="th-hint">标记 1 点生命</span>
-        </div>
-        <div class="threshold-col major">
-          <span class="th-label">重度伤害</span>
-          <span class="th-val" id="th-major">—</span>
-          <span class="th-hint">标记 2 点生命</span>
-        </div>
-        <div class="threshold-col severe">
-          <span class="th-label">严重伤害</span>
-          <span class="th-val" id="th-severe">—</span>
-          <span class="th-hint">标记 3 点生命</span>
-        </div>
-      </div>
-      <details class="optional-damage">
-        <summary>可选规则：致死伤害</summary>
-        <p>采用时，致死阈值为 <strong id="threshold-c">—</strong>，等于严重阈值的两倍。低于此值的严重伤害标记 3 点生命，达到此值标记 4 点。</p>
-      </details>
     </div>
   </section>
 
-  <!-- Navigation Tabs: 4 Pages -->
+  <!-- 角色页签 -->
   <nav class="page-tabs" id="page-tabs">
     <button class="tab-btn active" data-page="overview">
       <span class="tab-icon">👤</span> 角色概览
     </button>
     <button class="tab-btn" data-page="foundations">
-      <span class="tab-icon">📜</span> 【角色基石】
+      <span class="tab-icon">📜</span> 角色资料
     </button>
     <button class="tab-btn" data-page="skills">
-      <span class="tab-icon">✨</span> 【技能卡牌】
-    </button>
-    <button class="tab-btn" data-page="inventory">
-      <span class="tab-icon">🎒</span> 【行装背包】
+      <span class="tab-icon">✨</span> 领域卡
     </button>
   </nav>
 
@@ -484,7 +467,8 @@
               <div class="attr-header">
                 <span class="attr-name">敏捷 (Agility)</span>
                 <div class="attr-stepper">
-                  <span class="attr-mod" id="attr-mod-agility">+0</span>
+                  <input class="attr-mod" id="attr-mod-agility" data-trait="agility" type="number" step="1" value="0">
+                  <label class="trait-mark"><input type="checkbox" data-trait-mark="agility"> 已加点</label>
                 </div>
               </div>
               <p class="attr-desc">冲刺 · 闪避 · 杂技 · 移动</p>
@@ -495,7 +479,8 @@
               <div class="attr-header">
                 <span class="attr-name">力量 (Strength)</span>
                 <div class="attr-stepper">
-                  <span class="attr-mod" id="attr-mod-strength">+2</span>
+                  <input class="attr-mod" id="attr-mod-strength" data-trait="strength" type="number" step="1" value="2">
+                  <label class="trait-mark"><input type="checkbox" data-trait-mark="strength"> 已加点</label>
                 </div>
               </div>
               <p class="attr-desc">粉碎 · 举重 · 近战 · 坚韧</p>
@@ -506,7 +491,8 @@
               <div class="attr-header">
                 <span class="attr-name">灵巧 (Finesse)</span>
                 <div class="attr-stepper">
-                  <span class="attr-mod" id="attr-mod-finesse">+1</span>
+                  <input class="attr-mod" id="attr-mod-finesse" data-trait="finesse" type="number" step="1" value="1">
+                  <label class="trait-mark"><input type="checkbox" data-trait-mark="finesse"> 已加点</label>
                 </div>
               </div>
               <p class="attr-desc">瞄准 · 潜行 · 巧手 · 锁匠</p>
@@ -517,7 +503,8 @@
               <div class="attr-header">
                 <span class="attr-name">本能 (Instinct)</span>
                 <div class="attr-stepper">
-                  <span class="attr-mod" id="attr-mod-instinct">+1</span>
+                  <input class="attr-mod" id="attr-mod-instinct" data-trait="instinct" type="number" step="1" value="1">
+                  <label class="trait-mark"><input type="checkbox" data-trait-mark="instinct"> 已加点</label>
                 </div>
               </div>
               <p class="attr-desc">洞察 · 察觉 · 野性 · 直觉</p>
@@ -528,7 +515,8 @@
               <div class="attr-header">
                 <span class="attr-name">风采 (Presence)</span>
                 <div class="attr-stepper">
-                  <span class="attr-mod" id="attr-mod-presence">+0</span>
+                  <input class="attr-mod" id="attr-mod-presence" data-trait="presence" type="number" step="1" value="0">
+                  <label class="trait-mark"><input type="checkbox" data-trait-mark="presence"> 已加点</label>
                 </div>
               </div>
               <p class="attr-desc">魅力 · 威吓 · 说服 · 领导</p>
@@ -539,7 +527,8 @@
               <div class="attr-header">
                 <span class="attr-name">知识 (Knowledge)</span>
                 <div class="attr-stepper">
-                  <span class="attr-mod" id="attr-mod-knowledge">-1</span>
+                  <input class="attr-mod" id="attr-mod-knowledge" data-trait="knowledge" type="number" step="1" value="-1">
+                  <label class="trait-mark"><input type="checkbox" data-trait-mark="knowledge"> 已加点</label>
                 </div>
               </div>
               <p class="attr-desc">回想 · 分析 · 奥术 · 调查</p>
@@ -551,6 +540,106 @@
         </div>
       </div>
 
+      <div class="inventory-container">
+        <section class="wallet-section" aria-label="财富">
+          <h3>财富</h3>
+          <div class="currency-panel">
+            <label class="currency-card">把 <input type="number" id="coin-handfuls" class="coin-input" value="0" min="0" step="1"></label>
+            <label class="currency-card">袋 <input type="number" id="coin-bags" class="coin-input" value="0" min="0" step="1"></label>
+            <label class="currency-card">箱 <input type="number" id="coin-chests" class="coin-input" value="0" min="0" step="1"></label>
+          </div>
+          <small id="legacy-wealth" hidden></small>
+        </section>
+
+
+
+        <!-- Bag Slots & Expandable Pouches Bar -->
+        <div class="bag-equipment-panel">
+          <div class="bag-panel-title">
+            <h3>背包与容器</h3>
+            <span class="bag-summary-badge">
+              总容纳：<span id="bag-total-slots">0</span> 格（主包 <span id="bag-base-slots">0</span> + 扩展 <span id="bag-extra-slots">0</span>）
+            </span>
+          </div>
+
+          <div class="bag-slots-strip">
+            <div class="bag-slot-card" data-bag-slot="main_bag">
+              <div class="slot-icon-box" id="slot-icon-main-bag"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">主背包</span>
+                <strong class="bag-name" id="bag-name-main">空置</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="pouch_1">
+              <div class="slot-icon-box" id="slot-icon-pouch-1"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">腰包 1</span>
+                <strong class="bag-name" id="bag-name-pouch1">空置</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="pouch_2">
+              <div class="slot-icon-box" id="slot-icon-pouch-2"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">腰包 2</span>
+                <strong class="bag-name" id="bag-name-pouch2">空置</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="satchel_1">
+              <div class="slot-icon-box" id="slot-icon-satchel-1"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">挎包 1</span>
+                <strong class="bag-name" id="bag-name-satchel1">空置</strong>
+              </div>
+            </div>
+
+            <div class="bag-slot-card" data-bag-slot="satchel_2">
+              <div class="slot-icon-box" id="slot-icon-satchel-2"></div>
+              <div class="bag-slot-info">
+                <span class="bag-type">挎包 2</span>
+                <strong class="bag-name" id="bag-name-satchel2">空置</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Visual Grid Bag -->
+        <div class="inventory-grid-panel">
+          <div class="grid-panel-header">
+            <h3>物品栏</h3>
+            <div class="grid-actions">
+              <button class="dw-btn dw-btn-gold" id="btn-open-item-workshop" title="创制原创装备、战利品与消耗品并即时发放">🛠️ 创制/发放物品</button>
+              <button class="dw-btn dw-btn-outline" id="btn-loot-catalog">查战利品与消耗品</button>
+              <button class="dw-btn dw-btn-outline" id="btn-add-item">自填物品</button>
+              <button class="dw-btn dw-btn-outline" id="btn-clean-bag">🧹 整理背包</button>
+            </div>
+          </div>
+
+          <p id="inventory-space-note" hidden></p>
+          <div class="visual-slots-grid" id="inventory-grid">
+            <!-- Rendered Diablo/Velundra style grid cells -->
+          </div>
+          <div class="visual-slots-grid inventory-overflow" id="inventory-overflow" hidden></div>
+        </div>
+
+        <!-- Modular Armor Formula Engine Card -->
+        <div class="armor-formula-card">
+          <div class="formula-header">
+            <span class="formula-icon">🛡️</span>
+            <div>
+              <h3>防具与伤害阈值动态计算引擎</h3>
+              <p class="formula-subtitle">根据《匕首世界》SRD与细分装备规则实时运算</p>
+            </div>
+          </div>
+          <div class="formula-body" id="armor-formula-breakdown">
+            <!-- Real-time formula breakdown rendered here -->
+          </div>
+        </div>
+
+      </div>
+
       <!-- Bottom Level-up / Upgrade Bar -->
       <div class="levelup-bottom-bar">
         <div class="levelup-title">
@@ -558,12 +647,7 @@
           <span class="levelup-tier-tag" id="cur-tier-tag">位阶 1 · 1 级</span>
         </div>
         <div id="advancements-container"></div>
-        <details id="initial-traits">
-          <summary>分配初始属性</summary>
-          <p>各用一次：+2、+1、+1、0、0、−1。</p>
-          <div id="initial-trait-controls"></div>
-          <button type="button" class="dw-btn" id="save-initial-traits">保存属性</button>
-        </details>
+
       </div>
     </section>
 
@@ -749,120 +833,7 @@
       </div>
     </section>
 
-    <!-- PAGE 4: 【背包】 -->
-    <section class="tab-page" id="page-inventory">
-      <div class="inventory-container">
-        
-        <!-- Bag Slots & Expandable Pouches Bar -->
-        <div class="bag-equipment-panel">
-          <div class="bag-panel-title">
-            <h3>行囊拓展栏位</h3>
-            <span class="bag-summary-badge">
-              总容纳：<span id="bag-total-slots">18</span> 格 (基础 <span id="bag-base-slots">10</span> + 拓展 <span id="bag-extra-slots">8</span>)
-            </span>
-          </div>
 
-          <div class="bag-slots-strip">
-            <div class="bag-slot-card" data-bag-slot="main_bag">
-              <div class="slot-icon-box" id="slot-icon-main-bag"></div>
-              <div class="bag-slot-info">
-                <span class="bag-type">主背包</span>
-                <strong class="bag-name" id="bag-name-main">10格标准行囊</strong>
-              </div>
-            </div>
-
-            <div class="bag-slot-card" data-bag-slot="pouch_1">
-              <div class="slot-icon-box" id="slot-icon-pouch-1"></div>
-              <div class="bag-slot-info">
-                <span class="bag-type">腰包 1</span>
-                <strong class="bag-name" id="bag-name-pouch1">拓展皮腰包 (+2格)</strong>
-              </div>
-            </div>
-
-            <div class="bag-slot-card" data-bag-slot="pouch_2">
-              <div class="slot-icon-box" id="slot-icon-pouch-2"></div>
-              <div class="bag-slot-info">
-                <span class="bag-type">腰包 2</span>
-                <strong class="bag-name" id="bag-name-pouch2">空腰带位 (0格)</strong>
-              </div>
-            </div>
-
-            <div class="bag-slot-card" data-bag-slot="satchel_1">
-              <div class="slot-icon-box" id="slot-icon-satchel-1"></div>
-              <div class="bag-slot-info">
-                <span class="bag-type">挎包 1</span>
-                <strong class="bag-name" id="bag-name-satchel1">深水城旅者挎包 (+4格)</strong>
-              </div>
-            </div>
-
-            <div class="bag-slot-card" data-bag-slot="satchel_2">
-              <div class="slot-icon-box" id="slot-icon-satchel-2"></div>
-              <div class="bag-slot-info">
-                <span class="bag-type">挎包 2</span>
-                <strong class="bag-name" id="bag-name-satchel2">空挎包位 (0格)</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Interactive Visual Grid Bag -->
-        <div class="inventory-grid-panel">
-          <div class="grid-panel-header">
-            <h3>格子化背包物品栏</h3>
-            <div class="grid-actions">
-              <button class="dw-btn dw-btn-gold" id="btn-open-item-workshop" title="创制原创装备、战利品与消耗品并即时发放">🛠️ 创制/发放物品</button>
-              <button class="dw-btn dw-btn-outline" id="btn-loot-catalog">查战利品与消耗品</button>
-              <button class="dw-btn dw-btn-outline" id="btn-add-item">自填物品</button>
-              <button class="dw-btn dw-btn-outline" id="btn-clean-bag">🧹 整理背包</button>
-            </div>
-          </div>
-          
-          <div class="visual-slots-grid" id="inventory-grid">
-            <!-- Rendered Diablo/Velundra style grid cells -->
-          </div>
-        </div>
-
-        <!-- Currency & Valuables -->
-        <div class="currency-panel">
-          <div class="currency-card">
-            <span class="coin-icon">🪙</span>
-            <div class="coin-info">
-              <label>零钱金币 (Gold Coins)</label>
-              <input type="number" id="coin-gold" class="coin-input" value="15" min="0">
-            </div>
-          </div>
-          <div class="currency-card">
-            <span class="coin-icon">💰</span>
-            <div class="coin-info">
-              <label>钱袋 (Handfuls / Bags)</label>
-              <input type="number" id="coin-bags" class="coin-input" value="1" min="0">
-            </div>
-          </div>
-          <div class="currency-card">
-            <span class="coin-icon">✨</span>
-            <div class="coin-info">
-              <label>精炼粉末 / 战役催化剂</label>
-              <input type="number" id="coin-dust" class="coin-input" value="0" min="0">
-            </div>
-          </div>
-        </div>
-
-        <!-- Modular Armor Formula Engine Card -->
-        <div class="armor-formula-card">
-          <div class="formula-header">
-            <span class="formula-icon">🛡️</span>
-            <div>
-              <h3>防具与伤害阈值动态计算引擎</h3>
-              <p class="formula-subtitle">根据《匕首世界》SRD与细分装备规则实时运算</p>
-            </div>
-          </div>
-          <div class="formula-body" id="armor-formula-breakdown">
-            <!-- Real-time formula breakdown rendered here -->
-          </div>
-        </div>
-
-      </div>
-    </section>
 
   </main>
 
