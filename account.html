@@ -7,13 +7,13 @@
 main{width:100%;max-width:min(94vw,560px);margin:auto;padding:clamp(20px,5vw,36px);background:#f9f0da;border:2px solid #9d7651;border-top:6px solid #774332;box-shadow:0 8px 32px rgba(0,0,0,0.5);border-radius:4px}h1{margin:8px 0 16px;font-size:clamp(1.45rem,4vw,1.95rem);color:#4a271e}a{color:#763726}form{display:grid;gap:16px}label{display:grid;gap:6px;font-weight:bold;font-size:0.95rem}input,button{font:inherit;padding:10px 12px;border:1px solid #a48365;border-radius:4px;min-height:44px}input:focus{outline:2px solid #9d7651;outline-offset:1px}button,.action{background:#743b2c;color:#fff3dc;padding:10px 16px;border:none;border-radius:4px;text-decoration:none;cursor:pointer;font-weight:bold;min-height:44px;display:inline-flex;align-items:center;justify-content:center;transition:background .2s}.action{display:inline-flex}button:hover,.action:hover{background:#8c4534}small{color:#705246}#status{min-height:1.6rem;margin-top:8px}button:disabled{opacity:.65;cursor:not-allowed}@media(max-width:480px){body{padding:8px}main{padding:18px 14px}}
 </style>
 <link rel="stylesheet" href="./pixel-theme.css">
-<main><a href="./index.html">← 官网首页</a><h1>冒险者中心</h1>
+<main><a href="./index.html#top">← 官网首页</a><h1>冒险者中心</h1>
 <form id="login">
 <label>用户名或邮箱<input name="login" autocomplete="username" maxlength="100" required></label>
 <label>内测邀请码<input name="code" type="password" autocomplete="current-password" required></label>
 <button>进入匕首世界</button>
 </form>
-<div id="signed" hidden><p id="greeting"></p><a class="action" id="editor" href="./editor/">录入角色卡</a> <button id="sign-out">退出</button></div>
+<div id="signed" hidden><p id="greeting"></p><a class="action" id="editor" href="./editor/#vault">录入角色卡</a> <button id="sign-out">退出</button></div>
 <p id="status" role="status"></p>
 </main>
 <script type="module">
@@ -28,8 +28,7 @@ async function showAccount() {
   form.hidden = true;
   signed.hidden = false;
   document.getElementById('greeting').textContent = '欢迎，' + account.login;
-  document.getElementById('editor').textContent =
-    account.role === 'gm' ? '主持人档案总览' : account.characters.length ? '进入角色库' : '创建首位化身';
+  document.getElementById('editor').textContent = '进入角色库';
 }
 form.addEventListener('submit', async event => {
   event.preventDefault();

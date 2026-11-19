@@ -13,10 +13,10 @@
   --pixel-paper: #f5e7c9;
   --pixel-surface: #fff3d5;
   --pixel-edge: #ae8054;
-  --pixel-shadow: #604035;
+  --pixel-shadow: #9f7447;
   --pixel-focus: #e7a95a;
-  --pixel-panel: #33272f;
-  --pixel-night: #211a23;
+  --pixel-panel: #fff3d5;
+  --pixel-timber: #efd5a5;
 }
 
 body { font-family: var(--pixel-text); }
@@ -40,8 +40,32 @@ body:has(.route) { color: var(--pixel-ink); background: var(--pixel-paper); }
 body:has(.route) main { background: var(--pixel-paper); }
 body:has(.route) header { background: var(--pixel-surface); border-color: var(--pixel-edge); }
 body:has(.route) header strong { font-family: var(--pixel-font); font-weight: 400; }
-body:has(.route) nav { background: #47313b; border-color: #ae8054; }
-body:has(.route) nav a[aria-current="page"] { background: #764735; box-shadow: inset 0 -3px #e7a95a; }
+body:has(.route) nav { background: var(--pixel-timber); border-color: var(--pixel-edge); }
+body:has(.route) nav a { color: var(--pixel-ink); border-color: var(--pixel-edge); }
+body:has(.route) nav a:is(:hover, [aria-current="page"]) { background: #f5c77e; box-shadow: inset 0 -3px #a76232; }
+.portal-brand { display: flex; align-items: baseline; flex-wrap: wrap; gap: .35rem 1rem; }
+.portal-library, .home .button {
+  display: inline-block;
+  padding: .45rem .85rem;
+  background: #f6c87e;
+  border: 1px solid #a16c42;
+  box-shadow: 2px 2px 0 var(--pixel-shadow);
+  color: #511f1c;
+  font-family: var(--pixel-font);
+  text-decoration: none;
+}
+.portal-library:hover, .home .button:hover { background: #ffde9c; color: #511f1c; }
+body:has(.route) .home { padding: clamp(1rem, 4vw, 3.5rem); }
+body:has(.route) .hero-copy {
+  margin: 0;
+  padding: clamp(1rem, 3.5vw, 2.4rem);
+  max-width: 34rem;
+  color: var(--pixel-ink);
+  background: #fff0cdef;
+  border: 2px solid #ac8052;
+  box-shadow: 5px 5px 0 #77503399, inset 0 0 0 3px #ffeab8;
+}
+.hero-copy .eyebrow { color: #84422b; }
 .route :is(.panel, .paper, .box, .version, .ability, .community),
 .srd-modal-card, .srd-subclass-card {
   border-radius: 0;
@@ -49,12 +73,12 @@ body:has(.route) nav a[aria-current="page"] { background: #764735; box-shadow: i
 }
 .route :is(.button, button), .srd-modal-card :is(button, input, select) { border-radius: 0; }
 
-body:has(#login) { background: var(--pixel-night); color: var(--pixel-ink); }
+body:has(#login) { background: var(--pixel-paper); color: var(--pixel-ink); }
 body:has(#login) main {
   border-radius: 0;
   background: var(--pixel-surface);
   border-color: var(--pixel-edge);
-  box-shadow: 5px 5px 0 #110e17, inset 0 0 0 3px #e0c297;
+  box-shadow: 5px 5px 0 var(--pixel-shadow), inset 0 0 0 3px #e0c297;
 }
 body:has(#login) :is(button, .action, input) { border-radius: 0; }
 body:has(#login) :is(button, .action) { font-family: var(--pixel-font); font-synthesis: none; }
@@ -62,41 +86,113 @@ body:has(#login) :is(button, .action) { font-family: var(--pixel-font); font-syn
 .dw-theme {
   --font-serif: var(--pixel-font);
   --font-sans: var(--pixel-text);
-  --bg-dark: var(--pixel-night);
-  --bg-header: #392931;
+  color-scheme: light;
+  --bo3-primary: #9b3f32;
+  --bo3-primary-hover: #ad503a;
+  --bg-dark: var(--pixel-paper);
+  --bg-header: var(--pixel-timber);
   --bg-card: var(--pixel-panel);
-  --bg-surface: #423139;
-  --bg-input: #261e27;
-  --bg-hover: #514037;
-  --border-bo3: #946a4c;
-  --border-subtle: #775340;
-  --text-main: #fff1d6;
-  --text-muted: #dbbea3;
-  --text-gold: #f5c77e;
+  --bg-surface: #f8e4bf;
+  --bg-input: #fff8e7;
+  --bg-hover: #f8d792;
+  --border-bo3: #ae8054;
+  --border-subtle: #c8a377;
+  --text-main: var(--pixel-ink);
+  --text-muted: #725f4b;
+  --text-gold: #885224;
+  --text-red: #9b3f32;
+  --text-blue: #395a70;
 }
 
 .dw-theme :is(
-  .dw-header, .vault-hero, .vault-char-card, .creation-panel, .resource-card,
+  .dw-header, .vault-hero-banner, .vault-char-card, .creation-panel, .resource-card,
   .defense-stats-box, .paperdoll-container, .gear-slot, .weapon-slot, .slot-icon-box,
   .attr-card, .bag-equipment-panel, .bag-slot-card, .inventory-grid-panel, .grid-cell,
   .currency-card, .levelup-bottom-bar, .armor-formula-card, .f-card, .dh-card,
   .dw-modal-window, .picker-item-card, .level-dialog, .ws-workbench, .ws-preview-box
 ) {
   border-radius: 0;
-  box-shadow: 3px 3px 0 #160f18, inset 0 0 0 2px #ac7a5033;
+  box-shadow: 3px 3px 0 #ae805466, inset 0 0 0 2px #d0a56f55;
 }
+.dw-theme :is(.dw-header, .vault-hero-banner, .ws-page-hero, .combat-dashboard, .page-tabs) {
+  background: var(--pixel-timber);
+  color: var(--pixel-ink);
+}
+.dw-theme .vault-hero-content h1 { color: var(--pixel-ink); }
+.dw-theme .vault-layout-grid { grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
+.dw-theme .vault-creator-section { max-width: 46rem; }
+.dw-theme .vault-cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 14rem));
+  gap: .85rem;
+}
+.dw-theme :is(.vault-char-card, .vault-create-card, .creator-card) {
+  background: #fff2d4;
+  color: var(--pixel-ink);
+  border: 2px solid #8e613b;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 2px #c69758, 2px 3px 0 #ba9367;
+}
+.dw-theme .vault-char-card { padding: .4rem; gap: .45rem; }
+.dw-theme .vault-char-card.active-char { border-color: #a7553f; }
+.dw-theme .vcard-top { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; }
+.dw-theme .vcard-avatar {
+  width: 100%;
+  height: 9.5rem;
+  background: #f4e4c1;
+  border: 0;
+  border-bottom: 1px solid #bd935f;
+  border-radius: 0;
+  box-shadow: none;
+}
+.dw-theme .vcard-avatar canvas { width: 128px; height: 128px; image-rendering: pixelated; }
+.dw-theme .vcard-meta { padding: .2rem .25rem; }
+.dw-theme .vcard-name-row, .dw-theme .vcard-tags { flex-wrap: wrap; }
+.dw-theme .vcard-actions { margin-top: auto; }
+.dw-theme :is(.vcard-btn-enter, .vcard-btn-icon) {
+  background: #f6dfb4;
+  border: 1px solid #ae8054;
+  border-radius: 0;
+  color: #5b3023;
+}
+.dw-theme .vcard-btn-enter:hover { background: #f5c77e; }
+.dw-theme .vault-create-card {
+  padding: .8rem;
+  min-height: 15rem;
+  display: grid;
+  place-content: center;
+  gap: .4rem;
+  cursor: pointer;
+  font: 1.05rem var(--pixel-font);
+}
+.dw-theme .vault-create-card span { font-size: 1.8rem; }
+.dw-theme .vault-create-card:hover { background: #ffe4ae; }
+.dw-theme .vault-switcher-pill { border-radius: 0; }
+.dw-theme :is(.paperdoll-container, .dw-modal-window, .more-dropdown, .ws-workbench, .ws-preview-box) {
+  background: var(--pixel-panel);
+  color: var(--pixel-ink);
+}
+.dw-theme #paperdoll { background: radial-gradient(ellipse, #ffe9b3, #e7c38c 75%); border-color: #a67a4a; box-shadow: 3px 3px 0 #b48758; }
+.dw-theme :is(.dw-btn-gold, .tab-btn.active, .res-btn, .stepper-btn) {
+  background: #f6c87e;
+  color: #511f1c;
+  text-shadow: none;
+}
+.dw-theme :is(.dw-btn, .tab-btn, .res-btn, .stepper-btn):hover { color: #511f1c; background: #ffde9c; }
+.dw-theme :is(.gender-badge, .sync-badge) .status-dot { color: #3e7035; }
+.dw-theme .sync-badge.offline .status-dot { color: #9b3f32; }
 
 .dw-theme :is(.dw-btn, .res-btn, .stepper-btn, .tab-btn, .roll-trigger-btn, .dw-input, .dw-select, .dw-textarea, .coin-input) {
   border-radius: 0;
 }
-.dw-theme :is(.dw-btn, .res-btn, .stepper-btn, .tab-btn, .roll-trigger-btn) { box-shadow: 2px 2px 0 #171018; }
+.dw-theme :is(.dw-btn, .res-btn, .stepper-btn, .tab-btn, .roll-trigger-btn) { box-shadow: 2px 2px 0 #ad805566; }
 .dw-theme .tab-btn.active { box-shadow: inset 0 -3px var(--pixel-focus); }
 .dw-theme .avatar-tag { flex-wrap: wrap; }
 .dw-theme .avatar-tag :is(.gender-badge, .ancestry-badge, .class-badge, .level-badge) {
   padding: 3px 7px;
   border: 1px solid var(--border-bo3);
   border-radius: 0;
-  background: #2c2330;
+  background: var(--pixel-surface);
+  color: var(--pixel-ink);
 }
 .dw-theme .ancestry-badge { color: var(--text-muted); }
 .dw-theme .resource-tracks-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
@@ -146,6 +242,10 @@ body:has(#login) :is(button, .action) { font-family: var(--pixel-font); font-syn
   .dw-theme .overview-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 768px) {
+  .dw-theme .vault-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dw-theme .vcard-actions { flex-wrap: wrap; }
+  .dw-theme .vcard-avatar { height: 7.25rem; }
+  .dw-theme .vcard-avatar canvas { width: 96px; height: 96px; }
   .dw-theme .resource-tracks-grid { grid-template-columns: minmax(0, 1fr); }
   .dw-theme .resource-card, .dw-theme .defense-stats-box { grid-column: auto; }
   .dw-theme .defense-stats-box { flex-wrap: wrap; gap: .7rem; }

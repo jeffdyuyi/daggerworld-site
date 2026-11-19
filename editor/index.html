@@ -14,11 +14,11 @@
       <button class="dw-btn dw-btn-gold" id="btn-back-vault" style="display:none;" title="返回第一层角色库大厅">
         <span>‹</span> 角色库大厅
       </button>
-      <a href="../index.html" class="dw-brand" id="brand-link">
+      <a href="../index.html#top" class="dw-brand" id="brand-link">
         <span class="brand-icon">⚔️</span>
         <div class="brand-text">
-          <span class="sub-title">深水城 2026 · 匕首世界</span>
-          <span class="main-title">角色库</span>
+          <span class="sub-title">匕首世界</span>
+          <span class="main-title">官网首页</span>
         </div>
       </a>
     </div>
@@ -39,13 +39,11 @@
         <span class="status-dot">●</span> <span id="sync-text">本地就绪</span>
       </span>
       <button class="dw-btn dw-btn-outline" id="btn-save-cloud" title="立即保存至云端">☁️ 保存</button>
-      <button class="dw-btn dw-btn-outline" id="btn-open-workshop" title="主持人资源工坊：创制物品、战利品与领域卡">🛠️ 资源工坊</button>
       <button class="dw-btn dw-btn-outline" id="btn-open-vault">📋 角色库</button>
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
           <button id="btn-create-char">新建角色</button>
-          <button id="btn-dropdown-workshop">🛠️ 资源工坊与卡包</button>
           <button id="btn-export-json">💾 导出本卡 JSON</button>
           <label class="dropdown-file-label">
             📥 导入角色卡
@@ -55,7 +53,7 @@
           <hr>
           <a href="https://forum.bo3studio.com/" target="_blank" rel="noopener noreferrer" class="dropdown-link">🏢 代理商社区：三局两胜 ↗</a>
           <a href="../account.html" class="dropdown-link">👤 冒险者中心</a>
-          <a href="../index.html#archive" target="_blank" class="dropdown-link">📖 战役图鉴</a>
+          <a href="../index.html#archive" class="dropdown-link">📖 战役图鉴</a>
         </div>
       </div>
     </div>
@@ -69,11 +67,10 @@
     <!-- Hero Banner -->
     <div class="vault-hero-banner">
       <div class="vault-hero-content">
-        <div class="vault-badge-pill">DAGGERHEART VAULT</div>
         <h1>角色库</h1>
       </div>
       <div class="vault-hero-actions">
-        <button class="dw-btn dw-btn-gold" id="btn-hero-scroll-create">＋ 新建角色</button>
+        <button type="button" class="dw-btn dw-btn-outline" id="btn-open-workshop" hidden>主持人工坊</button>
         <button class="dw-btn dw-btn-outline" id="btn-vault-refresh">🔄 刷新云端</button>
         <button class="dw-btn dw-btn-outline" id="btn-hero-import">📥 导入角色卡 JSON</button>
         <input type="file" id="hero-import-file" accept=".json" hidden>
@@ -94,11 +91,11 @@
       </div>
 
       <!-- Right: Character Creation Wizard -->
-      <div class="vault-creator-section" id="vault-creator-section">
+      <div class="vault-creator-section" id="vault-creator-section" hidden>
         <div class="creator-card">
           <div class="creator-header">
-            <span class="f-badge">创角殿堂</span>
             <h2>新建角色</h2>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-close-creator">取消</button>
           </div>
           <p class="creator-desc">创建后，基础设定由主持人修改。</p>
 
@@ -610,7 +607,6 @@
           <div class="grid-panel-header">
             <h3>物品栏</h3>
             <div class="grid-actions">
-              <button class="dw-btn dw-btn-gold" id="btn-open-item-workshop" title="创制原创装备、战利品与消耗品并即时发放">🛠️ 创制/发放物品</button>
               <button class="dw-btn dw-btn-outline" id="btn-loot-catalog">查战利品与消耗品</button>
               <button class="dw-btn dw-btn-outline" id="btn-add-item">自填物品</button>
               <button class="dw-btn dw-btn-outline" id="btn-clean-bag">🧹 整理背包</button>
@@ -666,9 +662,6 @@
               </span>
             </div>
             <div class="identity-action-btns" style="display:flex;gap:8px;">
-              <button type="button" class="gm-toggle-btn" id="btn-fn-open-workshop" title="创制与发放战利品/装备/领域卡">
-                <span>🛠️</span> 资源工坊
-              </button>
               <button type="button" class="gm-toggle-btn" id="btn-gm-override-toggle" title="主持人特权快速调整">
                 <span>👑</span> GM特权调整
               </button>
@@ -806,7 +799,6 @@
 
           <div class="skills-controls-right">
             <label><input type="checkbox" id="domain-rest"> 休息换卡</label>
-            <button class="dw-btn dw-btn-gold" id="btn-add-custom-card" hidden>原创领域卡</button>
           </div>
         </div>
 

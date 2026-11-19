@@ -356,6 +356,7 @@ async function init() {
     updateSyncStatus(true, `正在同步云端 · ${session.login || '冒险者'}…`);
     loadAccount().then(account => {
       currentUser = account;
+      el('btn-open-workshop').hidden = account.role !== 'gm';
       if (currentUser?.characters && currentUser.characters.length > 0) {
         characters = currentUser.characters.map(normalizeCharacter);
         activeCharIndex = 0;
@@ -364,6 +365,7 @@ async function init() {
         renderVaultLobby();
         renderAll();
       }
+      if (currentHash === '#workshop' && account.role === 'gm') switchLayer('workshop');
       updateSyncStatus(true, `云端已同步 · ${currentUser.login || '冒险者'}`);
     }).catch(err => {
       console.warn('Background sync deferred:', err.message);
@@ -566,6 +568,7 @@ function calculateStats(char) {
 // 核心两层架构控制器 (Two-Tier Layer Controller)
 // ==========================================================================
 function switchLayer(layer, targetIndex) {
+  if (layer === 'workshop' && currentUser?.role !== 'gm') return;
   currentLayer = layer;
   const vaultLayer = el('layer-vault');
   const sheetLayer = el('layer-sheet');
@@ -587,8 +590,8 @@ function switchLayer(layer, targetIndex) {
     if (workshopLayer) workshopLayer.hidden = false;
     if (backBtn) {
       backBtn.style.display = 'inline-flex';
-      backBtn.innerHTML = '<span>‹</span> 返回角色卡';
-      backBtn.title = '返回角色卡页面';
+      backBtn.textContent = '返回角色库';
+      backBtn.title = '返回角色库';
     }
     if (brandLink) brandLink.style.display = 'flex';
     initWorkshopLayer();
@@ -619,16 +622,6 @@ function renderVaultLobby() {
   if (!container) return;
 
   container.innerHTML = '';
-  if (!characters.length) {
-    container.innerHTML = `
-      <div style="grid-column:1/-1;background:var(--bg-card);padding:36px;border-radius:10px;border:1px dashed var(--border-bo3);text-align:center;">
-        <p style="font-size:16px;color:var(--text-gold);margin-bottom:8px;">📜 暂无角色档案</p>
-        <p style="font-size:13px;color:var(--text-muted);">可在右侧新建角色。</p>
-      </div>
-    `;
-    return;
-  }
-
   characters.forEach((char, idx) => {
     const s = char.sheet || {};
     const clsObj = db?.classes?.find(c => c.ID === s.classId || c.名称 === s.classId);
@@ -638,19 +631,16 @@ function renderVaultLobby() {
     const scObj = db?.subclasses?.find(sc => sc.ID === s.subclassId);
     const scName = scObj?.名称 || '初阶';
     const gender = s.gender || '男';
-    const icon = classIconMap[clsName] || '⚔️';
     const isActive = idx === activeCharIndex;
 
     const card = document.createElement('div');
     card.className = `vault-char-card ${isActive ? 'active-char' : ''}`;
     card.innerHTML = `
       <div class="vcard-top">
-        <div class="vcard-avatar">
-          <span class="vcard-icon">${icon}</span>
-        </div>
+        <div class="vcard-avatar"><canvas width="128" height="128" aria-hidden="true"></canvas></div>
         <div class="vcard-meta">
           <div class="vcard-name-row">
-            <h3 class="vcard-name">${char.avatar_name || '无名角色'}</h3>
+            <h3 class="vcard-name"></h3>
             <span class="gender-badge gender-${gender}">${gender === '男' ? '♂ 男' : (gender === '女' ? '♀ 女' : '⚪ 无')}</span>
           </div>
           <div class="vcard-tags">
@@ -659,12 +649,6 @@ function renderVaultLobby() {
             <span class="vcard-tag vcard-level">Lv.${char.level || 1}</span>
           </div>
         </div>
-      </div>
-      <div class="vcard-trackers">
-        <div class="vcard-stat"><small>生命</small> <strong>${s.hp?.cur ?? 6}/${s.hp?.max ?? 6}</strong></div>
-        <div class="vcard-stat"><small>压力</small> <strong>${s.stress?.cur ?? 0}/${s.stress?.max ?? 6}</strong></div>
-        <div class="vcard-stat"><small>希望</small> <strong>${s.hope?.cur ?? 2}/${s.hope?.max ?? 6}</strong></div>
-        <div class="vcard-stat"><small>护甲</small> <strong>${s.armorPips?.cur ?? 0}</strong></div>
       </div>
       <div class="vcard-actions">
         <button class="vcard-btn-enter" data-index="${idx}">
@@ -675,6 +659,9 @@ function renderVaultLobby() {
       </div>
     `;
 
+    card.querySelector('.vcard-name').textContent = char.avatar_name || '无名角色';
+    void paintPaperdoll(card.querySelector('canvas'), s, calculateStats(char).isSuitActive)
+      .catch(() => card.querySelector('canvas').hidden = true);
     // Bind card actions
     card.querySelector('.vcard-btn-enter').addEventListener('click', () => {
       switchLayer('sheet', idx);
@@ -690,6 +677,19 @@ function renderVaultLobby() {
 
     container.appendChild(card);
   });
+  const create = document.createElement('button');
+  create.type = 'button';
+  create.className = 'vault-create-card';
+  create.innerHTML = '<span aria-hidden="true">+</span>新建角色';
+  create.addEventListener('click', showCharacterCreator);
+  container.append(create);
+}
+
+function showCharacterCreator() {
+  const section = el('vault-creator-section');
+  section.hidden = false;
+  section.scrollIntoView({ block: 'nearest' });
+  el('new-char-name').focus({ preventScroll: true });
 }
 
 function exportCharacterJson(idx = null) {
@@ -772,6 +772,7 @@ function setupCreationWizard() {
 
       // 清空表单
       if (nameInput) nameInput.value = '';
+      el('vault-creator-section').hidden = true;
       
       // 平滑切入第二层跑团工作台！
       switchLayer('sheet', activeCharIndex);
@@ -779,14 +780,10 @@ function setupCreationWizard() {
     });
   }
 
-  // 顶部“铸造新角色”平滑滚动
-  const scrollCreateBtn = el('btn-hero-scroll-create');
-  if (scrollCreateBtn) {
-    scrollCreateBtn.addEventListener('click', () => {
-      el('vault-creator-section')?.scrollIntoView?.({ behavior: 'smooth' });
-      el('new-char-name')?.focus?.();
-    });
-  }
+  el('btn-close-creator').addEventListener('click', () => {
+    el('vault-creator-section').hidden = true;
+    el('lobby-char-cards-container').querySelector('.vault-create-card')?.focus();
+  });
 
   // 导入角色卡 JSON
   const importBtn = el('btn-hero-import');
@@ -1208,7 +1205,6 @@ function renderDomainCards() {
   const job = db?.classes?.find(item => item.ID === sheet.classId || item.名称 === sheet.classId);
   const domains = (job?.领域 ?? '').split(/[+、,，]/).map(name => name.trim()).filter(Boolean);
 
-  el('btn-add-custom-card').hidden = currentUser?.role !== 'gm';
   el('equipped-cards-count').textContent = equipped.length;
   el('domain-learning-limit').textContent = `已选择 ${learned.length} / ${allowance}`;
   el('equipped-cards-container').replaceChildren(...equipped.map(card => domainCard(card, 'equipped', character)));
@@ -1733,16 +1729,13 @@ function setupEventListeners() {
   // Top Bar Actions & Two-Tier Layer Switching
   el('btn-back-vault')?.addEventListener('click', () => {
     if (currentLayer === 'workshop') {
-      switchLayer(characters.length > 0 ? 'sheet' : 'vault');
+      switchLayer('vault');
     } else {
       switchLayer('vault');
     }
   });
   el('btn-open-vault')?.addEventListener('click', () => switchLayer('vault'));
-  el('brand-link')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    switchLayer('vault');
-  });
+
 
   el('vault-open-btn').addEventListener('click', openVaultModal);
   el('vault-modal-close').addEventListener('click', closeVaultModal);
@@ -1803,10 +1796,7 @@ function setupEventListeners() {
   el('btn-create-char').addEventListener('click', () => {
     moreDropdown.classList.remove('show');
     switchLayer('vault');
-    setTimeout(() => {
-      el('vault-creator-section')?.scrollIntoView?.({ behavior: 'smooth' });
-      el('new-char-name')?.focus?.();
-    }, 50);
+    showCharacterCreator();
   });
   el('btn-export-json').addEventListener('click', () => {
     moreDropdown.classList.remove('show');
@@ -1836,17 +1826,6 @@ function setupEventListeners() {
 
   // GM Workshop Triggers & Layer 3 Navigation
   el('btn-open-workshop')?.addEventListener('click', () => switchLayer('workshop'));
-  el('btn-dropdown-workshop')?.addEventListener('click', () => {
-    el('more-dropdown')?.classList.remove('show');
-    switchLayer('workshop');
-  });
-  el('btn-fn-open-workshop')?.addEventListener('click', () => switchLayer('workshop'));
-  el('btn-open-item-workshop')?.addEventListener('click', () => switchLayer('workshop'));
-  el('btn-add-custom-card')?.addEventListener('click', () => {
-    switchLayer('workshop');
-    switchWorkshopWorkbenchTab('domain-card');
-  });
-
   // Workshop Return Navigation
   el('btn-ws-to-sheet')?.addEventListener('click', () => switchLayer('sheet'));
   el('btn-ws-to-vault')?.addEventListener('click', () => switchLayer('vault'));

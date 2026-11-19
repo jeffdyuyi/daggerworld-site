@@ -139,13 +139,14 @@ export function outfitLayers(sheet, suitActive) {
   };
 }
 
-let activeRender = 0;
+const canvasRenders = new WeakMap();
 
 export async function paintPaperdoll(canvas, sheet, suitActive) {
-  const render = ++activeRender;
+  const render = Symbol();
+  canvasRenders.set(canvas, render);
   const { cape, layers } = outfitLayers(sheet, suitActive);
   const loaded = await Promise.all(layers.map(layer => loadSprite(layer.sprite)));
-  if (render !== activeRender) return false;
+  if (canvasRenders.get(canvas) !== render) return false;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, 128, 128);
   ctx.imageSmoothingEnabled = false;
