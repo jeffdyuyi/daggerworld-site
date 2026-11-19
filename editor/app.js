@@ -1,3 +1,4 @@
+import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels } from './sheet-rules.js';
 import { loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
 import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
 
@@ -491,18 +492,19 @@ function calculateStats(char) {
   // Base Max HP and Stress from Class & Advancements
   const clsObj = db?.classes?.find(x => x.ID === s.classId || x.名称 === s.classId);
   const baseHp = Number(clsObj?.生命点 || 6);
-  const hpBonus = advs.filter(a => a.startsWith('hp')).length;
+  const upgrades = Object.entries(s.levelAdvancements ?? {}).filter(([level]) => Number(level) <= lvl).flatMap(([, choices]) => choices);
+  const hpBonus = advs.filter(a => a.startsWith('hp')).length + upgrades.filter(a => a === 'hp').length;
   const maxHp = baseHp + hpBonus;
 
-  const stressBonus = advs.filter(a => a.startsWith('stress')).length;
+  const stressBonus = advs.filter(a => a.startsWith('stress')).length + upgrades.filter(a => a === 'stress').length;
   const maxStress = 6 + stressBonus;
 
   const hopeBonus = advs.filter(a => a === 'hope').length;
   const maxHope = 6 + hopeBonus;
 
   // Base Proficiency
-  const baseProf = 1 + [2, 5, 8].filter(milestone => lvl >= milestone).length;
-  const profBonus = advs.filter(a => a === 'prof').length;
+  const baseProf = tierForLevel(lvl);
+  const profBonus = advs.filter(a => a === 'prof').length + upgrades.filter(a => a === 'prof').length;
   const totalProf = baseProf + profBonus;
 
   // Armor & Thresholds Calculation
@@ -898,27 +900,36 @@ function renderAll() {
   el('armor-cur').textContent = s.armorPips.cur;
   el('armor-max').textContent = stats.baseArmor;
 
+  el('threshold-a').textContent = stats.majorThreshold;
+  el('threshold-b').textContent = stats.severeThreshold;
+  el('threshold-c').textContent = stats.severeThreshold * 2;
+  el('stress-condition').hidden = s.stress.cur < s.stress.max;
+  el('death-condition').hidden = s.hp.cur > 0;
+  for (const condition of ['vulnerable', 'restrained', 'hidden']) {
+    el('condition-' + condition).checked = Boolean(s.conditions?.[condition]);
+  }
+
   // Thresholds Dashboard Readout
   el('th-minor').textContent = damageRange(1, stats.majorThreshold - 1);
   el('th-major').textContent = damageRange(stats.majorThreshold, stats.severeThreshold - 1);
   el('th-severe').textContent = `${stats.severeThreshold}+`;
 
-  // Defense Stats
   el('stat-armor-score').textContent = stats.baseArmor;
-  el('stat-evasion').textContent = clsObj?.闪避值 ?? '—';
+  const evasionAdjustment = Number(s.evasionAdjustment) || 0;
+  const evasionAdvances = Object.entries(s.levelAdvancements ?? {})
+    .filter(([level]) => Number(level) <= c.level).flatMap(([, choices]) => choices)
+    .filter(choice => choice === 'evasion').length;
+  const armorFeature = stats.suitItem?.描述 ?? '';
+  const armorEvasion = Number(armorFeature.match(/(?:灵活|重型|极重|困难)\*\*\]：[^。]*?闪避值\s*([+-]\s*\d+)/)?.[1]?.replace(/\s/g, '')) || 0;
+  const evasion = el('stat-evasion');
+  evasion.textContent = clsObj?.闪避值 != null ? Number(clsObj.闪避值) + armorEvasion + evasionAdjustment + evasionAdvances : '—';
+  el('evasion-breakdown').textContent = clsObj?.闪避值 != null
+    ? `职业 ${clsObj.闪避值} · 护甲 ${armorEvasion} · 升级 ${evasionAdvances}` : '';
+  el('evasion-adjustment').value = evasionAdjustment;
   el('stat-proficiency').textContent = stats.totalProf;
-
-  // Advancements checkboxes
-  const advContainer = el('advancements-container');
-  if (advContainer) {
-    advContainer.querySelectorAll('input[data-adv]').forEach(cb => {
-      cb.checked = (s.advancements || []).includes(cb.dataset.adv);
-    });
-  }
-
-  const tiers = [[1, '1'], [2, '2–4'], [5, '5–7'], [8, '8–10']];
-  const tierIndex = tiers.findLastIndex(([minLevel]) => c.level >= minLevel);
-  el('cur-tier-tag').textContent = `位阶 ${tierIndex + 1} · ${tiers[tierIndex][1]} 级`;
+  const tier = tierForLevel(c.level);
+  el('cur-tier-tag').textContent = `位阶 ${tier} · ${['1', '2–4', '5–7', '8–10'][tier - 1]} 级`;
+  renderAdvancements(c);
 
   // 3. Equipment Loadout Slots
   renderEquipmentSlots(stats);
@@ -987,19 +998,47 @@ function renderEquipmentSlots(stats) {
 
   // Weapons
   el('wp-main-name').textContent = eq.weapon_main?.名称 || '空手';
-  el('wp-main-stats').textContent = weaponSummary(eq.weapon_main);
+  el('wp-main-stats').textContent = weaponSummary(eq.weapon_main, stats.totalProf);
 
   el('wp-off-name').textContent = eq.weapon_off?.名称 || '空置';
-  el('wp-off-stats').innerHTML = eq.weapon_off ? renderMarkdown(eq.weapon_off.描述 || (eq.weapon_off.护甲值 ? `+${eq.weapon_off.护甲值} 护甲` : '')) || '—' : '—';
+  el('wp-off-stats').textContent = weaponSummary(eq.weapon_off, stats.totalProf);
 
   el('wp-spare-name').textContent = eq.weapon_spare?.名称 || '空置';
-  el('wp-spare-stats').textContent = weaponSummary(eq.weapon_spare);
-  for (const slot of ['weapon_main', 'weapon_off', 'weapon_spare']) renderSlotArt(slot, eq[slot]);
+  el('wp-spare-stats').textContent = weaponSummary(eq.weapon_spare, stats.totalProf);
+  for (const [slot, prefix] of [['weapon_main', 'main'], ['weapon_off', 'off'], ['weapon_spare', 'spare']]) {
+    const item = eq[slot];
+    renderSlotArt(slot, item);
+    const notes = el('wp-' + prefix + '-feature');
+    notes.innerHTML = renderMarkdown(item?.描述 || '');
+    const issue = item && getEquipmentIssue(slot, item, c);
+    if (issue) {
+      const warning = document.createElement('strong');
+      warning.textContent = issue;
+      notes.append(warning);
+    }
+    notes.hidden = !item?.描述 && !issue;
+  }
   renderPaperdoll(c, stats.isSuitActive);
 }
 
-function weaponSummary(item) {
-  return [item?.距离, item?.伤害, item?.属性].filter(Boolean).join(' · ') || '—';
+function weaponSummary(item, proficiency) {
+  if (!item) return '—';
+  const damageType = item.伤害类型 ? ' ' + item.伤害类型 : '';
+  return [item.属性 && '攻击：' + item.属性, item.距离, item.伤害 && '伤害：' + damageDice(item.伤害, proficiency) + damageType, item.负荷].filter(Boolean).join(' · ') || '—';
+}
+
+function hasSpellcastTrait(sheet) {
+  return spellcastTraits(sheet).length > 0;
+}
+
+function spellcastTraits(sheet) {
+  const ids = [sheet.subclassId, sheet.multiclass?.subclassId].filter(Boolean);
+  return [...new Set((db?.subclasses ?? []).filter(item => ids.includes(item.ID))
+    .map(item => item.施法属性?.trim()).filter(value => value && !/^(?:无|—|-|N\/A)$/.test(value)))];
+}
+
+function getEquipmentIssue(slot, item, character = curChar()) {
+  return equipmentIssue(slot, item, character.sheet, tierForLevel(character.level), hasSpellcastTrait(character.sheet));
 }
 
 function renderSlotArt(slot, item) {
@@ -1120,20 +1159,28 @@ function renderFoundations(clsObj) {
       classDesc += (clsObj.希望特性.startsWith(':') ? '' : ':gold[**希望特性**]：') + clsObj.希望特性;
     }
     el('fn-class-trait-desc').innerHTML = renderMarkdown(classDesc || clsObj.描述 || '标准职业机制');
+    const second = db?.classes?.find(item => item.ID === s.multiclass?.classId);
+    if (second) {
+      el('fn-class-trait-desc').innerHTML += '<hr>' + renderMarkdown(`**兼职：${second.名称} · ${s.multiclass.domain}**\n${second.职业特性 || ''}`);
+    }
   }
 
   // Subclass
   const sc = db?.subclasses?.find(sub => sub.ID === s.subclassId);
   if (sc) {
     el('fn-subclass-title').textContent = cleanTitle(sc.描述, `${sc.名称} (${sc.等级 || '基础'})`);
-    el('fn-subclass-desc').innerHTML = renderMarkdown(sc.描述 || '子职业专精能力');
+    const extraIds = [...(s.subclassUpgradeIds ?? []), s.multiclass?.subclassId].filter(Boolean);
+    const upgrades = extraIds.map(id => db.subclasses.find(card => card.ID === id)).filter(Boolean);
+    el('fn-subclass-desc').innerHTML = [sc, ...upgrades].map(card =>
+      renderMarkdown(`**${card.名称} · ${card.等级 || '基础'}**\n${card.描述 || ''}`)).join('<hr>');
 
     // Spellcasting Trait
     const spCard = el('spellcasting-card');
-    if (sc.施法属性 && sc.施法属性 !== '无' && sc.施法属性 !== 'N/A') {
+    const castingTraits = spellcastTraits(s);
+    if (castingTraits.length) {
       spCard.hidden = false;
-      el('sp-trait-title').textContent = `核心施法流派 · 属性：【${sc.施法属性}】`;
-      el('sp-trait-desc').innerHTML = renderMarkdown(`该角色具有施法能力，法术检定根据【${sc.施法属性}】属性值掷骰。难度DC根据目标调整。`);
+      el('sp-trait-title').textContent = '施法属性 · ' + castingTraits.join(' / ');
+      el('sp-trait-desc').textContent = '施法检定使用所选施法属性。';
     } else {
       spCard.hidden = true;
     }
@@ -1148,97 +1195,127 @@ function renderFoundations(clsObj) {
 }
 
 function renderDomainCards() {
-  const c = curChar();
-  const s = c.sheet;
-  const isGMOverride = el('gm-override-domains').checked;
+  const character = curChar();
+  const sheet = character.sheet;
+  const equipped = uniqueCards(sheet.equippedDomainCards);
+  const equippedKeys = new Set(equipped.map(cardKey));
+  const vault = uniqueCards([...sheet.vaultDomainCards, ...sheet.customDomainCards])
+    .filter(card => !equippedKeys.has(cardKey(card)));
+  const ownedKeys = new Set([...equipped, ...vault].map(cardKey));
+  const grants = new Set(sheet.customDomainCards.map(cardKey));
+  const learned = [...equipped, ...vault].filter(card => !grants.has(cardKey(card)));
+  const openLevels = unspentCardLevels(character.level, learned, sheet.levelAdvancementSlots);
+  const allowance = learned.length + openLevels.length;
+  const job = db?.classes?.find(item => item.ID === sheet.classId || item.名称 === sheet.classId);
+  const domains = (job?.领域 ?? '').split(/[+、,，]/).map(name => name.trim()).filter(Boolean);
 
-  const clsObj = db?.classes?.find(cls => cls.ID === s.classId || cls.名称 === s.classId);
-  const classDomains = clsObj?.领域 ? clsObj.领域.split(/[+、,]/) : ['利刃', '骸骨'];
-
-  // Domain filter tabs
-  const filterBar = el('domain-filters-bar');
-  const customDomainNames = (campaignResources.customDomains || []).map(cd => cd.name).filter(Boolean);
-  const allDomains = ['全部', '利刃', '骸骨', '典籍', '优雅', '午夜', '贤者', '辉耀', '勇气', '奥术', '恐怖', '秘密', ...customDomainNames];
-  const allowed = isGMOverride ? allDomains : ['全部', ...classDomains];
-
-  filterBar.innerHTML = allowed.map(d => `<button class="domain-pill ${d === '全部' ? 'active' : ''}" data-domain="${d}">${d}</button>`).join('');
-  filterBar.querySelectorAll('.domain-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      filterBar.querySelectorAll('.domain-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filterDomainCardsDisplay(btn.dataset.domain, isGMOverride, classDomains);
-    });
-  });
-
-  filterDomainCardsDisplay('全部', isGMOverride, classDomains);
-}
-
-function filterDomainCardsDisplay(filterDomain, isGMOverride, classDomains) {
-  const c = curChar();
-  const s = c.sheet;
-  const equippedContainer = el('equipped-cards-container');
-  const vaultContainer = el('domain-vault-cards-container');
-
-  // Equipped Cards
-  const equipped = s.equippedDomainCards || [];
+  el('btn-add-custom-card').hidden = currentUser?.role !== 'gm';
   el('equipped-cards-count').textContent = equipped.length;
-  equippedContainer.innerHTML = equipped.length ? '' : '<div style="color:var(--text-muted);font-size:13px;padding:12px;">尚未整备随身领域卡，请从下方秘藏中点击卡牌整备。</div>';
-  equipped.forEach((card, idx) => {
-    equippedContainer.appendChild(createCardElement(card, true, idx));
-  });
-
-  // Vault Cards
-  const customCards = s.customDomainCards || [];
-  const campaignCards = campaignResources.domainCards || [];
-  let available = [...(db?.domain_cards || []), ...customCards, ...campaignCards];
-
-  if (!isGMOverride) {
-    available = available.filter(card => classDomains.some(cd => card.领域 && (card.领域.includes(cd) || cd.includes(card.领域))));
+  el('domain-learning-limit').textContent = `已选择 ${learned.length} / ${allowance}`;
+  el('equipped-cards-container').replaceChildren(...equipped.map(card => domainCard(card, 'equipped', character)));
+  el('domain-vault-cards-container').replaceChildren(...vault.map(card => domainCard(card, 'vault', character)));
+  const filterBar = el('domain-filters-bar');
+  const choices = [{ value: '', label: '全部领域' }, ...[...new Set([...domains, sheet.multiclass?.domain].filter(Boolean))]
+    .map(name => ({ value: name, label: name }))];
+  const filter = document.createElement('select');
+  filter.className = 'dw-select';
+  filter.setAttribute('aria-label', '筛选领域图鉴');
+  for (const option of choices) filter.add(new Option(option.label, option.value));
+  const query = document.createElement('input');
+  query.type = 'search';
+  query.className = 'dw-input';
+  query.placeholder = '搜索领域卡';
+  query.setAttribute('aria-label', '搜索领域卡');
+  filterBar.replaceChildren(filter, query);
+  function renderCatalog() {
+    const keyword = query.value.trim().toLowerCase();
+    const catalog = uniqueCards([...(db?.domain_cards ?? []), ...campaignResources.domainCards]);
+    const filtered = catalog.filter(card => (!filter.value || card.领域 === filter.value)
+      && (!keyword || card.名称?.toLowerCase().includes(keyword)));
+    el('domain-catalog').replaceChildren(...filtered.map(card => {
+      const maxLevel = domains.includes(card.领域) ? character.level
+        : card.领域 === sheet.multiclass?.domain ? Math.ceil(character.level / 2) : 0;
+      const eligible = cardLevel(card) <= maxLevel && !ownedKeys.has(cardKey(card));
+      const replaceable = [...equipped, ...vault].filter(old => !grants.has(cardKey(old)) && cardLevel(old) >= cardLevel(card));
+      const canReplace = eligible && !sheet.domainExchanges?.[character.level] && character.level > 1 && replaceable.length;
+      return domainCard(card, eligible && openLevels.some(level => level >= cardLevel(card)) ? 'learn' : canReplace ? 'replace' : 'reference',
+        character, ownedKeys.has(cardKey(card)), replaceable);
+    }));
   }
-
-  if (filterDomain !== '全部') {
-    available = available.filter(card => card.领域 === filterDomain);
-  }
-
-  // Filter out already equipped
-  const equippedIds = new Set(equipped.map(e => e.ID || e.名称));
-  available = available.filter(c => !equippedIds.has(c.ID || c.名称));
-
-  vaultContainer.innerHTML = '';
-  available.slice(0, 30).forEach(card => {
-    vaultContainer.appendChild(createCardElement(card, false));
-  });
+  filter.addEventListener('change', renderCatalog);
+  query.addEventListener('input', renderCatalog);
+  renderCatalog();
 }
 
-function createCardElement(card, isEquipped, index) {
-  const div = document.createElement('div');
-  div.className = `dh-card ${isEquipped ? 'equipped' : ''}`;
-  div.innerHTML = `
-    <div class="dh-card-banner">
-      <span class="dh-domain-tag" style="background:${getDomainColor(card.领域)}">${card.领域 || '战役'} · ${card.等级 || '1级'}</span>
-      <span class="dh-card-recall">⚡ ${card.回想 || '0⚡'}</span>
-    </div>
-    <div class="dh-card-title">${card.名称}</div>
-    <div class="dh-card-type">${card.类型 || '领域能力'}</div>
-    <div class="dh-card-desc">${renderMarkdown(card.描述 || '')}</div>
-    <div class="dh-card-action">${isEquipped ? '✕ 点击卸下至秘藏' : '＋ 点击整备至随身'}</div>
-  `;
-  div.addEventListener('click', () => {
-    const c = curChar();
-    if (isEquipped) {
-      c.sheet.equippedDomainCards.splice(index, 1);
+function domainCard(card, action, character, owned = false, replaceable = []) {
+  const entry = document.createElement('article');
+  entry.className = 'dh-card';
+  const title = document.createElement('h4');
+  title.className = 'dh-card-title';
+  title.textContent = card.名称;
+  const meta = document.createElement('p');
+  const cost = recallCost(card);
+  meta.textContent = `${card.领域 || '战役'} · ${cardLevel(card)} 级 · ${card.类型 || card.属性 || '领域卡'} · 回想 ${cost} 压力`;
+  const body = document.createElement('div');
+  body.className = 'dh-card-desc';
+  body.innerHTML = renderMarkdown(card.描述 || '');
+  entry.append(title, meta, body);
+  if (action === 'reference') {
+    const note = document.createElement('small');
+    note.textContent = owned ? '已获得' : '查阅';
+    entry.append(note);
+    return entry;
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'dw-btn dw-btn-outline';
+  button.textContent = { equipped: '移回宝库', vault: '加入配置', learn: '选择此卡', replace: '交换已获得的卡' }[action];
+  const exchange = document.createElement('select');
+  if (action === 'replace') {
+    exchange.setAttribute('aria-label', '选择交出的领域卡');
+    for (const old of replaceable) exchange.add(new Option(old.名称, cardKey(old)));
+    entry.append(exchange);
+  }
+  const swap = document.createElement('select');
+  if (action === 'vault' && character.sheet.equippedDomainCards.length >= 5) {
+    swap.setAttribute('aria-label', '选择移回宝库的卡');
+    swap.add(new Option('选择移回宝库的卡', ''));
+    for (const active of uniqueCards(character.sheet.equippedDomainCards)) swap.add(new Option(active.名称, cardKey(active)));
+    entry.append(swap);
+  }
+  button.addEventListener('click', () => {
+    const sheet = character.sheet;
+    const key = cardKey(card);
+    if (action === 'equipped') {
+      sheet.equippedDomainCards = sheet.equippedDomainCards.filter(item => cardKey(item) !== key);
+      sheet.vaultDomainCards = uniqueCards([...sheet.vaultDomainCards, card]);
+    } else if (action === 'vault') {
+      const active = uniqueCards(sheet.equippedDomainCards);
+      const swapped = active.find(item => cardKey(item) === swap.value);
+      if (active.length > 5 || active.length === 5 && !swapped) return alert('配置已满，请选择一张卡移回宝库。');
+      const stressCost = el('domain-rest').checked ? 0 : cost;
+      if (sheet.stress.cur + stressCost > sheet.stress.max) return alert('可标记的压力点不足。');
+      if (stressCost && !confirm(`标记 ${stressCost} 点压力并回想此卡？`)) return;
+      sheet.stress.cur += stressCost;
+      const vault = sheet.vaultDomainCards.filter(item => cardKey(item) !== key);
+      sheet.vaultDomainCards = swapped ? uniqueCards([...vault, swapped]) : vault;
+      sheet.equippedDomainCards = [...active.filter(item => item !== swapped), card];
+    } else if (action === 'replace') {
+      if (!exchange.value || sheet.domainExchanges?.[character.level]) return;
+      if (!confirm(`用「${exchange.selectedOptions[0].textContent}」交换「${card.名称}」？`)) return;
+      sheet.equippedDomainCards = sheet.equippedDomainCards.filter(item => cardKey(item) !== exchange.value);
+      sheet.vaultDomainCards = uniqueCards([...sheet.vaultDomainCards.filter(item => cardKey(item) !== exchange.value), card]);
+      sheet.domainExchanges = { ...sheet.domainExchanges, [character.level]: true };
+    } else if (sheet.equippedDomainCards.length < 5) {
+      sheet.equippedDomainCards.push(card);
     } else {
-      if ((c.sheet.equippedDomainCards || []).length >= 5) {
-        alert('随身整备卡牌最多为 5 张！请先卸下其他卡牌。');
-        return;
-      }
-      if (!c.sheet.equippedDomainCards) c.sheet.equippedDomainCards = [];
-      c.sheet.equippedDomainCards.push(card);
+      sheet.vaultDomainCards = uniqueCards([...sheet.vaultDomainCards, card]);
     }
     saveLocal();
     renderAll();
   });
-  return div;
+  entry.append(button);
+  return entry;
 }
 
 function bagCapacity(bags) {
@@ -1334,15 +1411,175 @@ function renderInventory(stats) {
 }
 
 // Event Listeners Setup
+const advancementOptions = {
+  traits: ['两项未标记属性各 +1', 3, 1],
+  hp: ['生命上限 +1', 2, 1],
+  stress: ['压力上限 +1', 2, 1],
+  domain: ['额外选择一张领域卡', 1, 1],
+  evasion: ['闪避 +1', 1, 1],
+  subclass: ['取得下一张子职业卡', 1, 3],
+  prof: ['熟练值 +1（占两项）', 1, 3],
+  multiclass: ['兼职（占两项）', 1, 3],
+};
+
+function markedTraits(character, targetLevel) {
+  const tier = tierForLevel(targetLevel);
+  return new Set(Object.entries(character.sheet.levelTraitMarks ?? {})
+    .filter(([level]) => Number(level) <= targetLevel && tierForLevel(Number(level)) === tier)
+    .flatMap(([, keys]) => keys));
+}
+
+function renderAdvancements(character) {
+  const controls = el('initial-trait-controls');
+  el('initial-traits').hidden = character.level !== 1 || Boolean(character.sheet.initialTraitsConfirmed);
+  if (!el('initial-traits').hidden) {
+    controls.replaceChildren(...Object.entries(traits).map(([key, name]) => {
+      const label = document.createElement('label');
+      const select = document.createElement('select');
+      select.id = 'initial-trait-' + key;
+      for (const value of [2, 1, 0, -1]) select.add(new Option(value > 0 ? '+' + value : String(value), value));
+      select.value = String(character.sheet.attributes[key]);
+      label.append(name + ' ', select);
+      return label;
+    }));
+  }
+  const marked = markedTraits(character, character.level);
+  document.querySelectorAll('[data-attr-roll]').forEach(button => {
+    const card = button.closest('.attr-card');
+    const name = card?.querySelector('.attr-name');
+    if (name) name.textContent = traits[button.dataset.attrRoll] + (marked.has(button.dataset.attrRoll) ? ' · 已标记' : '');
+  });
+  el('lvl-up').disabled = character.level >= 10;
+  el('lvl-down').hidden = currentUser?.role !== 'gm';
+  const log = el('advancements-container');
+  log.replaceChildren();
+  for (const [level, choices] of Object.entries(character.sheet.levelAdvancements ?? {})) {
+    const line = document.createElement('p');
+    line.textContent = `${level} 级 · ${choices.map(key => advancementOptions[key]?.[0] ?? key).join('、')}`;
+    log.append(line);
+  }
+}
+
+function advanceCharacter() {
+  const character = curChar();
+  const sheet = character.sheet;
+  if (character.level >= 10) return;
+  if (character.level === 1 && !sheet.initialTraitsConfirmed) return alert('请先确认初始属性。');
+  const level = character.level + 1;
+  const tier = tierForLevel(level);
+  const usedSlots = Object.values(sheet.levelAdvancementSlots ?? {}).flat();
+  const dialog = el('level-dialog');
+  const form = el('level-options');
+  const nextSubclass = getNextSubclass(sheet);
+  const alternateClasses = (db?.classes ?? []).filter(job => job.ID !== sheet.classId && job.名称 !== sheet.classId);
+  const marked = markedTraits(character, level);
+  const availableTraits = Object.entries(traits).filter(([key]) => !marked.has(key));
+  form.replaceChildren();
+  for (const [key, [label, slots, minTier]] of Object.entries(advancementOptions)) {
+    if (key === 'subclass' && !nextSubclass || key === 'traits' && availableTraits.length < 2) continue;
+    if (key === 'multiclass' && (sheet.multiclass || !alternateClasses.length)) continue;
+    for (let origin = Math.max(2, minTier); origin <= tier; origin++) {
+      if (key === 'subclass' && usedSlots.includes(origin + ':multiclass') ||
+          key === 'multiclass' && usedSlots.includes(origin + ':subclass')) continue;
+      const remaining = slots - usedSlots.filter(slot => slot === origin + ':' + key).length;
+      if (remaining <= 0) continue;
+      const repeats = key === 'traits' && availableTraits.length < 4 ? 1 : Math.min(2, remaining);
+      for (let index = 0; index < repeats; index++) {
+        const row = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = origin + ':' + key;
+        row.append(input, ` 位阶 ${origin} · ${label}${repeats > 1 ? `（${index + 1}）` : ''}`);
+        form.append(row);
+      }
+    }
+  }
+  const traitChoices = el('level-trait-options');
+  traitChoices.replaceChildren(...availableTraits.map(([key, name]) => {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = key;
+    label.append(input, ' ' + name);
+    return label;
+  }));
+  const chosenSlots = () => [...form.querySelectorAll('input:checked')].map(input => input.value);
+  const multiclassFields = el('level-multiclass-options');
+  const secondClass = el('level-multiclass-class');
+  const secondDomain = el('level-multiclass-domain');
+  const secondSubclass = el('level-multiclass-subclass');
+  secondClass.replaceChildren(...alternateClasses.map(job => new Option(job.名称, job.ID)));
+  secondClass.onchange = () => {
+    const job = alternateClasses.find(item => item.ID === secondClass.value);
+    const domains = (job?.领域 ?? '').split(/[+、,，]/).map(name => name.trim()).filter(Boolean);
+    secondDomain.replaceChildren(...domains.map(domain => new Option(domain, domain)));
+    secondSubclass.replaceChildren(...(db?.subclasses ?? [])
+      .filter(card => card.主职 === job?.名称 && card.等级 === '基础')
+      .map(card => new Option(card.名称, card.ID)));
+  };
+  secondClass.onchange();
+  multiclassFields.hidden = true;
+  form.onchange = () => {
+    traitChoices.hidden = !chosenSlots().some(slot => slot.endsWith(':traits'));
+    multiclassFields.hidden = !chosenSlots().some(slot => slot.endsWith(':multiclass'));
+  };
+  traitChoices.hidden = true;
+  el('level-dialog-title').textContent = `升至 ${level} 级`;
+  el('level-dialog-save').onclick = () => {
+    const slots = chosenSlots();
+    const choices = slots.map(slot => slot.split(':')[1]);
+    const cost = choices.reduce((total, key) => total + (key === 'prof' || key === 'multiclass' ? 2 : 1), 0);
+    if (cost !== 2) return alert('请选择合计两项的升级选项。');
+    const selectedTraits = [...traitChoices.querySelectorAll('input:checked')].map(input => input.value);
+    if (choices.includes('traits') && selectedTraits.length !== choices.filter(key => key === 'traits').length * 2) {
+      return alert('每项属性提升须选择两项未标记属性。');
+    }
+    if (choices.filter(key => key === 'subclass').length > 1) return alert('每次只领取一张子职业升级卡。');
+    if (choices.includes('multiclass') && (!secondClass.value || !secondDomain.value || !secondSubclass.value)) {
+      return alert('请选择兼职职业、领域和子职业。');
+    }
+    const stats = calculateStats(character);
+    if (stats.maxHp + choices.filter(key => key === 'hp').length > 12 ||
+        stats.maxStress + choices.filter(key => key === 'stress').length > 12) return alert('生命和压力上限为 12。');
+    if (choices.includes('traits')) {
+      for (const key of selectedTraits) sheet.attributes[key]++;
+      sheet.levelTraitMarks = { ...sheet.levelTraitMarks, [level]: selectedTraits };
+    }
+    if (choices.includes('subclass')) {
+      sheet.subclassUpgradeIds = [...(sheet.subclassUpgradeIds ?? []), nextSubclass.ID];
+    }
+    if (choices.includes('multiclass')) {
+      sheet.multiclass = { classId: secondClass.value, domain: secondDomain.value, subclassId: secondSubclass.value };
+    }
+    sheet.levelAdvancements = { ...sheet.levelAdvancements, [level]: choices };
+    sheet.levelAdvancementSlots = { ...sheet.levelAdvancementSlots, [level]: slots };
+    character.level = level;
+    dialog.close();
+    saveLocal();
+    renderAll();
+  };
+  dialog.showModal();
+}
+
+function getNextSubclass(sheet) {
+  const entries = db?.subclasses ?? [];
+  const base = entries.find(card => card.ID === sheet.subclassId);
+  if (!base) return null;
+  const acquired = new Set(sheet.subclassUpgradeIds ?? []);
+  return ['进阶', '精通'].map(rank => entries.find(card => card.名称 === base.名称 && card.主职 === base.主职 && card.等级 === rank))
+    .find(card => card && !acquired.has(card.ID)) ?? null;
+}
+
 function setupEventListeners() {
   // Steppers: Level
   el('lvl-up').addEventListener('click', () => {
-    const c = curChar();
-    if (c.level < 10) { c.level++; saveLocal(); renderAll(); }
+    advanceCharacter();
   });
   el('lvl-down').addEventListener('click', () => {
     const c = curChar();
-    if (c.level > 1) { c.level--; saveLocal(); renderAll(); }
+    if (currentUser?.role !== 'gm' || c.level <= 1) return;
+    if (c.sheet.levelAdvancements?.[c.level]) return alert('该等级已登记升级选项。');
+    c.level--; saveLocal(); renderAll();
   });
 
   // Resource Plus/Minus Buttons
@@ -1355,33 +1592,29 @@ function setupEventListeners() {
   el('armor-plus').addEventListener('click', () => { const c = curChar(); const st = calculateStats(c); if (c.sheet.armorPips.cur < st.baseArmor) { c.sheet.armorPips.cur++; saveLocal(); renderAll(); } });
   el('armor-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.armorPips.cur > 0) { c.sheet.armorPips.cur--; saveLocal(); renderAll(); } });
 
-  // Attribute Steppers (+ / -)
-  document.querySelectorAll('.attr-step-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const attr = btn.dataset.attrStep;
-      const delta = parseInt(btn.dataset.delta, 10);
-      const c = curChar();
-      const curVal = c.sheet.attributes[attr] || 0;
-      c.sheet.attributes[attr] = Math.max(-2, Math.min(5, curVal + delta));
-      saveLocal();
-      renderAll();
-    });
+  el('evasion-adjustment').addEventListener('change', event => {
+    curChar().sheet.evasionAdjustment = Math.trunc(Number(event.target.value)) || 0;
+    saveLocal();
+    renderAll();
   });
-
-  // Advancements Checkboxes
-  document.querySelectorAll('input[data-adv]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const adv = cb.dataset.adv;
-      const c = curChar();
-      if (!c.sheet.advancements) c.sheet.advancements = [];
-      if (cb.checked) {
-        if (!c.sheet.advancements.includes(adv)) c.sheet.advancements.push(adv);
-      } else {
-        c.sheet.advancements = c.sheet.advancements.filter(a => a !== adv);
-      }
+  for (const condition of ['vulnerable', 'restrained', 'hidden']) {
+    el('condition-' + condition).addEventListener('change', event => {
+      const sheet = curChar().sheet;
+      sheet.conditions = { ...sheet.conditions, [condition]: event.target.checked };
       saveLocal();
-      renderAll();
     });
+  }
+  el('save-initial-traits').addEventListener('click', () => {
+    const character = curChar();
+    if (character.level !== 1 || character.sheet.initialTraitsConfirmed) return;
+    const entries = Object.keys(traits).map(key => [key, Number(el('initial-trait-' + key).value)]);
+    if (entries.map(([, value]) => value).sort((a, b) => a - b).join() !== startingModifiers.join()) {
+      return alert('请按初始属性的六个数值分配。');
+    }
+    character.sheet.attributes = Object.fromEntries(entries);
+    character.sheet.initialTraitsConfirmed = true;
+    saveLocal();
+    renderAll();
   });
 
   // Gear Slot Clicks (Open Picker Modal)
@@ -1479,9 +1712,7 @@ function setupEventListeners() {
   });
 
   // GM Override Domains Toggle
-  el('gm-override-domains').addEventListener('change', () => {
-    renderDomainCards();
-  });
+
 
   // Top Bar Actions & Two-Tier Layer Switching
   el('btn-back-vault')?.addEventListener('click', () => {
@@ -1816,14 +2047,21 @@ function renderPickerList(items) {
   items.forEach(item => {
     const card = document.createElement('div');
     card.className = 'picker-item-card';
+    const issue = currentPickerSlot === 'loot' ? '' : getEquipmentIssue(currentPickerSlot, item);
     card.innerHTML = `
       <div class="picker-item-title">${item.名称}</div>
-      <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? `伤害 ${item.伤害}` : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
+      <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? weaponSummary(item, calculateStats(curChar()).totalProf) : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
       <div class="picker-item-desc">${renderMarkdown(item.描述 || '')}</div>
-      <button type="button" class="picker-item-equip-btn">${currentPickerSlot === 'loot' ? '放入背包' : '装备'}</button>
+      <button type="button" class="picker-item-equip-btn" ${issue ? 'disabled' : ''}>${currentPickerSlot === 'loot' ? '放入背包' : '装备'}</button>
     `;
     card.querySelector('.picker-item-title').prepend(itemImage(item));
+    if (issue) {
+      const reason = document.createElement('p');
+      reason.textContent = issue;
+      card.append(reason);
+    }
     card.addEventListener('click', () => {
+      if (issue) return;
       if (currentPickerSlot === 'loot') {
         if (!putLootInBag(item)) return;
       } else {
@@ -1856,6 +2094,7 @@ function putLootInBag(item) {
 
 function equipItemToSlot(slotKey, item) {
   const c = curChar();
+  if (getEquipmentIssue(slotKey, item, c)) return;
   if (slotKey.startsWith('weapon_')) {
     c.sheet.equipment[slotKey] = item;
   } else if (['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(slotKey)) {

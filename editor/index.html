@@ -237,8 +237,11 @@
 
       <div class="defense-stats-box" role="group" aria-label="战斗数值">
         <div class="def-item">
-          <span class="def-label">闪避（职业基础）</span>
+          <span class="def-label">闪避</span>
           <strong class="def-val" id="stat-evasion">—</strong>
+          <label for="evasion-adjustment">额外修正</label>
+          <small id="evasion-breakdown"></small>
+          <input id="evasion-adjustment" type="number" step="1" class="dw-input" value="0">
         </div>
         <div class="def-item">
           <span class="def-label">基础护甲</span>
@@ -250,8 +253,16 @@
         </div>
       </div>
 
+      <div class="condition-strip" aria-live="polite">
+        <strong id="stress-condition" hidden>脆弱 · 压力已满</strong>
+        <strong id="death-condition" hidden>倒下 · 结算死亡行动</strong>
+        <label><input type="checkbox" id="condition-vulnerable"> 脆弱</label>
+        <label><input type="checkbox" id="condition-restrained"> 束缚</label>
+        <label><input type="checkbox" id="condition-hidden"> 隐藏</label>
+      </div>
       <!-- Damage Thresholds Readout -->
-      <div class="thresholds-summary-card" id="thresholds-card">
+      <div class="thresholds-summary-card" id="thresholds-card" aria-label="伤害阈值">
+        <p class="threshold-bounds">重度阈值 <strong id="threshold-a">—</strong> · 严重阈值 <strong id="threshold-b">—</strong></p>
         <div class="threshold-col minor">
           <span class="th-label">轻度伤害</span>
           <span class="th-val" id="th-minor">—</span>
@@ -268,6 +279,10 @@
           <span class="th-hint">标记 3 点生命</span>
         </div>
       </div>
+      <details class="optional-damage">
+        <summary>可选规则：致死伤害</summary>
+        <p>采用时，致死阈值为 <strong id="threshold-c">—</strong>，等于严重阈值的两倍。低于此值的严重伤害标记 3 点生命，达到此值标记 4 点。</p>
+      </details>
     </div>
   </section>
 
@@ -426,6 +441,7 @@
                   <strong class="wp-name" id="wp-main-name">空手</strong>
                 </div>
                 <div class="wp-stats" id="wp-main-stats">—</div>
+                <div class="wp-stats" id="wp-main-feature" hidden></div>
               </div>
             </div>
 
@@ -437,6 +453,7 @@
                   <strong class="wp-name" id="wp-off-name">空置</strong>
                 </div>
                 <div class="wp-stats" id="wp-off-stats">—</div>
+                <div class="wp-stats" id="wp-off-feature" hidden></div>
               </div>
             </div>
 
@@ -448,6 +465,7 @@
                   <strong class="wp-name" id="wp-spare-name">空置</strong>
                 </div>
                 <div class="wp-stats" id="wp-spare-stats">—</div>
+                <div class="wp-stats" id="wp-spare-feature" hidden></div>
               </div>
             </div>
           </div>
@@ -457,7 +475,7 @@
         <div class="attributes-defense-section">
           <div class="section-title-bar">
             <h2>角色属性</h2>
-            <span class="attr-hint">点击步进调整，点击检定掷骰</span>
+            <span class="attr-hint">选择属性进行检定</span>
           </div>
           <p class="last-roll" id="last-roll" hidden></p>
 
@@ -466,9 +484,7 @@
               <div class="attr-header">
                 <span class="attr-name">敏捷 (Agility)</span>
                 <div class="attr-stepper">
-                  <button class="attr-step-btn" data-attr-step="agility" data-delta="-1">-</button>
                   <span class="attr-mod" id="attr-mod-agility">+0</span>
-                  <button class="attr-step-btn" data-attr-step="agility" data-delta="1">+</button>
                 </div>
               </div>
               <p class="attr-desc">冲刺 · 闪避 · 杂技 · 移动</p>
@@ -479,9 +495,7 @@
               <div class="attr-header">
                 <span class="attr-name">力量 (Strength)</span>
                 <div class="attr-stepper">
-                  <button class="attr-step-btn" data-attr-step="strength" data-delta="-1">-</button>
                   <span class="attr-mod" id="attr-mod-strength">+2</span>
-                  <button class="attr-step-btn" data-attr-step="strength" data-delta="1">+</button>
                 </div>
               </div>
               <p class="attr-desc">粉碎 · 举重 · 近战 · 坚韧</p>
@@ -492,9 +506,7 @@
               <div class="attr-header">
                 <span class="attr-name">灵巧 (Finesse)</span>
                 <div class="attr-stepper">
-                  <button class="attr-step-btn" data-attr-step="finesse" data-delta="-1">-</button>
                   <span class="attr-mod" id="attr-mod-finesse">+1</span>
-                  <button class="attr-step-btn" data-attr-step="finesse" data-delta="1">+</button>
                 </div>
               </div>
               <p class="attr-desc">瞄准 · 潜行 · 巧手 · 锁匠</p>
@@ -505,9 +517,7 @@
               <div class="attr-header">
                 <span class="attr-name">本能 (Instinct)</span>
                 <div class="attr-stepper">
-                  <button class="attr-step-btn" data-attr-step="instinct" data-delta="-1">-</button>
                   <span class="attr-mod" id="attr-mod-instinct">+1</span>
-                  <button class="attr-step-btn" data-attr-step="instinct" data-delta="1">+</button>
                 </div>
               </div>
               <p class="attr-desc">洞察 · 察觉 · 野性 · 直觉</p>
@@ -518,9 +528,7 @@
               <div class="attr-header">
                 <span class="attr-name">风采 (Presence)</span>
                 <div class="attr-stepper">
-                  <button class="attr-step-btn" data-attr-step="presence" data-delta="-1">-</button>
                   <span class="attr-mod" id="attr-mod-presence">+0</span>
-                  <button class="attr-step-btn" data-attr-step="presence" data-delta="1">+</button>
                 </div>
               </div>
               <p class="attr-desc">魅力 · 威吓 · 说服 · 领导</p>
@@ -531,9 +539,7 @@
               <div class="attr-header">
                 <span class="attr-name">知识 (Knowledge)</span>
                 <div class="attr-stepper">
-                  <button class="attr-step-btn" data-attr-step="knowledge" data-delta="-1">-</button>
                   <span class="attr-mod" id="attr-mod-knowledge">-1</span>
-                  <button class="attr-step-btn" data-attr-step="knowledge" data-delta="1">+</button>
                 </div>
               </div>
               <p class="attr-desc">回想 · 分析 · 奥术 · 调查</p>
@@ -551,14 +557,13 @@
           <h3>升级与历练强化</h3>
           <span class="levelup-tier-tag" id="cur-tier-tag">位阶 1 · 1 级</span>
         </div>
-        <div class="advancement-options" id="advancements-container">
-          <label class="adv-choice"><input type="checkbox" data-adv="hp1"> +1 生命槽上限</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="hp2"> +1 额外生命上限</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="stress1"> +1 压力上限</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="stress2"> +1 额外压力上限</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="prof"> +1 熟练值</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="hope"> +1 希望槽上限</label>
-        </div>
+        <div id="advancements-container"></div>
+        <details id="initial-traits">
+          <summary>分配初始属性</summary>
+          <p>各用一次：+2、+1、+1、0、0、−1。</p>
+          <div id="initial-trait-controls"></div>
+          <button type="button" class="dw-btn" id="save-initial-traits">保存属性</button>
+        </details>
       </div>
     </section>
 
@@ -716,19 +721,15 @@
           </div>
 
           <div class="skills-controls-right">
-            <label class="gm-override-toggle" title="解除职业领域限制，可任意学习和装备全领域卡">
-              <input type="checkbox" id="gm-override-domains">
-              <span class="toggle-slider"></span>
-              <span class="toggle-text">🛡️ 主持人特许：解锁全领域卡</span>
-            </label>
-            <button class="dw-btn dw-btn-gold" id="btn-add-custom-card">➕ 原创领域卡</button>
+            <label><input type="checkbox" id="domain-rest"> 休息换卡</label>
+            <button class="dw-btn dw-btn-gold" id="btn-add-custom-card" hidden>原创领域卡</button>
           </div>
         </div>
 
         <!-- Domain Cards Section: Equipped Loadout -->
         <div class="domain-sub-header">
-          <h3>随身整备中的领域卡牌 (<span id="equipped-cards-count">0</span> / 5)</h3>
-          <span class="sub-hint">点击卡牌可卸下至秘藏</span>
+          <h3>当前配置 (<span id="equipped-cards-count">0</span> / 5)</h3>
+          <span class="sub-hint">移回宝库免费</span>
         </div>
         <div class="domain-cards-grid" id="equipped-cards-container">
           <!-- Equipped cards rendered here -->
@@ -736,13 +737,15 @@
 
         <!-- Domain Cards Section: Available / Vaulted Cards -->
         <div class="domain-sub-header">
-          <h3>领域法术与能力秘藏 (已学 / 可选用)</h3>
-          <span class="sub-hint">点击卡牌可整备至随身技能位</span>
+          <h3>已获得 · 宝库</h3>
+          <span class="sub-hint">场中回想需标记压力</span>
         </div>
         <div class="domain-cards-grid" id="domain-vault-cards-container">
           <!-- Vaulted domain cards rendered here -->
         </div>
 
+        <div class="domain-sub-header"><h3>领域图鉴</h3><span id="domain-learning-limit"></span></div>
+        <div class="domain-cards-grid" id="domain-catalog"></div>
       </div>
     </section>
 
@@ -1251,6 +1254,20 @@
   </div>
 
   <!-- App Main Entry Module -->
+  <dialog id="level-dialog" class="level-dialog">
+    <h2 id="level-dialog-title">升级</h2>
+    <p>选择两项升级。</p>
+    <div id="level-options"></div>
+    <fieldset id="level-trait-options" hidden aria-label="提升属性"></fieldset>
+    <fieldset id="level-multiclass-options" hidden>
+      <legend>兼职</legend>
+      <label>职业 <select id="level-multiclass-class"></select></label>
+      <label>领域 <select id="level-multiclass-domain"></select></label>
+      <label>子职业 <select id="level-multiclass-subclass"></select></label>
+    </fieldset>
+    <button type="button" class="dw-btn dw-btn-gold" id="level-dialog-save">确认升级</button>
+    <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
+  </dialog>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

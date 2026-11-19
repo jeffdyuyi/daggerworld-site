@@ -550,7 +550,33 @@ body.dw-theme {
   align-items: center;
   justify-content: space-around;
   border-top: 3px solid var(--bo3-primary);
+  flex-wrap: wrap;
+  gap: .5rem;
 }
+
+.threshold-bounds { width: 100%; margin: 0; text-align: center; }
+.condition-strip, .optional-damage { grid-column: 1 / -1; }
+.condition-strip { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; }
+.condition-strip strong { color: var(--text-gold); }
+.optional-damage p { margin-block: .45rem 0; }
+.optional-damage summary { cursor: pointer; }
+.def-item input { width: 5rem; max-width: 100%; align-self: center; }
+.def-item small { color: var(--text-muted); }
+#initial-trait-controls { display: flex; flex-wrap: wrap; gap: .65rem; margin-block: .75rem; }
+#initial-trait-controls select { font: inherit; }
+.level-dialog {
+  width: min(40rem, calc(100% - 2rem));
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-bo3);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.level-dialog::backdrop { background: #0009; }
+.level-dialog label { display: block; padding-block: .3rem; }
+.level-dialog form { display: inline; }
 
 .threshold-col {
   display: flex;
