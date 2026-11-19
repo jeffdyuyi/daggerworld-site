@@ -10,7 +10,10 @@
   <!-- Top Navigation & Vault Bar -->
   <header class="dw-header">
     <div class="header-left">
-      <a href="../index.html" class="dw-brand">
+      <button class="dw-btn dw-btn-gold" id="btn-back-vault" style="display:none;" title="返回第一层角色库大厅">
+        <span>‹</span> 角色库大厅
+      </button>
+      <a href="../index.html" class="dw-brand" id="brand-link">
         <span class="brand-icon">⚔️</span>
         <div class="brand-text">
           <span class="sub-title">深水城 2026 · 匕首世界</span>
@@ -55,13 +58,113 @@
     </div>
   </header>
 
+  <!-- ==========================================================================
+       LAYER 1: 角色库展示与创角大厅 (Vault & Creation Lobby)
+       ========================================================================== -->
+  <div id="layer-vault" class="app-layer layer-vault">
+    
+    <!-- Hero Banner -->
+    <div class="vault-hero-banner">
+      <div class="vault-hero-content">
+        <div class="vault-badge-pill">DAGGERHEART VAULT</div>
+        <h1><span>⚔️</span> 匕首世界 · 化身圣所</h1>
+        <p>管理你在深水城与费伦战役中的专属角色，或铸造新的冒险契约。</p>
+      </div>
+      <div class="vault-hero-actions">
+        <button class="dw-btn dw-btn-gold" id="btn-hero-scroll-create">＋ 铸造新化身</button>
+        <button class="dw-btn dw-btn-outline" id="btn-vault-refresh">🔄 刷新云端</button>
+        <button class="dw-btn dw-btn-outline" id="btn-hero-import">📥 导入角色卡 JSON</button>
+        <input type="file" id="hero-import-file" accept=".json" hidden>
+      </div>
+    </div>
+
+    <!-- Layout: Left Characters List | Right Creation Wizard -->
+    <div class="vault-layout-grid">
+      
+      <!-- Left: Existing Characters List -->
+      <div class="vault-characters-section">
+        <div class="section-title-bar">
+          <h2>📜 已有化身档案 (<span id="vault-count-badge">0</span>)</h2>
+        </div>
+        <div class="vault-cards-grid" id="lobby-char-cards-container">
+          <!-- Dynamically Injected by renderVaultLobby() -->
+        </div>
+      </div>
+
+      <!-- Right: Character Creation Wizard -->
+      <div class="vault-creator-section" id="vault-creator-section">
+        <div class="creator-card">
+          <div class="creator-header">
+            <span class="f-badge">创角殿堂</span>
+            <h2>铸造新化身契约</h2>
+          </div>
+          <p class="creator-desc">设定角色的核心基石。化身一旦确立，基础设定将铭刻入档案契约（跑团中不可擅自修改，仅主持人拥有特权调整）。</p>
+
+          <form id="form-create-character" class="creator-form" onsubmit="return false;">
+            <!-- Name -->
+            <div class="form-group">
+              <label for="new-char-name">化身名讳 (Character Name)</label>
+              <input type="text" id="new-char-name" class="creator-input" placeholder="例如：达罗·落星" required maxlength="30">
+            </div>
+
+            <!-- Gender: 男 / 女 / 无 -->
+            <div class="form-group">
+              <label>性别气质 (Gender)</label>
+              <div class="gender-pill-group" id="gender-selector">
+                <button type="button" class="gender-pill active" data-gender="男"><span class="gender-sym">♂</span> 男</button>
+                <button type="button" class="gender-pill" data-gender="女"><span class="gender-sym">♀</span> 女</button>
+                <button type="button" class="gender-pill" data-gender="无"><span class="gender-sym">⚪</span> 无</button>
+              </div>
+              <input type="hidden" id="new-char-gender" value="男">
+            </div>
+
+            <!-- Ancestry -->
+            <div class="form-group">
+              <label for="new-char-ancestry">种族血统 (Ancestry)</label>
+              <select id="new-char-ancestry" class="creator-select"></select>
+              <div class="preview-card-mini" id="preview-ancestry-card"></div>
+            </div>
+
+            <!-- Class -->
+            <div class="form-group">
+              <label for="new-char-class">主职法门 (Class)</label>
+              <select id="new-char-class" class="creator-select"></select>
+              <div class="preview-card-mini" id="preview-class-card"></div>
+            </div>
+
+            <!-- Subclass -->
+            <div class="form-group">
+              <label for="new-char-subclass">专精流派 (Subclass)</label>
+              <select id="new-char-subclass" class="creator-select"></select>
+            </div>
+
+            <!-- Submit -->
+            <div class="creator-actions">
+              <button type="button" class="btn-create-submit" id="btn-submit-create-char">
+                <span>⚔️</span> 确立契约并进入角色卡 ›
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       LAYER 2: 角色卡与跑团工作台 (Workbench Sheet)
+       ========================================================================== -->
+  <div id="layer-sheet" class="app-layer layer-sheet" hidden>
+
+
   <!-- Top Combat Resource Dashboard -->
   <section class="combat-dashboard" id="combat-dashboard">
     <div class="char-summary-strip">
       <div class="avatar-tag">
         <span class="level-badge" id="dash-level">Lv 1</span>
         <span class="name-badge" id="dash-name">无名化身</span>
-        <span class="class-badge" id="dash-class">新角色</span>
+        <span class="gender-badge" id="dash-gender">♂ 男</span>
+        <span class="class-badge" id="dash-class">战士</span>
       </div>
       <div class="level-control">
         <button class="stepper-btn" id="lvl-down" title="降级">-</button>
@@ -455,27 +558,56 @@
     <section class="tab-page" id="page-foundations">
       <div class="foundations-container">
         
-        <!-- Header Selection Row -->
-        <div class="foundations-select-bar">
-          <div class="f-select-group">
-            <label>化身姓名</label>
-            <input type="text" id="fn-char-name" class="dw-input" placeholder="输入化身名称">
+        <!-- Foundations Core Identity Card with GM Override -->
+        <div class="foundations-identity-panel">
+          <div class="identity-header-row">
+            <div class="identity-title-group">
+              <span class="f-badge">契约基石</span>
+              <h3>化身核心设定</h3>
+              <span class="lock-indicator" id="fn-lock-status">
+                <span class="lock-icon">🔒</span> 玩家锁定 (契约确立)
+              </span>
+            </div>
+            <button type="button" class="gm-toggle-btn" id="btn-gm-override-toggle" title="主持人特权快速调整">
+              <span>👑</span> GM特权调整
+            </button>
           </div>
-          <div class="f-select-group">
-            <label>血统种族</label>
-            <select id="fn-select-ancestry" class="dw-select"></select>
+
+          <div class="gm-alert-box" id="gm-alert-notice" hidden>
+            👑 <strong>主持人特权调整已激活：</strong>
+            当前为GM后台模式，可修改玩家化身姓名、性别（使用变性药水等道具时）、种族血统或职业子职业。修改将即时生效并同步至档案。
           </div>
-          <div class="f-select-group">
-            <label>社群文化</label>
-            <select id="fn-select-community" class="dw-select"></select>
-          </div>
-          <div class="f-select-group">
-            <label>主职职业</label>
-            <select id="fn-select-class" class="dw-select"></select>
-          </div>
-          <div class="f-select-group">
-            <label>子职分支</label>
-            <select id="fn-select-subclass" class="dw-select"></select>
+
+          <!-- Header Selection Row -->
+          <div class="foundations-select-bar">
+            <div class="f-select-group">
+              <label>化身姓名</label>
+              <input type="text" id="fn-char-name" class="dw-input locked-field" placeholder="输入化身名称" disabled>
+            </div>
+            <div class="f-select-group">
+              <label>性别气质</label>
+              <div class="fn-gender-group" id="fn-gender-selector">
+                <button type="button" class="gender-pill-mini active" data-gender="男" disabled>♂ 男</button>
+                <button type="button" class="gender-pill-mini" data-gender="女" disabled>♀ 女</button>
+                <button type="button" class="gender-pill-mini" data-gender="无" disabled>⚪ 无</button>
+              </div>
+            </div>
+            <div class="f-select-group">
+              <label>血统种族</label>
+              <select id="fn-select-ancestry" class="dw-select locked-field" disabled></select>
+            </div>
+            <div class="f-select-group">
+              <label>社群文化</label>
+              <select id="fn-select-community" class="dw-select locked-field" disabled></select>
+            </div>
+            <div class="f-select-group">
+              <label>主职职业</label>
+              <select id="fn-select-class" class="dw-select locked-field" disabled></select>
+            </div>
+            <div class="f-select-group">
+              <label>子职分支</label>
+              <select id="fn-select-subclass" class="dw-select locked-field" disabled></select>
+            </div>
           </div>
         </div>
 
@@ -594,7 +726,7 @@
           <h3>领域法术与能力秘藏 (已学 / 可选用)</h3>
           <span class="sub-hint">点击卡牌可整备至随身技能位</span>
         </div>
-        <div class="domain-cards-grid" id="vault-cards-container">
+        <div class="domain-cards-grid" id="domain-vault-cards-container">
           <!-- Vaulted domain cards rendered here -->
         </div>
 
@@ -715,6 +847,8 @@
     </section>
 
   </main>
+
+  </div>
 
   <!-- MODAL: Character Vault (角色库管理) -->
   <div class="dw-modal-backdrop" id="vault-modal" hidden>

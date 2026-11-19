@@ -9,6 +9,18 @@ let currentPickerSlot = null;
 let activeRollAttr = 'agility';
 let activeBagItemIndex = null;
 
+// Class Icon Mapping for RPG Avatars
+const classIconMap = {
+  '战士': '⚔️', '守护者': '🛡️', '游荡者': '🗡️', '游侠': '🏹',
+  '法师': '🔮', '德鲁伊': '🌿', '吟游诗人': '🎭', '神使': '✝️',
+  '术士': '⚡', '邪术师': '👁️', '格斗家': '🥊', '审判官': '📜',
+  '噬罪者': '💀', '奇术师': '✨'
+};
+
+let currentLayer = 'vault';
+let isGmOverrideActive = false;
+
+
 // DOM Helper
 const el = id => document.getElementById(id);
 
@@ -92,17 +104,18 @@ function cleanTitle(str, fallback = '特性') {
 
 
 // Default Character Template
-function createDefaultCharacter(name = '新晋冒险者') {
+function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancestryId = '种族:人类', classId = '职业:战士', subclassId = null) {
   return {
     id: 'local_' + Date.now(),
-    avatar_name: name,
+    avatar_name: name || '新晋冒险者',
     level: 1,
     notes: '',
     sheet: {
-      ancestryId: '种族:人类',
+      gender: ['男', '女', '无'].includes(gender) ? gender : '男',
+      ancestryId: ancestryId || '种族:人类',
       communityId: '社群:巧手匠',
-      classId: '职业:战士',
-      subclassId: '子职:战士:勇气呼唤:基础',
+      classId: classId || '职业:战士',
+      subclassId: subclassId || '子职:战士:勇气呼唤:基础',
       hp: { cur: 6, max: 6 },
       stress: { cur: 0, max: 6 },
       hope: { cur: 2, max: 6 },
@@ -200,6 +213,7 @@ function normalizeCharacter(char) {
     knowledge: typeof s.attributes?.knowledge === 'number' ? s.attributes.knowledge : -1
   };
 
+  s.gender = ['男', '女', '无'].includes(s.gender) ? s.gender : '男';
   s.advancements = Array.isArray(s.advancements) ? s.advancements : [];
   s.equipment = s.equipment && typeof s.equipment === 'object' ? s.equipment : { ...defaultSheet.equipment };
   s.bags = s.bags && typeof s.bags === 'object' ? s.bags : { ...defaultSheet.bags };
@@ -225,23 +239,30 @@ function curChar() {
 async function init() {
   setupTabs();
   setupSlotIcons();
+  setupCreationWizard();
   setupEventListeners();
 
   // 1. 优先本地秒开 (0ms 极速响应，消除白屏等待)
   loadLocalFallback();
-  renderAll();
 
-  // 2. 异步加载规则数据库并填充下拉菜单
+  // 2. 异步加载规则数据库并填充下拉菜单与创角选项
   try {
     const res = await fetch('./data/database.json');
     db = await res.json();
     populateSelectOptions();
-    renderAll();
   } catch (err) {
     console.error('Failed to load database.json:', err);
   }
 
-  // 3. 异步后台静默同步云端，网络延时不阻塞页面操作
+  // 3. 决定初始层级视图 (如果 URL 包含 #sheet 则进入第二层工作台，否则默认进入第一层角色库大厅)
+  const currentHash = (typeof location !== 'undefined' && location.hash) ? location.hash : '';
+  if (currentHash === '#sheet' && characters.length > 0) {
+    switchLayer('sheet', activeCharIndex);
+  } else {
+    switchLayer('vault');
+  }
+
+  // 4. 异步后台静默同步云端，网络延时不阻塞页面操作
   const session = readSession();
   if (session) {
     updateSyncStatus(true, `正在同步云端 · ${session.login || '冒险者'}…`);
@@ -252,6 +273,7 @@ async function init() {
         activeCharIndex = 0;
         saveLocal(); // 同步缓存至本地
         renderVaultCharList();
+        renderVaultLobby();
         renderAll();
       }
       updateSyncStatus(true, `云端已同步 · ${currentUser.login || '冒险者'}`);
@@ -338,6 +360,19 @@ function populateSelectOptions() {
   }
 
   updateSubclassOptions();
+
+  // Populate Layer 1 Creation Wizard dropdowns
+  const newAnc = el('new-char-ancestry');
+  const newCls = el('new-char-class');
+  if (newAnc && db.ancestries) {
+    newAnc.innerHTML = db.ancestries.map(a => `<option value="${a.ID}">${a.名称}</option>`).join('');
+  }
+  if (newCls && db.classes) {
+    newCls.innerHTML = db.classes.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
+  }
+  updateCreatorSubclassOptions();
+  updateCreatorAncestryPreview();
+  updateCreatorClassPreview();
 }
 
 function updateSubclassOptions() {
@@ -434,6 +469,282 @@ function calculateStats(char) {
 }
 
 // Main Render Function
+
+// ==========================================================================
+// 核心两层架构控制器 (Two-Tier Layer Controller)
+// ==========================================================================
+function switchLayer(layer, targetIndex) {
+  currentLayer = layer;
+  const vaultLayer = el('layer-vault');
+  const sheetLayer = el('layer-sheet');
+  const backBtn = el('btn-back-vault');
+  const brandLink = el('brand-link');
+
+  if (layer === 'vault') {
+    if (vaultLayer) vaultLayer.hidden = false;
+    if (sheetLayer) sheetLayer.hidden = true;
+    if (backBtn) backBtn.style.display = 'none';
+    if (brandLink) brandLink.style.display = 'flex';
+    renderVaultLobby();
+    try { history.replaceState(null, '', '#vault'); } catch {}
+  } else {
+    if (targetIndex !== undefined && targetIndex >= 0 && targetIndex < characters.length) {
+      activeCharIndex = targetIndex;
+    }
+    if (vaultLayer) vaultLayer.hidden = true;
+    if (sheetLayer) sheetLayer.hidden = false;
+    if (backBtn) backBtn.style.display = 'inline-flex';
+    renderAll();
+    try { history.replaceState(null, '', '#sheet'); } catch {}
+  }
+}
+
+// 渲染第一层：角色库展示与化身卡片列表
+function renderVaultLobby() {
+  const container = el('lobby-char-cards-container');
+  const countBadge = el('vault-count-badge');
+  if (countBadge) countBadge.textContent = characters.length;
+  if (!container) return;
+
+  container.innerHTML = '';
+  if (!characters.length) {
+    container.innerHTML = `
+      <div style="grid-column:1/-1;background:var(--bg-card);padding:36px;border-radius:10px;border:1px dashed var(--border-bo3);text-align:center;">
+        <p style="font-size:16px;color:var(--text-gold);margin-bottom:8px;">📜 暂无化身档案</p>
+        <p style="font-size:13px;color:var(--text-muted);">可在右侧填写并铸造您的第一位冒险化身！</p>
+      </div>
+    `;
+    return;
+  }
+
+  characters.forEach((char, idx) => {
+    const s = char.sheet || {};
+    const clsObj = db?.classes?.find(c => c.ID === s.classId || c.名称 === s.classId);
+    const clsName = clsObj?.名称 || '战士';
+    const ancObj = db?.ancestries?.find(a => a.ID === s.ancestryId || a.名称 === s.ancestryId);
+    const ancName = ancObj?.名称 || '人类';
+    const scObj = db?.subclasses?.find(sc => sc.ID === s.subclassId);
+    const scName = scObj?.名称 || '初阶';
+    const gender = s.gender || '男';
+    const icon = classIconMap[clsName] || '⚔️';
+    const isActive = idx === activeCharIndex;
+
+    const card = document.createElement('div');
+    card.className = `vault-char-card ${isActive ? 'active-char' : ''}`;
+    card.innerHTML = `
+      <div class="vcard-top">
+        <div class="vcard-avatar">
+          <span class="vcard-icon">${icon}</span>
+        </div>
+        <div class="vcard-meta">
+          <div class="vcard-name-row">
+            <h3 class="vcard-name">${char.avatar_name || '无名化身'}</h3>
+            <span class="gender-badge gender-${gender}">${gender === '男' ? '♂ 男' : (gender === '女' ? '♀ 女' : '⚪ 无')}</span>
+          </div>
+          <div class="vcard-tags">
+            <span class="vcard-tag">${ancName}</span>
+            <span class="vcard-tag vcard-class">${clsName} · ${scName}</span>
+            <span class="vcard-tag vcard-level">Lv.${char.level || 1}</span>
+          </div>
+        </div>
+      </div>
+      <div class="vcard-trackers">
+        <div class="vcard-stat"><small>生命</small> <strong>${s.hp?.cur ?? 6}/${s.hp?.max ?? 6}</strong></div>
+        <div class="vcard-stat"><small>压力</small> <strong>${s.stress?.cur ?? 0}/${s.stress?.max ?? 6}</strong></div>
+        <div class="vcard-stat"><small>希望</small> <strong>${s.hope?.cur ?? 2}/${s.hope?.max ?? 6}</strong></div>
+        <div class="vcard-stat"><small>护甲</small> <strong>${s.armorPips?.cur ?? 0}</strong></div>
+      </div>
+      <div class="vcard-actions">
+        <button class="vcard-btn-enter" data-index="${idx}">
+          <span>⚔️</span> 进入化身工作台 ›
+        </button>
+        <button class="vcard-btn-icon" data-action="export" data-index="${idx}" title="导出本卡 JSON">💾</button>
+        <button class="vcard-btn-icon" data-action="delete" data-index="${idx}" title="删除化身" style="color:#ef4444;">🗑️</button>
+      </div>
+    `;
+
+    // Bind card actions
+    card.querySelector('.vcard-btn-enter').addEventListener('click', () => {
+      switchLayer('sheet', idx);
+    });
+    card.querySelector('[data-action="export"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportCharacterJson(idx);
+    });
+    card.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteCharacterByIndex(idx);
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function exportCharacterJson(idx) {
+  const target = characters[idx];
+  if (!target) return;
+  const jsonStr = JSON.stringify(target, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${target.avatar_name || '化身'}_Lv${target.level}_Daggerworld.json`;
+  a.click();
+}
+
+function deleteCharacterByIndex(idx) {
+  const target = characters[idx];
+  if (!target) return;
+  if (confirm(`确定要彻底删除化身【${target.avatar_name}】吗？此操作无法撤销。`)) {
+    characters.splice(idx, 1);
+    if (!characters.length) {
+      characters.push(createDefaultCharacter());
+    }
+    activeCharIndex = Math.min(activeCharIndex, characters.length - 1);
+    saveLocal();
+    renderVaultLobby();
+  }
+}
+
+// ==========================================================================
+// 创角向导 (Character Creation Wizard) 控制器
+// ==========================================================================
+function setupCreationWizard() {
+  const genderPills = document.querySelectorAll('#gender-selector .gender-pill');
+  const genderHidden = el('new-char-gender');
+  genderPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      genderPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      if (genderHidden) genderHidden.value = pill.dataset.gender;
+    });
+  });
+
+  const selAnc = el('new-char-ancestry');
+  const selCls = el('new-char-class');
+  const selSub = el('new-char-subclass');
+
+  if (selAnc) {
+    selAnc.addEventListener('change', updateCreatorAncestryPreview);
+  }
+  if (selCls) {
+    selCls.addEventListener('change', () => {
+      updateCreatorSubclassOptions();
+      updateCreatorClassPreview();
+    });
+  }
+
+  // 确立契约并创建角色
+  const submitBtn = el('btn-submit-create-char');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      const nameInput = el('new-char-name');
+      const name = nameInput?.value?.trim() || '深水城探险者';
+      const gender = genderHidden?.value || '男';
+      const ancestryId = selAnc?.value || '种族:人类';
+      const classId = selCls?.value || '职业:战士';
+      const subclassId = selSub?.value || null;
+
+      // 确立新化身
+      const newChar = createDefaultCharacter(name, gender, ancestryId, classId, subclassId);
+      
+      // 根据所选职业同步初始生命与闪避
+      const clsObj = db?.classes?.find(c => c.ID === classId || c.名称 === classId);
+      if (clsObj) {
+        newChar.sheet.hp.cur = Number(clsObj.生命点 || 6);
+        newChar.sheet.hp.max = Number(clsObj.生命点 || 6);
+      }
+
+      characters.push(newChar);
+      activeCharIndex = characters.length - 1;
+      saveLocal();
+
+      // 清空表单
+      if (nameInput) nameInput.value = '';
+      
+      // 平滑切入第二层跑团工作台！
+      switchLayer('sheet', activeCharIndex);
+      alert(`🎉 契约已确立！化身【${name}】已成功生成，进入角色卡工作台。`);
+    });
+  }
+
+  // 顶部“铸造新化身”平滑滚动
+  const scrollCreateBtn = el('btn-hero-scroll-create');
+  if (scrollCreateBtn) {
+    scrollCreateBtn.addEventListener('click', () => {
+      el('vault-creator-section')?.scrollIntoView?.({ behavior: 'smooth' });
+      el('new-char-name')?.focus?.();
+    });
+  }
+
+  // 导入角色卡 JSON
+  const importBtn = el('btn-hero-import');
+  const fileInput = el('hero-import-file');
+  if (importBtn && fileInput) {
+    importBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          const normalized = normalizeCharacter(parsed);
+          characters.push(normalized);
+          activeCharIndex = characters.length - 1;
+          saveLocal();
+          renderVaultLobby();
+          alert(`成功导入化身【${normalized.avatar_name}】！`);
+        } catch {
+          alert('导入失败：文件格式不符合匕首世界角色卡规范。');
+        }
+      };
+      reader.readAsText(file);
+      fileInput.value = '';
+    });
+  }
+}
+
+function updateCreatorAncestryPreview() {
+  const selAnc = el('new-char-ancestry');
+  const preview = el('preview-ancestry-card');
+  if (!selAnc || !preview || !db) return;
+  const anc = db.ancestries?.find(a => a.ID === selAnc.value);
+  if (anc) {
+    preview.innerHTML = `
+      <p style="margin-bottom:4px;color:var(--text-main);">${anc.简介 || ''}</p>
+      <div>${renderMarkdown(anc.特性A || '')}</div>
+      <div style="margin-top:4px;">${renderMarkdown(anc.特性B || '')}</div>
+    `;
+  }
+}
+
+function updateCreatorClassPreview() {
+  const selCls = el('new-char-class');
+  const preview = el('preview-class-card');
+  if (!selCls || !preview || !db) return;
+  const c = db.classes?.find(cls => cls.ID === selCls.value);
+  if (c) {
+    preview.innerHTML = `
+      <div style="display:flex;gap:10px;margin-bottom:6px;font-size:11px;">
+        <span style="color:var(--text-gold);"><strong>领域：</strong>${c.领域 || '战役'}</span>
+        <span><strong>初始生命：</strong>${c.生命点 || 6}</span>
+        <span><strong>初始闪避：</strong>${c.闪避值 || 10}</span>
+      </div>
+      <div>${renderMarkdown(c.职业特性 || '')}</div>
+    `;
+  }
+}
+
+function updateCreatorSubclassOptions() {
+  const selCls = el('new-char-class');
+  const selSub = el('new-char-subclass');
+  if (!selCls || !selSub || !db) return;
+  const clsObj = db.classes?.find(cls => cls.ID === selCls.value);
+  const className = clsObj ? clsObj.名称 : '战士';
+  const subs = (db.subclasses || []).filter(s => s.主职 === className || s.ID.includes(className));
+  selSub.innerHTML = subs.map(s => `<option value="${s.ID}">${s.名称} (${s.等级 || '基础'})</option>`).join('');
+}
+
 function renderAll() {
   const c = curChar();
   const s = c.sheet;
@@ -456,6 +767,13 @@ function renderAll() {
   el('dash-name').textContent = c.avatar_name || '无名化身';
   el('dash-class').textContent = clsObj?.名称 || '战士';
   el('dash-level').textContent = `Lv ${c.level}`;
+
+  const genderEl = el('dash-gender');
+  if (genderEl) {
+    const gender = s.gender || '男';
+    genderEl.textContent = gender === '男' ? '♂ 男' : (gender === '女' ? '♀ 女' : '⚪ 无');
+    genderEl.className = `gender-badge gender-${gender}`;
+  }
 
   // 2. Combat Resource Tracks & Pips
   renderPips('hp', s.hp.cur, s.hp.max, 'filled-health');
@@ -567,12 +885,60 @@ function renderFoundations(clsObj) {
   const c = curChar();
   const s = c.sheet;
 
-  el('fn-char-name').value = c.avatar_name || '';
+  if (el('fn-char-name')) el('fn-char-name').value = c.avatar_name || '';
   if (s.ancestryId && el('fn-select-ancestry')) el('fn-select-ancestry').value = s.ancestryId;
   if (s.communityId && el('fn-select-community')) el('fn-select-community').value = s.communityId;
   if (s.classId && el('fn-select-class')) el('fn-select-class').value = s.classId;
   if (s.subclassId && el('fn-select-subclass')) el('fn-select-subclass').value = s.subclassId;
-  el('fn-gm-notes').value = c.notes || '';
+  if (el('fn-gm-notes')) el('fn-gm-notes').value = c.notes || '';
+
+  // 性别标签与单选按钮微调 (男/女/无)
+  const currentGender = s.gender || '男';
+  const genderPills = document.querySelectorAll('#fn-gender-selector .gender-pill-mini');
+  genderPills.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.gender === currentGender);
+    btn.disabled = !isGmOverrideActive;
+  });
+
+  // 主持人特权调整 (GM Override) 状态与表单控制
+  const lockStatusEl = el('fn-lock-status');
+  const alertNoticeEl = el('gm-alert-notice');
+  const gmToggleBtn = el('btn-gm-override-toggle');
+  const lockedInputs = [
+    el('fn-char-name'),
+    el('fn-select-ancestry'),
+    el('fn-select-community'),
+    el('fn-select-class'),
+    el('fn-select-subclass')
+  ];
+
+  if (isGmOverrideActive) {
+    if (lockStatusEl) lockStatusEl.innerHTML = '<span style="color:#f59e0b;font-weight:bold;">👑 GM特权已激活 (可自由调整姓名/性别/种族/职业)</span>';
+    if (alertNoticeEl) alertNoticeEl.hidden = false;
+    if (gmToggleBtn) {
+      gmToggleBtn.classList.add('active');
+      gmToggleBtn.innerHTML = '<span>🔒</span> 锁定化身基石';
+    }
+    lockedInputs.forEach(input => {
+      if (input) {
+        input.disabled = false;
+        input.classList.remove('locked-field');
+      }
+    });
+  } else {
+    if (lockStatusEl) lockStatusEl.innerHTML = '<span class="lock-icon">🔒</span> 核心基石已铭刻 (玩家锁定)';
+    if (alertNoticeEl) alertNoticeEl.hidden = true;
+    if (gmToggleBtn) {
+      gmToggleBtn.classList.remove('active');
+      gmToggleBtn.innerHTML = '<span>👑</span> GM特权调整';
+    }
+    lockedInputs.forEach(input => {
+      if (input) {
+        input.disabled = true;
+        input.classList.add('locked-field');
+      }
+    });
+  }
 
   // Ancestry Cards
   const anc = db?.ancestries?.find(a => a.ID === s.ancestryId);
@@ -649,7 +1015,7 @@ function filterDomainCardsDisplay(filterDomain, isGMOverride, classDomains) {
   const c = curChar();
   const s = c.sheet;
   const equippedContainer = el('equipped-cards-container');
-  const vaultContainer = el('vault-cards-container');
+  const vaultContainer = el('domain-vault-cards-container');
 
   // Equipped Cards
   const equipped = s.equippedDomainCards || [];
@@ -876,6 +1242,30 @@ function setupEventListeners() {
     el('dash-name').textContent = c.avatar_name;
   });
 
+  // GM Override Toggle & Field Unlocking
+  const gmToggleBtn = el('btn-gm-override-toggle');
+  if (gmToggleBtn) {
+    gmToggleBtn.addEventListener('click', () => {
+      isGmOverrideActive = !isGmOverrideActive;
+      const c = curChar();
+      const clsObj = db?.classes?.find(cls => cls.ID === c.sheet.classId || cls.名称 === c.sheet.classId);
+      renderFoundations(clsObj);
+    });
+  }
+
+  // Foundations Gender Selection (when GM Override is active)
+  document.querySelectorAll('#fn-gender-selector .gender-pill-mini').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!isGmOverrideActive) return;
+      const c = curChar();
+      c.sheet.gender = btn.dataset.gender;
+      saveLocal();
+      const clsObj = db?.classes?.find(cls => cls.ID === c.sheet.classId || cls.名称 === c.sheet.classId);
+      renderFoundations(clsObj);
+      renderAll();
+    });
+  });
+
   el('fn-select-ancestry').addEventListener('change', e => {
     const c = curChar();
     c.sheet.ancestryId = e.target.value;
@@ -926,9 +1316,15 @@ function setupEventListeners() {
     renderDomainCards();
   });
 
-  // Top Bar Actions
+  // Top Bar Actions & Two-Tier Layer Switching
+  el('btn-back-vault')?.addEventListener('click', () => switchLayer('vault'));
+  el('btn-open-vault')?.addEventListener('click', () => switchLayer('vault'));
+  el('brand-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchLayer('vault');
+  });
+
   el('vault-open-btn').addEventListener('click', openVaultModal);
-  el('btn-open-vault').addEventListener('click', openVaultModal);
   el('vault-modal-close').addEventListener('click', closeVaultModal);
   el('vault-create-btn').addEventListener('click', createNewAvatar);
   el('vault-refresh-btn').addEventListener('click', async () => {
@@ -986,7 +1382,11 @@ function setupEventListeners() {
 
   el('btn-create-char').addEventListener('click', () => {
     moreDropdown.classList.remove('show');
-    createNewAvatar();
+    switchLayer('vault');
+    setTimeout(() => {
+      el('vault-creator-section')?.scrollIntoView?.({ behavior: 'smooth' });
+      el('new-char-name')?.focus?.();
+    }, 50);
   });
   el('btn-export-json').addEventListener('click', () => {
     moreDropdown.classList.remove('show');

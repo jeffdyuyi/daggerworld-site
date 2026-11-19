@@ -1908,3 +1908,512 @@ body.dw-theme {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================================
+   两层页面架构 (Two-Tier Page Hierarchy)
+   第 1 层：角色库 & 创角大厅 (Layer 1: Vault & Creator Lobby)
+   第 2 层：跑团工作台 (Layer 2: Workbench Sheet)
+   ========================================================================== */
+
+.app-layer {
+  width: 100%;
+  animation: fadeIn 0.25s ease-out;
+}
+.app-layer[hidden] {
+  display: none !important;
+}
+
+/* Layer 1: Vault Lobby */
+.layer-vault {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 3vw, 40px);
+}
+.vault-hero-banner {
+  background: linear-gradient(135deg, #3d1410 0%, #200d0a 100%);
+  border: 2px solid var(--border-gold);
+  border-radius: 12px;
+  padding: 24px 32px;
+  margin-bottom: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+}
+.vault-hero-content h1 {
+  font-size: 26px;
+  color: #fff8e8;
+  letter-spacing: 0.05em;
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vault-hero-content p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.vault-badge-pill {
+  display: inline-block;
+  background: rgba(229, 169, 60, 0.2);
+  border: 1px solid var(--border-gold);
+  color: var(--text-gold);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+.vault-hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 角色库大厅两列布局 */
+.vault-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .vault-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 左侧：已有化身卡牌列表 */
+.vault-characters-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.section-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--border-bo3);
+  padding-bottom: 10px;
+}
+.section-title-bar h2 {
+  font-size: 18px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vault-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+/* 单个角色卡片视觉 (Hero Card) */
+.vault-char-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bo3);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.vault-char-card:hover {
+  border-color: var(--border-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+}
+.vault-char-card.active-char {
+  border-color: var(--border-gold);
+  box-shadow: 0 0 14px rgba(229, 169, 60, 0.3);
+}
+.vcard-top {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.vcard-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4d1c15 0%, #260c08 100%);
+  border: 2px solid var(--border-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+.vcard-meta {
+  flex: 1;
+  min-width: 0;
+}
+.vcard-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.vcard-name {
+  font-size: 17px;
+  color: var(--text-main);
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gender-badge {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.gender-badge.gender-男 { background: rgba(59, 130, 246, 0.25); color: #93c5fd; border: 1px solid #3b82f6; }
+.gender-badge.gender-女 { background: rgba(236, 72, 153, 0.25); color: #f472b6; border: 1px solid #ec4899; }
+.gender-badge.gender-无 { background: rgba(148, 163, 184, 0.25); color: #cbd5e1; border: 1px solid #94a3b8; }
+
+.vcard-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.vcard-tag {
+  font-size: 11px;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+.vcard-tag.vcard-class {
+  color: var(--text-gold);
+  border-color: rgba(229, 169, 60, 0.4);
+}
+.vcard-tag.vcard-level {
+  background: var(--bo3-primary);
+  color: #fff;
+  font-weight: bold;
+}
+.vcard-trackers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: var(--bg-surface);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+.vcard-stat small {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.vcard-stat strong {
+  font-size: 13px;
+  color: var(--text-main);
+}
+.vcard-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.vcard-btn-enter {
+  flex: 1;
+  background: linear-gradient(135deg, #741d16 0%, #4a130e 100%);
+  color: #fff;
+  border: 1px solid #a82e2e;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.vcard-btn-enter:hover {
+  background: linear-gradient(135deg, #8f261d 0%, #5f1812 100%);
+  border-color: var(--border-gold);
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.35);
+}
+.vcard-btn-icon {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+.vcard-btn-icon:hover {
+  border-color: var(--border-gold);
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+
+/* 右侧：创角向导 (Creation Hall) */
+.creator-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-bo3);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  position: sticky;
+  top: 80px;
+}
+.creator-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+.creator-header h2 {
+  font-size: 18px;
+  color: #fff;
+  margin: 0;
+}
+.creator-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.creator-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-size: 13px;
+  color: var(--text-main);
+  font-weight: bold;
+}
+.creator-input, .creator-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-bo3);
+  border-radius: 6px;
+  padding: 9px 12px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+.creator-input:focus, .creator-select:focus {
+  outline: none;
+  border-color: var(--border-gold);
+  box-shadow: 0 0 8px rgba(229, 169, 60, 0.3);
+}
+
+/* 性别单选按钮组 (男/女/无) */
+.gender-pill-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.gender-pill {
+  background: var(--bg-input);
+  border: 1px solid var(--border-bo3);
+  border-radius: 6px;
+  padding: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.gender-pill:hover {
+  border-color: var(--border-gold);
+  color: var(--text-main);
+}
+.gender-pill.active {
+  background: linear-gradient(135deg, #5c1913 0%, #3a100c 100%);
+  border-color: var(--border-gold);
+  color: #ffe6d6;
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.25);
+}
+.gender-sym {
+  font-size: 15px;
+}
+
+/* 创角实时特性小预览卡 */
+.preview-card-mini {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-height: 140px;
+  overflow-y: auto;
+}
+.preview-card-mini strong {
+  color: var(--text-gold);
+}
+.btn-create-submit {
+  width: 100%;
+  background: linear-gradient(135deg, #c87f28 0%, #9e5f17 100%);
+  border: 1px solid var(--border-gold);
+  color: #fff8e8;
+  font-weight: bold;
+  font-size: 15px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.btn-create-submit:hover {
+  background: linear-gradient(135deg, #e5a93c 0%, #b57416 100%);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(229, 169, 60, 0.4);
+}
+
+/* Foundations Identity Panel & GM Override */
+.foundations-identity-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bo3);
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.identity-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 12px;
+}
+.identity-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.identity-title-group h3 {
+  font-size: 16px;
+  color: var(--text-main);
+  margin: 0;
+}
+.lock-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: rgba(0,0,0,0.3);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+.lock-indicator.gm-active {
+  background: rgba(180, 83, 9, 0.25);
+  color: #fef3c7;
+  border-color: var(--border-gold);
+}
+.gm-toggle-btn {
+  background: linear-gradient(135deg, #4d1c15 0%, #29100c 100%);
+  border: 1px solid var(--border-gold);
+  color: var(--text-gold);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.gm-toggle-btn:hover {
+  background: linear-gradient(135deg, #741d16 0%, #4a130e 100%);
+  color: #fff;
+}
+.gm-toggle-btn.active {
+  background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+  border-color: #f59e0b;
+  color: #fef3c7;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+.gm-alert-box {
+  background: linear-gradient(135deg, rgba(146, 64, 14, 0.25) 0%, rgba(92, 25, 19, 0.25) 100%);
+  border: 1px solid var(--border-gold);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #fef3c7;
+}
+.locked-field {
+  background: rgba(0,0,0,0.3) !important;
+  color: var(--text-muted) !important;
+  cursor: not-allowed !important;
+  border-color: var(--border-subtle) !important;
+}
+
+.fn-gender-group {
+  display: flex;
+  gap: 6px;
+}
+.gender-pill-mini {
+  background: var(--bg-input);
+  border: 1px solid var(--border-bo3);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.gender-pill-mini.active {
+  background: var(--bo3-primary);
+  border-color: var(--border-gold);
+  color: #fff;
+  font-weight: bold;
+}
+.gender-pill-mini:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
