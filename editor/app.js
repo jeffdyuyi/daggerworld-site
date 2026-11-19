@@ -662,14 +662,14 @@ function renderVaultLobby() {
   });
 }
 
-function exportCharacterJson(idx) {
-  const target = characters[idx];
+function exportCharacterJson(idx = null) {
+  const target = (idx !== null && idx !== undefined && characters[idx]) ? characters[idx] : curChar();
   if (!target) return;
   const jsonStr = JSON.stringify(target, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${target.avatar_name || '化身'}_Lv${target.level}_Daggerworld.json`;
+  a.download = `匕首世界化身_${target.avatar_name || '角色'}_Lv${target.level}.json`;
   a.click();
 }
 
@@ -2220,15 +2220,6 @@ function openAddItemModal(gridIndex = null) {
   renderInventory(calculateStats(c));
 }
 
-// Export / Import JSON
-function exportCharacterJson() {
-  const c = curChar();
-  const blob = new Blob([JSON.stringify(c, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `匕首世界化身_${c.avatar_name || '角色'}_Lv${c.level}.json`;
-  a.click();
-}
 
 function importCharacterJson(e) {
   const file = e.target.files[0];
