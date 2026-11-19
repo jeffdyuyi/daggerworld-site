@@ -178,7 +178,7 @@
       <!-- Health Track -->
       <div class="resource-card health-card">
         <div class="res-header">
-          <span class="res-title">❤️ 生命 (HP)</span>
+          <span class="res-title">生命点 · 剩余</span>
           <div class="res-counter">
             <span id="hp-cur">6</span> / <span id="hp-max">6</span>
           </div>
@@ -193,7 +193,7 @@
       <!-- Stress Track -->
       <div class="resource-card stress-card">
         <div class="res-header">
-          <span class="res-title">🧠 压力 (Stress)</span>
+          <span class="res-title">压力点 · 已标记</span>
           <div class="res-counter">
             <span id="stress-cur">0</span> / <span id="stress-max">6</span>
           </div>
@@ -208,7 +208,7 @@
       <!-- Hope Track -->
       <div class="resource-card hope-card">
         <div class="res-header">
-          <span class="res-title">☀️ 希望 (Hope)</span>
+          <span class="res-title">希望点 · 持有</span>
           <div class="res-counter">
             <span id="hope-cur">2</span> / <span id="hope-max">6</span>
           </div>
@@ -223,7 +223,7 @@
       <!-- Armor Track & Thresholds Dashboard -->
       <div class="resource-card armor-card">
         <div class="res-header">
-          <span class="res-title">🛡️ 护甲槽 (Armor)</span>
+          <span class="res-title">护甲槽 · 已标记</span>
           <div class="res-counter">
             <span id="armor-cur">0</span> / <span id="armor-max">0</span>
           </div>
@@ -235,21 +235,36 @@
         </div>
       </div>
 
+      <div class="defense-stats-box" role="group" aria-label="战斗数值">
+        <div class="def-item">
+          <span class="def-label">闪避（职业基础）</span>
+          <strong class="def-val" id="stat-evasion">—</strong>
+        </div>
+        <div class="def-item">
+          <span class="def-label">基础护甲</span>
+          <strong class="def-val" id="stat-armor-score">0</strong>
+        </div>
+        <div class="def-item">
+          <span class="def-label">熟练值</span>
+          <strong class="def-val" id="stat-proficiency">1</strong>
+        </div>
+      </div>
+
       <!-- Damage Thresholds Readout -->
       <div class="thresholds-summary-card" id="thresholds-card">
         <div class="threshold-col minor">
           <span class="th-label">轻度伤害</span>
-          <span class="th-val" id="th-minor">1 ~ 0</span>
+          <span class="th-val" id="th-minor">—</span>
           <span class="th-hint">标记 1 点生命</span>
         </div>
         <div class="threshold-col major">
           <span class="th-label">重度伤害</span>
-          <span class="th-val" id="th-major">1+</span>
+          <span class="th-val" id="th-major">—</span>
           <span class="th-hint">标记 2 点生命</span>
         </div>
         <div class="threshold-col severe">
           <span class="th-label">严重伤害</span>
-          <span class="th-val" id="th-severe">2+</span>
+          <span class="th-val" id="th-severe">—</span>
           <span class="th-hint">标记 3 点生命</span>
         </div>
       </div>
@@ -526,21 +541,7 @@
             </div>
           </div>
 
-          <!-- Secondary Combat Stats -->
-          <div class="defense-stats-box">
-            <div class="def-item">
-              <span class="def-label">闪避值 (Evasion)</span>
-              <strong class="def-val" id="stat-evasion">8</strong>
-            </div>
-            <div class="def-item">
-              <span class="def-label">基础护甲值 (Score)</span>
-              <strong class="def-val" id="stat-armor-score">0</strong>
-            </div>
-            <div class="def-item">
-              <span class="def-label">熟练度 (Proficiency)</span>
-              <strong class="def-val" id="stat-proficiency">1</strong>
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -548,14 +549,14 @@
       <div class="levelup-bottom-bar">
         <div class="levelup-title">
           <h3>升级与历练强化</h3>
-          <span class="levelup-tier-tag" id="cur-tier-tag">第 1 阶位 (1-4级)</span>
+          <span class="levelup-tier-tag" id="cur-tier-tag">位阶 1 · 1 级</span>
         </div>
         <div class="advancement-options" id="advancements-container">
           <label class="adv-choice"><input type="checkbox" data-adv="hp1"> +1 生命槽上限</label>
           <label class="adv-choice"><input type="checkbox" data-adv="hp2"> +1 额外生命上限</label>
           <label class="adv-choice"><input type="checkbox" data-adv="stress1"> +1 压力上限</label>
           <label class="adv-choice"><input type="checkbox" data-adv="stress2"> +1 额外压力上限</label>
-          <label class="adv-choice"><input type="checkbox" data-adv="prof"> +1 熟练度加值</label>
+          <label class="adv-choice"><input type="checkbox" data-adv="prof"> +1 熟练值</label>
           <label class="adv-choice"><input type="checkbox" data-adv="hope"> +1 希望槽上限</label>
         </div>
       </div>
@@ -608,7 +609,7 @@
               <label>血统种族</label>
               <select id="fn-select-ancestry" class="dw-select locked-field" disabled></select>
             </div>
-            <div class="f-select-group">
+            <div class="f-select-group" id="gm-community-field" hidden>
               <label>社群文化</label>
               <select id="fn-select-community" class="dw-select locked-field" disabled></select>
             </div>
@@ -679,7 +680,7 @@
           </div>
 
           <!-- Community Feature -->
-          <div class="f-card">
+          <div class="f-card" id="gm-community-feature" hidden>
             <div class="f-card-header">
               <span class="f-badge">社群归属</span>
               <h3 id="fn-community-title">社群特性</h3>
@@ -1059,7 +1060,7 @@
               <input type="number" id="ws-card-level" class="dw-input" value="1" min="1" max="10">
             </div>
             <div class="f-select-group">
-              <label>回想消耗 (⚡ 希望点)</label>
+              <label>回想费用（压力点）</label>
               <input type="number" id="ws-card-recall" class="dw-input" value="1" min="0" max="6">
             </div>
             <div class="f-select-group ws-col-span-2">

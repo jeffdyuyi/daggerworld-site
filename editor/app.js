@@ -501,7 +501,7 @@ function calculateStats(char) {
   const maxHope = 6 + hopeBonus;
 
   // Base Proficiency
-  const baseProf = Math.max(1, Math.floor((lvl - 1) / 3) + 1);
+  const baseProf = 1 + [2, 5, 8].filter(milestone => lvl >= milestone).length;
   const profBonus = advs.filter(a => a === 'prof').length;
   const totalProf = baseProf + profBonus;
 
@@ -899,13 +899,13 @@ function renderAll() {
   el('armor-max').textContent = stats.baseArmor;
 
   // Thresholds Dashboard Readout
-  el('th-minor').textContent = `1 ~ ${stats.majorThreshold - 1}`;
-  el('th-major').textContent = `${stats.majorThreshold} ~ ${stats.severeThreshold - 1}`;
+  el('th-minor').textContent = damageRange(1, stats.majorThreshold - 1);
+  el('th-major').textContent = damageRange(stats.majorThreshold, stats.severeThreshold - 1);
   el('th-severe').textContent = `${stats.severeThreshold}+`;
 
   // Defense Stats
   el('stat-armor-score').textContent = stats.baseArmor;
-  el('stat-evasion').textContent = clsObj?.闪避值 || 8;
+  el('stat-evasion').textContent = clsObj?.闪避值 ?? '—';
   el('stat-proficiency').textContent = stats.totalProf;
 
   // Advancements checkboxes
@@ -916,8 +916,9 @@ function renderAll() {
     });
   }
 
-  const tier = c.level <= 4 ? 1 : (c.level <= 7 ? 2 : 3);
-  el('cur-tier-tag').textContent = `第 ${tier} 阶位 (${tier === 1 ? '1-4级' : (tier === 2 ? '5-7级' : '8-10级')})`;
+  const tiers = [[1, '1'], [2, '2–4'], [5, '5–7'], [8, '8–10']];
+  const tierIndex = tiers.findLastIndex(([minLevel]) => c.level >= minLevel);
+  el('cur-tier-tag').textContent = `位阶 ${tierIndex + 1} · ${tiers[tierIndex][1]} 级`;
 
   // 3. Equipment Loadout Slots
   renderEquipmentSlots(stats);
@@ -959,6 +960,11 @@ function renderPips(type, cur, max, fillClass) {
     });
     container.appendChild(pip);
   }
+}
+
+function damageRange(min, max) {
+  if (max < min) return '—';
+  return min === max ? String(min) : `${min}–${max}`;
 }
 
 function renderEquipmentSlots(stats) {
@@ -1035,6 +1041,10 @@ function renderPaperdoll(character, suitActive) {
 function renderFoundations(clsObj) {
   const c = curChar();
   const s = c.sheet;
+  const canViewCommunity = currentUser?.role === 'gm';
+  el('gm-community-field').hidden = !canViewCommunity;
+  el('gm-community-feature').hidden = !canViewCommunity;
+
 
   if (el('fn-char-name')) el('fn-char-name').value = c.avatar_name || '';
   if (s.ancestryId && el('fn-select-ancestry')) el('fn-select-ancestry').value = s.ancestryId;

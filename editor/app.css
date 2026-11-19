@@ -453,7 +453,7 @@ body.dw-theme {
 
 .resource-tracks-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr) 1.4fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -541,6 +541,7 @@ body.dw-theme {
 
 /* Thresholds Summary Card */
 .thresholds-summary-card {
+  grid-column: span 2;
   background: var(--bg-card);
   border: 1px solid var(--border-bo3);
   border-radius: 8px;
@@ -952,6 +953,7 @@ body.dw-theme {
 }
 
 .defense-stats-box {
+  grid-column: span 2;
   background: var(--bg-card);
   border: 1px solid var(--border-bo3);
   border-radius: 8px;
@@ -1897,7 +1899,7 @@ body.dw-theme {
   .resource-tracks-grid {
     grid-template-columns: 1fr;
   }
-  .thresholds-summary-card {
+  .thresholds-summary-card, .defense-stats-box {
     grid-column: span 1;
   }
   .gear-slot-col {
