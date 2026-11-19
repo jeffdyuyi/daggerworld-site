@@ -11,6 +11,7 @@ edit(root/"index.html",'href="https://app.notion.com/p/41ca6baa33a78175aa22e8780
 edit(root/"index.html",'</script></body>','</script><script type="module" src="./portal-account.js"></script></body>')
 edit(up/"vite.config.ts",'base: "/pbdh/",','base: "/daggerworld-site/editor/",')
 edit(up/"vite.config.ts",'".pbdh-files.json"','"pbdh-files.json"')
+edit(up/"index.html",'<title>PbDH Sheet</title>','<title>匕首世界角色库</title>')
 unused = up / ".unused-preset-packages"
 unused.mkdir(exist_ok=True)
 for preset in (up / "public/system-packages").iterdir():
@@ -35,7 +36,14 @@ top_bar.write_text(
     <header className="top-bar">
       <div className="brand-block">
         <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 512 512" width="22" height="22" fill="currentColor"><path d="m405.47 18.094l-31.407 31.406l78.844 78.844l31.406-31.406zM357.72 65.844L307.343 116.22l40.313 40.312l50.375-50.375zm-66.72 66.718L240.626 182.94l30.906 30.905l50.375-50.375zm-66.718 66.72l-50.375 50.374l30.906 30.906l50.375-50.375zm-66.72 66.718l-50.374 50.375l30.906 30.906l50.375-50.375zm-66.718 66.72L40.47 383.094l30.905 30.906l50.375-50.375zM24.03 400.125l-14.47 78.22l78.22-14.47l-15.064-15.062l-48.687-48.687z"/></svg></span>
-        <div><p className="eyebrow">匕首世界</p><h1>化身档案</h1></div>
+        <div className="dw-title-block">
+          <div className="dw-breadcrumb">
+            <a href="../index.html" className="dw-bc-root">匕首世界</a>
+            <span className="dw-bc-sep">/</span>
+            <span className="dw-bc-cur">角色库</span>
+          </div>
+          <h1>化身档案</h1>
+        </div>
       </div>
       <nav className="dw-tools" aria-label="角色卡工具">
         <a href="../index.html#archive" target="_blank" rel="noopener">游戏图鉴</a>

@@ -28,7 +28,7 @@ async function showAccount() {
   signed.hidden = false;
   document.getElementById('greeting').textContent = '欢迎，' + account.login;
   document.getElementById('editor').textContent =
-    account.role === 'gm' ? '主持人档案总览' : account.characters.length ? '角色管理' : '录入角色卡';
+    account.role === 'gm' ? '主持人档案总览' : account.characters.length ? '进入角色库' : '创建首位化身';
 }
 form.addEventListener('submit', async event => {
   event.preventDefault();

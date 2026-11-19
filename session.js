@@ -91,3 +91,11 @@ export async function saveCharacter(character, record) {
   if (!response?.[0]) throw new Error('云端档案已更新，请先导出当前修改，再重新载入。');
   return response[0];
 }
+
+export async function deleteCharacter(id) {
+  const session = await activeSession();
+  await jsonRequest('/rest/v1/characters?id=eq.' + encodeURIComponent(id), {
+    method: 'DELETE',
+  }, session.access_token);
+}
+
