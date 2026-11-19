@@ -20,6 +20,87 @@ const classIconMap = {
 let currentLayer = 'vault';
 let isGmOverrideActive = false;
 
+// ==========================================================================
+// 战役公共原创资源库与图标解析器 (Kenney & PbDH Standard Compliant)
+// ==========================================================================
+let campaignResources = {
+  name: '深水城2026战役扩展包',
+  version: '1.0.0',
+  author: '主持人基德',
+  description: '深水城战役原创装备、战利品与领域法术卡',
+  items: [],
+  domainCards: []
+};
+
+function loadCampaignResources() {
+  try {
+    const raw = (typeof localStorage !== 'undefined') ? localStorage.getItem('daggerworld.campaign_resources.v1') : null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        campaignResources = {
+          name: parsed.name || '深水城2026战役扩展包',
+          version: parsed.version || '1.0.0',
+          author: parsed.author || '主持人基德',
+          description: parsed.description || '',
+          items: Array.isArray(parsed.items) ? parsed.items : [],
+          domainCards: Array.isArray(parsed.domainCards) ? parsed.domainCards : []
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('读取战役资源库异常:', err);
+  }
+}
+
+function saveCampaignResources() {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('daggerworld.campaign_resources.v1', JSON.stringify(campaignResources));
+    }
+  } catch (err) {
+    console.warn('存储战役资源库异常:', err);
+  }
+}
+
+// 物品图标智能解析器 (Kenney 风格西幻物品字典)
+function resolveItemIcon(name = '', type = '', subcat = '') {
+  const str = (name + ' ' + type + ' ' + subcat).toLowerCase();
+  if (/药水|药膏|灵药|解药|毒|毒液|溶剂|秘药|药剂/.test(str)) return '🧪';
+  if (/口粮|干粮|面包|肉|干酪|麦酒|水袋|野粮|食物/.test(str)) return '🍖';
+  if (/卷轴|羊皮纸|法术书|书|契约|地图|信|便笺/.test(str)) return '📜';
+  if (/剑|长剑|短剑|大剑|阔剑|弯刀|军刀|重剑|刺剑|刃/.test(str)) return '🗡️';
+  if (/匕首|飞刀|小刀|短刃|刺针|暗器/.test(str)) return '🔪';
+  if (/盾|鸢盾|圆盾|塔盾|硬木盾|大盾/.test(str)) return '🛡️';
+  if (/弓|长弓|短弓|弩|十字弩|箭|箭袋/.test(str)) return '🏹';
+  if (/杖|法杖|魔杖|长棍|法球|圣徽/.test(str)) return '🪄';
+  if (/斧|战斧|手斧|双刃斧|巨斧|重斧/.test(str)) return '🪓';
+  if (/锤|战锤|链枷|钉头锤|重锤/.test(str)) return '🔨';
+  if (/甲|板甲|胸甲|皮甲|链甲|锁子甲|鳞甲|战甲|外骨骼/.test(str)) return '🥋';
+  if (/袍|法袍|长袍|斗篷|披风|风衣/.test(str)) return '🧥';
+  if (/盔|头盔|面具|兜帽|护额|全覆盔|军帽/.test(str)) return '🪖';
+  if (/冠|王冠|头冠|发带|环冠/.test(str)) return '👑';
+  if (/手套|铁手套|臂铠|护腕/.test(str)) return '🧤';
+  if (/靴|长靴|皮靴|战靴|踏云靴/.test(str)) return '🥾';
+  if (/火把|提灯|油灯|火|火石|灯/.test(str)) return '🕯️';
+  if (/绳|麻绳|铁链|钩爪|攀爬/.test(str)) return '🪢';
+  if (/开锁器|钥匙|钥匙串|锁/.test(str)) return '🗝️';
+  if (/宝石|水晶|奥术碎片|原石|钻石|红宝石|蓝宝石|祖母绿|珍珠/.test(str)) return '💎';
+  if (/金币|钱袋|银币|铜币|金条|钱箱/.test(str)) return '💰';
+  if (/戒|指环|魔戒/.test(str)) return '💍';
+  if (/项链|护符|吊坠|首饰|徽章|挂坠/.test(str)) return '📿';
+  if (/罗盘|指南针|星盘|日晷|仪/.test(str)) return '🧭';
+  if (/笛|琴|鲁特琴|号角|竖琴|乐器/.test(str)) return '🪈';
+  if (/炸弹|爆弹|雷管|火药/.test(str)) return '💣';
+  if (/骰|骰子/.test(str)) return '🎲';
+  if (/轮椅|战车|战斗轮椅/.test(str)) return '🦽';
+  if (type === '消耗品') return '🧪';
+  if (type === '战利品') return '💎';
+  if (type === '武器') return '⚔️';
+  if (type === '护甲') return '🛡️';
+  return '📦';
+}
+
 
 // DOM Helper
 const el = id => document.getElementById(id);
@@ -242,6 +323,7 @@ async function init() {
   setupCreationWizard();
   setupEventListeners();
 
+  loadCampaignResources();
   // 1. 优先本地秒开 (0ms 极速响应，消除白屏等待)
   loadLocalFallback();
 
@@ -1027,7 +1109,8 @@ function filterDomainCardsDisplay(filterDomain, isGMOverride, classDomains) {
 
   // Vault Cards
   const customCards = s.customDomainCards || [];
-  let available = [...(db?.domain_cards || []), ...customCards];
+  const campaignCards = campaignResources.domainCards || [];
+  let available = [...(db?.domain_cards || []), ...customCards, ...campaignCards];
 
   if (!isGMOverride) {
     available = available.filter(card => classDomains.some(cd => card.领域 && (card.领域.includes(cd) || cd.includes(card.领域))));
@@ -1414,10 +1497,34 @@ function setupEventListeners() {
   el('dice-roll-close').addEventListener('click', () => el('dice-roll-modal').hidden = true);
   el('btn-re-roll').addEventListener('click', () => executeDualityRoll(activeRollAttr));
 
-  // Custom Domain Card Modal
-  el('btn-add-custom-card').addEventListener('click', () => el('custom-card-modal').hidden = false);
-  el('custom-card-close').addEventListener('click', () => el('custom-card-modal').hidden = true);
-  el('cc-submit-btn').addEventListener('click', submitCustomCard);
+  // GM Workshop Triggers & Navigation
+  el('btn-open-workshop')?.addEventListener('click', () => openWorkshopModal('item'));
+  el('btn-dropdown-workshop')?.addEventListener('click', () => {
+    el('more-dropdown')?.classList.remove('show');
+    openWorkshopModal('item');
+  });
+  el('btn-fn-open-workshop')?.addEventListener('click', () => openWorkshopModal('item'));
+  el('btn-open-item-workshop')?.addEventListener('click', () => openWorkshopModal('item'));
+  el('btn-add-custom-card')?.addEventListener('click', () => openWorkshopModal('domain'));
+  el('gm-workshop-close')?.addEventListener('click', closeWorkshopModal);
+
+  // Workshop Tab Switching
+  document.querySelectorAll('.ws-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchWorkshopTab(btn.dataset.wsTab);
+    });
+  });
+
+  // Workshop Form Submissions
+  el('btn-ws-dispatch-item')?.addEventListener('click', () => handleWorkshopItemSubmit(true));
+  el('btn-ws-save-item')?.addEventListener('click', () => handleWorkshopItemSubmit(false));
+  el('btn-ws-dispatch-card')?.addEventListener('click', () => handleWorkshopCardSubmit(true));
+  el('btn-ws-save-card')?.addEventListener('click', () => handleWorkshopCardSubmit(false));
+
+  // Workshop PbDH Pack Operations
+  el('btn-ws-export-pack')?.addEventListener('click', exportPbDHPack);
+  el('ws-import-pack-file')?.addEventListener('change', importPbDHPack);
+  el('btn-ws-clear-lib')?.addEventListener('click', clearWorkshopLibrary);
 
   // Add Item to Bag
   el('btn-add-item').addEventListener('click', () => openAddItemModal());
@@ -1713,30 +1820,388 @@ function createNewAvatar() {
   renderAll();
 }
 
-// Custom Domain Card Form Submit
-function submitCustomCard() {
-  const name = el('cc-name').value.trim();
+// ==========================================================================
+// 主持人资源工坊与发放台控制器 (GM Workshop & PbDH Compatible Pack Engine)
+// ==========================================================================
+let currentWorkshopTab = 'item';
+
+function openWorkshopModal(initialTab = 'item') {
+  const modal = el('gm-workshop-modal');
+  if (!modal) return;
+  modal.hidden = false;
+  switchWorkshopTab(initialTab);
+}
+
+function closeWorkshopModal() {
+  const modal = el('gm-workshop-modal');
+  if (modal) modal.hidden = true;
+}
+
+function switchWorkshopTab(tab) {
+  currentWorkshopTab = tab;
+  document.querySelectorAll('.ws-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.wsTab === tab);
+  });
+
+  const panels = {
+    item: el('ws-panel-item'),
+    domain: el('ws-panel-domain'),
+    library: el('ws-panel-library')
+  };
+
+  if (panels.item) panels.item.hidden = (tab !== 'item');
+  if (panels.domain) panels.domain.hidden = (tab !== 'domain');
+  if (panels.library) panels.library.hidden = (tab !== 'library');
+
+  if (tab === 'library') {
+    renderWorkshopLibrary();
+  }
+}
+
+// 创制物品提交逻辑 (支持发放至背包 / 仅保存入库)
+function handleWorkshopItemSubmit(isDispatch) {
+  const name = el('ws-item-name')?.value?.trim();
+  if (!name) return alert('请输入物品名称！');
+
+  const type = el('ws-item-type')?.value || '战利品';
+  const subcat = el('ws-item-subcat')?.value?.trim() || '';
+  const tier = Number(el('ws-item-tier')?.value) || 1;
+  const stats = el('ws-item-stats')?.value?.trim() || '';
+  const desc = el('ws-item-desc')?.value?.trim() || '';
+  const icon = resolveItemIcon(name, type, subcat);
+
+  const item = {
+    id: `vari_${Date.now()}`,
+    name,
+    type,
+    subcat,
+    tier,
+    stats,
+    desc,
+    icon,
+    qty: 1
+  };
+
+  // 1. 同步保存至战役公共资源库
+  const existingIdx = campaignResources.items.findIndex(it => it.name === name);
+  if (existingIdx >= 0) {
+    campaignResources.items[existingIdx] = item;
+  } else {
+    campaignResources.items.push(item);
+  }
+  saveCampaignResources();
+
+  // 2. 若选择发放至当前化身背包
+  if (isDispatch) {
+    const c = curChar();
+    if (!c.sheet.inventoryItems) c.sheet.inventoryItems = [];
+    const formattedDesc = stats ? `**【${type} · ${subcat || '标准'}】** ${stats}\n\n${desc}` : desc;
+    c.sheet.inventoryItems.push({
+      name,
+      desc: formattedDesc,
+      qty: 1,
+      icon,
+      type,
+      subcat,
+      tier
+    });
+    saveLocal();
+    renderInventory(calculateStats(c));
+    alert(`已成功发放【${name}】至【${c.avatar_name}】的背包！`);
+  } else {
+    alert(`已保存物品【${name}】至战役资源库！`);
+  }
+
+  // 清空表单
+  if (el('ws-item-name')) el('ws-item-name').value = '';
+  if (el('ws-item-stats')) el('ws-item-stats').value = '';
+  if (el('ws-item-desc')) el('ws-item-desc').value = '';
+}
+
+// 创制领域卡提交逻辑 (支持发放至秘藏 / 仅保存入库)
+function handleWorkshopCardSubmit(isDispatch) {
+  const name = el('ws-card-name')?.value?.trim();
   if (!name) return alert('请输入卡牌名称！');
+
+  const domain = el('ws-card-domain')?.value || '战役';
+  const level = Number(el('ws-card-level')?.value) || 1;
+  const recall = Number(el('ws-card-recall')?.value) || 0;
+  const desc = el('ws-card-desc')?.value?.trim() || '';
 
   const card = {
     ID: `原创卡:${Date.now()}`,
     名称: name,
-    类型: '原创战役领域卡',
-    领域: el('cc-domain').value,
-    等级: `${el('cc-level').value}级`,
-    回想: `${el('cc-recall').value}⚡`,
-    描述: el('cc-desc').value.trim()
+    类型: '战役原创领域卡',
+    领域: domain,
+    等级: `${level}级`,
+    回想: `${recall}⚡`,
+    描述: desc
   };
 
-  const c = curChar();
-  if (!c.sheet.customDomainCards) c.sheet.customDomainCards = [];
-  c.sheet.customDomainCards.push(card);
-  saveLocal();
-  el('custom-card-modal').hidden = true;
-  renderDomainCards();
+  // 1. 保存至战役公共资源库
+  const existingIdx = campaignResources.domainCards.findIndex(c => c.名称 === name);
+  if (existingIdx >= 0) {
+    campaignResources.domainCards[existingIdx] = card;
+  } else {
+    campaignResources.domainCards.push(card);
+  }
+  saveCampaignResources();
+
+  // 2. 若选择发放至当前化身秘藏
+  if (isDispatch) {
+    const c = curChar();
+    if (!c.sheet.customDomainCards) c.sheet.customDomainCards = [];
+    c.sheet.customDomainCards.push(card);
+    saveLocal();
+    renderDomainCards();
+    alert(`已成功发放领域卡【${name}】至【${c.avatar_name}】的领域秘藏！`);
+  } else {
+    alert(`已保存领域卡【${name}】至战役资源库！`);
+  }
+
+  // 清空表单
+  if (el('ws-card-name')) el('ws-card-name').value = '';
+  if (el('ws-card-desc')) el('ws-card-desc').value = '';
 }
 
-// Add Item to Bag Modal Helper
+// 渲染战役资源库清单
+function renderWorkshopLibrary() {
+  const itemsList = el('ws-items-list');
+  const cardsList = el('ws-cards-list');
+  const itemsCount = el('ws-items-count');
+  const cardsCount = el('ws-cards-count');
+  const totalCount = el('ws-lib-total');
+
+  const items = campaignResources.items || [];
+  const cards = campaignResources.domainCards || [];
+
+  if (itemsCount) itemsCount.textContent = items.length;
+  if (cardsCount) cardsCount.textContent = cards.length;
+  if (totalCount) totalCount.textContent = items.length + cards.length;
+
+  // 渲染物品网格
+  if (itemsList) {
+    itemsList.innerHTML = items.length ? '' : '<div style="color:var(--text-muted);font-size:12px;padding:12px;">战役库暂无原创物品，可在上方创制或导入卡包。</div>';
+    items.forEach((item, idx) => {
+      const card = document.createElement('div');
+      card.className = 'ws-res-card';
+      card.innerHTML = `
+        <div class="ws-res-header">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:16px;">${item.icon || resolveItemIcon(item.name, item.type, item.subcat)}</span>
+            <span class="ws-res-name">${item.name}</span>
+          </div>
+          <span class="ws-res-type-badge">${item.type || '物品'} · T${item.tier || 1}</span>
+        </div>
+        <div class="ws-res-desc">${item.stats ? `<strong>${item.stats}</strong> ` : ''}${item.desc || '暂无描述'}</div>
+        <div class="ws-res-actions">
+          <button class="ws-btn-mini" data-action="dispatch-item" data-idx="${idx}">👑 发放至背包</button>
+          <button class="ws-btn-mini ws-btn-mini-danger" data-action="del-item" data-idx="${idx}">删除</button>
+        </div>
+      `;
+
+      card.querySelector('[data-action="dispatch-item"]').addEventListener('click', () => {
+        const c = curChar();
+        if (!c.sheet.inventoryItems) c.sheet.inventoryItems = [];
+        c.sheet.inventoryItems.push({
+          name: item.name,
+          desc: item.stats ? `**【${item.type} · ${item.subcat || '标准'}】** ${item.stats}\n\n${item.desc}` : item.desc,
+          qty: 1,
+          icon: item.icon || resolveItemIcon(item.name, item.type, item.subcat),
+          type: item.type,
+          subcat: item.subcat,
+          tier: item.tier
+        });
+        saveLocal();
+        renderInventory(calculateStats(c));
+        alert(`已发放【${item.name}】至【${c.avatar_name}】的背包！`);
+      });
+
+      card.querySelector('[data-action="del-item"]').addEventListener('click', () => {
+        if (confirm(`确定从战役库删除物品【${item.name}】吗？`)) {
+          campaignResources.items.splice(idx, 1);
+          saveCampaignResources();
+          renderWorkshopLibrary();
+        }
+      });
+
+      itemsList.appendChild(card);
+    });
+  }
+
+  // 渲染领域卡网格
+  if (cardsList) {
+    cardsList.innerHTML = cards.length ? '' : '<div style="color:var(--text-muted);font-size:12px;padding:12px;">战役库暂无原创领域卡，可在上方创制或导入卡包。</div>';
+    cards.forEach((cardObj, idx) => {
+      const card = document.createElement('div');
+      card.className = 'ws-res-card';
+      card.innerHTML = `
+        <div class="ws-res-header">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:14px;color:var(--text-gold);">📜</span>
+            <span class="ws-res-name">${cardObj.名称 || cardObj.name}</span>
+          </div>
+          <span class="ws-res-type-badge">${cardObj.领域 || cardObj.domain || '战役'} · ${cardObj.等级 || '1级'} · ${cardObj.回想 || '0⚡'}</span>
+        </div>
+        <div class="ws-res-desc">${cardObj.描述 || cardObj.desc || '暂无描述'}</div>
+        <div class="ws-res-actions">
+          <button class="ws-btn-mini" data-action="dispatch-card" data-idx="${idx}">👑 发放至秘藏</button>
+          <button class="ws-btn-mini ws-btn-mini-danger" data-action="del-card" data-idx="${idx}">删除</button>
+        </div>
+      `;
+
+      card.querySelector('[data-action="dispatch-card"]').addEventListener('click', () => {
+        const c = curChar();
+        if (!c.sheet.customDomainCards) c.sheet.customDomainCards = [];
+        c.sheet.customDomainCards.push(cardObj);
+        saveLocal();
+        renderDomainCards();
+        alert(`已发放领域卡【${cardObj.名称 || cardObj.name}】至【${c.avatar_name}】的领域秘藏！`);
+      });
+
+      card.querySelector('[data-action="del-card"]').addEventListener('click', () => {
+        if (confirm(`确定从战役库删除领域卡【${cardObj.名称 || cardObj.name}】吗？`)) {
+          campaignResources.domainCards.splice(idx, 1);
+          saveCampaignResources();
+          renderWorkshopLibrary();
+        }
+      });
+
+      cardsList.appendChild(card);
+    });
+  }
+}
+
+// 导出 PbDH 规范卡牌包 (.json)
+function exportPbDHPack() {
+  const packName = prompt('请输入导出卡包的名称：', campaignResources.name || '深水城战役扩展包');
+  if (!packName) return;
+
+  const pack = {
+    name: packName,
+    version: campaignResources.version || '1.0.0',
+    description: campaignResources.description || '深水城战役原创装备、战利品与领域法术卡',
+    author: campaignResources.author || '主持人基德',
+    customFieldDefinitions: {
+      professions: [],
+      ancestries: [],
+      communities: [],
+      domains: Array.from(new Set(campaignResources.domainCards.map(c => c.领域 || c.domain).filter(Boolean))),
+      variants: ['武器', '护甲', '战利品', '消耗品']
+    },
+    profession: [],
+    ancestry: [],
+    community: [],
+    subclass: [],
+    domain: campaignResources.domainCards.map(c => ({
+      id: c.id || c.ID || `pbdh-gm-doma-${c.名称 || c.name}`,
+      名称: c.名称 || c.name,
+      领域: c.领域 || c.domain || '战役',
+      描述: c.描述 || c.desc || '',
+      等级: Number(String(c.等级 || c.level || 1).replace(/\D/g, '')) || 1,
+      属性: c.属性 || '法术',
+      回想: Number(String(c.回想 || c.recall || 0).replace(/\D/g, '')) || 0
+    })),
+    variant: campaignResources.items.map(item => ({
+      id: item.id || `pbdh-gm-vari-${item.name}`,
+      名称: item.name,
+      类型: item.type || '战利品',
+      子类别: item.subcat || '',
+      等级: Number(item.tier) || 1,
+      效果: item.desc || '',
+      简略信息: item.stats ? { item1: item.stats } : {}
+    }))
+  };
+
+  const jsonStr = JSON.stringify(pack, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${packName}_PbDH卡包.json`;
+  a.click();
+}
+
+// 导入 PbDH 规范卡牌包 (.json)
+function importPbDHPack(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const pack = JSON.parse(ev.target.result);
+      if (!pack || typeof pack !== 'object') throw new Error('无效的 JSON 格式');
+
+      let domainCount = 0;
+      let variantCount = 0;
+
+      // 导入领域卡
+      if (Array.isArray(pack.domain)) {
+        pack.domain.forEach(d => {
+          if (!d.名称) return;
+          const card = {
+            ID: d.id || `导入卡:${d.名称}`,
+            名称: d.名称,
+            类型: '战役原创领域卡',
+            领域: d.领域 || '战役',
+            等级: `${d.等级 || 1}级`,
+            回想: `${d.回想 || 0}⚡`,
+            描述: d.描述 || ''
+          };
+          const exIdx = campaignResources.domainCards.findIndex(c => c.名称 === card.名称);
+          if (exIdx >= 0) campaignResources.domainCards[exIdx] = card;
+          else campaignResources.domainCards.push(card);
+          domainCount++;
+        });
+      }
+
+      // 导入扩展卡 (变体卡 / 武器 / 护甲 / 战利品 / 消耗品)
+      if (Array.isArray(pack.variant)) {
+        pack.variant.forEach(v => {
+          if (!v.名称) return;
+          const stats = v.简略信息?.item1 || (typeof v.简略信息 === 'string' ? v.简略信息 : '');
+          const item = {
+            id: v.id || `vari_${Date.now()}`,
+            name: v.名称,
+            type: v.类型 || '战利品',
+            subcat: v.子类别 || '',
+            tier: Number(v.等级) || 1,
+            stats,
+            desc: v.效果 || '',
+            icon: resolveItemIcon(v.名称, v.类型, v.子类别),
+            qty: 1
+          };
+          const exIdx = campaignResources.items.findIndex(it => it.name === item.name);
+          if (exIdx >= 0) campaignResources.items[exIdx] = item;
+          else campaignResources.items.push(item);
+          variantCount++;
+        });
+      }
+
+      saveCampaignResources();
+      renderWorkshopLibrary();
+      renderDomainCards();
+      alert(`成功导入卡包【${pack.name || '外部卡包'}】：包含 ${domainCount} 张领域卡，${variantCount} 件物品！`);
+    } catch (err) {
+      alert('卡包导入失败：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// 清空战役原创库
+function clearWorkshopLibrary() {
+  if (confirm('确定要清空全部战役原创物品与领域卡吗？此操作无法撤销。')) {
+    campaignResources.items = [];
+    campaignResources.domainCards = [];
+    saveCampaignResources();
+    renderWorkshopLibrary();
+    renderDomainCards();
+  }
+}
+
+// 背包放入物品模态框 (智能结合 Kenney 图标解析)
 function openAddItemModal(gridIndex = null) {
   const name = prompt('请输入要放入背包的物品名称：', '精制治疗药水');
   if (!name) return;
@@ -1744,7 +2209,8 @@ function openAddItemModal(gridIndex = null) {
   const c = curChar();
   if (!c.sheet.inventoryItems) c.sheet.inventoryItems = [];
 
-  const item = { name, desc: desc || '', qty: 1, icon: '🎒' };
+  const icon = resolveItemIcon(name);
+  const item = { name, desc: desc || '', qty: 1, icon };
   if (gridIndex !== null && gridIndex < c.sheet.inventoryItems.length) {
     c.sheet.inventoryItems[gridIndex] = item;
   } else {

@@ -38,11 +38,13 @@
         <span class="status-dot">●</span> <span id="sync-text">本地就绪</span>
       </span>
       <button class="dw-btn dw-btn-outline" id="btn-save-cloud" title="立即保存至云端">☁️ 保存</button>
+      <button class="dw-btn dw-btn-outline" id="btn-open-workshop" title="主持人资源工坊：创制物品、战利品与领域卡">🛠️ 资源工坊</button>
       <button class="dw-btn dw-btn-outline" id="btn-open-vault">📋 角色库</button>
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
           <button id="btn-create-char">➕ 新建化身</button>
+          <button id="btn-dropdown-workshop">🛠️ 资源工坊与卡包</button>
           <button id="btn-export-json">💾 导出本卡 JSON</button>
           <label class="dropdown-file-label">
             📥 导入角色卡
@@ -568,9 +570,14 @@
                 <span class="lock-icon">🔒</span> 玩家锁定 (契约确立)
               </span>
             </div>
-            <button type="button" class="gm-toggle-btn" id="btn-gm-override-toggle" title="主持人特权快速调整">
-              <span>👑</span> GM特权调整
-            </button>
+            <div class="identity-action-btns" style="display:flex;gap:8px;">
+              <button type="button" class="gm-toggle-btn" id="btn-fn-open-workshop" title="创制与发放战利品/装备/领域卡">
+                <span>🛠️</span> 资源工坊
+              </button>
+              <button type="button" class="gm-toggle-btn" id="btn-gm-override-toggle" title="主持人特权快速调整">
+                <span>👑</span> GM特权调整
+              </button>
+            </div>
           </div>
 
           <div class="gm-alert-box" id="gm-alert-notice" hidden>
@@ -794,6 +801,7 @@
           <div class="grid-panel-header">
             <h3>格子化背包物品栏</h3>
             <div class="grid-actions">
+              <button class="dw-btn dw-btn-gold" id="btn-open-item-workshop" title="创制原创装备、战利品与消耗品并即时发放">🛠️ 创制/发放物品</button>
               <button class="dw-btn dw-btn-outline" id="btn-add-item">➕ 放入新物品</button>
               <button class="dw-btn dw-btn-outline" id="btn-clean-bag">🧹 整理背包</button>
             </div>
@@ -922,49 +930,145 @@
     </div>
   </div>
 
-  <!-- MODAL: Custom Domain Card -->
-  <div class="dw-modal-backdrop" id="custom-card-modal" hidden>
-    <div class="dw-modal-window">
+  <!-- MODAL: GM Resource Workshop & Dispatch (资源工坊与发放台) -->
+  <div class="dw-modal-backdrop" id="gm-workshop-modal" hidden>
+    <div class="dw-modal-window wide-modal">
       <div class="modal-header">
-        <h2>添加原创战役领域卡</h2>
-        <button class="modal-close-btn" id="custom-card-close">✕</button>
+        <div class="ws-header-title">
+          <span class="f-badge">主持人工坊</span>
+          <h2>资源工坊与发放台</h2>
+        </div>
+        <button class="modal-close-btn" id="gm-workshop-close">✕</button>
       </div>
-      <div class="modal-body">
-        <div class="f-select-group">
-          <label>卡牌名称</label>
-          <input type="text" id="cc-name" class="dw-input" placeholder="例如：深水城暗流秘术">
-        </div>
-        <div class="f-select-group">
-          <label>归属领域</label>
-          <select id="cc-domain" class="dw-select">
-            <option value="利刃">利刃 (Blade)</option>
-            <option value="骸骨">骸骨 (Bone)</option>
-            <option value="典籍">典籍 (Codex)</option>
-            <option value="优雅">优雅 (Grace)</option>
-            <option value="午夜">午夜 (Midnight)</option>
-            <option value="贤者">贤者 (Sage)</option>
-            <option value="辉耀">辉耀 (Splendor)</option>
-            <option value="勇气">勇气 (Valor)</option>
-            <option value="奥术">奥术 (Arcana)</option>
-            <option value="恐怖">恐怖 (Dread)</option>
-            <option value="秘密">秘密 (Secret)</option>
-          </select>
-        </div>
-        <div class="f-select-group">
-          <label>等级阶位</label>
-          <input type="number" id="cc-level" class="dw-input" value="1" min="1" max="10">
-        </div>
-        <div class="f-select-group">
-          <label>回想消耗 (⚡ 希望点)</label>
-          <input type="number" id="cc-recall" class="dw-input" value="1" min="0" max="6">
-        </div>
-        <div class="f-select-group">
-          <label>效果描述与规则说明</label>
-          <textarea id="cc-desc" class="dw-textarea" rows="4" placeholder="详细说明使用时机、消耗与机制判定…"></textarea>
-        </div>
+
+      <div class="workshop-nav-bar">
+        <button type="button" class="ws-tab-btn active" data-ws-tab="item">创制物品与战利品</button>
+        <button type="button" class="ws-tab-btn" data-ws-tab="domain">创制领域卡</button>
+        <button type="button" class="ws-tab-btn" data-ws-tab="library">战役资源库与卡包 (<span id="ws-lib-total">0</span>)</button>
       </div>
-      <div class="modal-footer">
-        <button class="dw-btn dw-btn-gold" id="cc-submit-btn">保存至化身领域秘藏</button>
+
+      <div class="modal-body" style="padding-top:16px;">
+        <!-- TAB 1: 创制物品与战利品 -->
+        <div class="ws-tab-panel" id="ws-panel-item">
+          <div class="ws-form-grid">
+            <div class="f-select-group">
+              <label>物品类型</label>
+              <select id="ws-item-type" class="dw-select">
+                <option value="武器">武器 (Weapon)</option>
+                <option value="护甲">护甲 (Armor)</option>
+                <option value="战利品" selected>战利品 (Loot)</option>
+                <option value="消耗品">消耗品 (Consumable)</option>
+              </select>
+            </div>
+            <div class="f-select-group">
+              <label>物品名称</label>
+              <input type="text" id="ws-item-name" class="dw-input" placeholder="例如：不稳定的奥术碎片 / 精制治疗药水" required maxlength="40">
+            </div>
+            <div class="f-select-group">
+              <label>子类别 / 标签</label>
+              <input type="text" id="ws-item-subcat" class="dw-input" placeholder="例如：奇物 / 药剂 / 单手剑 / 卷轴">
+            </div>
+            <div class="f-select-group">
+              <label>阶位品质</label>
+              <select id="ws-item-tier" class="dw-select">
+                <option value="1">T1 (基础阶位 1级)</option>
+                <option value="2">T2 (进阶阶位 2-4级)</option>
+                <option value="3">T3 (大师阶位 5-7级)</option>
+                <option value="4">T4 (传奇阶位 8-10级)</option>
+              </select>
+            </div>
+            <div class="f-select-group ws-col-span-2">
+              <label>简略属性预览</label>
+              <input type="text" id="ws-item-stats" class="dw-input" placeholder="例如：近战 · 物理 · 1d8+力量 或 恢复 1d6 生命点">
+            </div>
+            <div class="f-select-group ws-col-span-2">
+              <label>机制与效果说明 (支持 Markdown 粗体 **效果**)</label>
+              <textarea id="ws-item-desc" class="dw-textarea" rows="4" placeholder="详细说明使用时机、检定修正、充能次数或消耗规则…"></textarea>
+            </div>
+          </div>
+          <div class="ws-actions-row">
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-item">👑 发放至当前化身背包</button>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-item">💾 仅保存至战役库</button>
+          </div>
+        </div>
+
+        <!-- TAB 2: 创制领域卡 -->
+        <div class="ws-tab-panel" id="ws-panel-domain" hidden>
+          <div class="ws-form-grid">
+            <div class="f-select-group">
+              <label>卡牌名称</label>
+              <input type="text" id="ws-card-name" class="dw-input" placeholder="例如：暗流突刺 / 圣光庇佑" required maxlength="40">
+            </div>
+            <div class="f-select-group">
+              <label>归属领域</label>
+              <select id="ws-card-domain" class="dw-select">
+                <option value="利刃">利刃 (Blade)</option>
+                <option value="骸骨">骸骨 (Bone)</option>
+                <option value="典籍">典籍 (Codex)</option>
+                <option value="优雅">优雅 (Grace)</option>
+                <option value="午夜">午夜 (Midnight)</option>
+                <option value="贤者">贤者 (Sage)</option>
+                <option value="辉耀">辉耀 (Splendor)</option>
+                <option value="勇气">勇气 (Valor)</option>
+                <option value="奥术">奥术 (Arcana)</option>
+                <option value="恐怖">恐怖 (Dread)</option>
+                <option value="秘密">秘密 (Secret)</option>
+              </select>
+            </div>
+            <div class="f-select-group">
+              <label>法术等级 (1-10级)</label>
+              <input type="number" id="ws-card-level" class="dw-input" value="1" min="1" max="10">
+            </div>
+            <div class="f-select-group">
+              <label>回想消耗 (⚡ 希望点)</label>
+              <input type="number" id="ws-card-recall" class="dw-input" value="1" min="0" max="6">
+            </div>
+            <div class="f-select-group ws-col-span-2">
+              <label>卡牌能力与规则描述 (支持 Markdown 粗体 **效果**)</label>
+              <textarea id="ws-card-desc" class="dw-textarea" rows="4" placeholder="详细说明施法距离、目标、消耗及成功/恐惧结算机制…"></textarea>
+            </div>
+          </div>
+          <div class="ws-actions-row">
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-card">👑 发放至化身领域秘藏</button>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-card">💾 仅保存至战役库</button>
+          </div>
+        </div>
+
+        <!-- TAB 3: 战役资源库与卡包 -->
+        <div class="ws-tab-panel" id="ws-panel-library" hidden>
+          <div class="ws-pack-toolbar">
+            <div class="ws-pack-btn-group">
+              <label class="dw-btn dw-btn-outline" style="cursor:pointer;" title="导入符合 PbDH 规范的卡牌包 JSON">
+                📥 导入 PbDH 卡包 (.json)
+                <input type="file" id="ws-import-pack-file" accept=".json" hidden>
+              </label>
+              <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-export-pack" title="将战役原创内容打包导出为 PbDH 标准格式">
+                📤 导出 PbDH 卡包 (.json)
+              </button>
+            </div>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-clear-lib" style="color:#ef4444;" title="清空全部战役原创资源">
+              🗑️ 清空原创库
+            </button>
+          </div>
+
+          <div class="ws-library-section">
+            <div class="ws-sub-title-row">
+              <h3>📦 战役物品与战利品 (<span id="ws-items-count">0</span>)</h3>
+            </div>
+            <div class="ws-items-grid" id="ws-items-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="ws-library-section" style="margin-top:16px;">
+            <div class="ws-sub-title-row">
+              <h3>📜 战役领域法术卡 (<span id="ws-cards-count">0</span>)</h3>
+            </div>
+            <div class="ws-cards-grid" id="ws-cards-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
