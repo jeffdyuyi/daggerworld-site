@@ -51,6 +51,47 @@ const domainColors = {
   '秘密': '#0f766e'
 };
 
+// Markdown & Rich Tag Renderer
+function renderMarkdown(str) {
+  if (!str) return '';
+  let out = String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Color badges :red[**运气操控者**] or :red[...]
+  out = out.replace(/:([a-z]+)\[(.*?)\]/g, (match, color, content) => {
+    return `<span class="md-badge md-${color}">${content}</span>`;
+  });
+
+  // Bold italic ***...***
+  out = out.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  // Bold **...**
+  out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic *...*
+  out = out.replace(/\*([^\*\n]+?)\*/g, '<em>$1</em>');
+
+  // Convert HTML breaks and bullet points
+  out = out.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+  out = out.replace(/\n\s*-\s+/g, '<br>• ');
+  out = out.replace(/\n\n+/g, '<br><br>');
+  out = out.replace(/\n/g, '<br>');
+
+  return out;
+}
+
+// Clean title extractor from strings like ":red[**运气操控者**]：描述"
+function cleanTitle(str, fallback = '特性') {
+  if (!str) return fallback;
+  const m = str.match(/(?::[a-z]+\[)?(?:\*\*)?([^\*\]:：
+]+)(?:\*\*)?(?:\])?[:：]?/);
+  if (m && m[1] && m[1].trim().length > 0 && m[1].trim().length < 35) {
+    return m[1].trim();
+  }
+  return fallback;
+}
+
+
 // Default Character Template
 function createDefaultCharacter(name = '新晋冒险者') {
   return {
@@ -530,30 +571,36 @@ function renderFoundations(clsObj) {
   // Ancestry Cards
   const anc = db?.ancestries?.find(a => a.ID === s.ancestryId);
   if (anc) {
-    el('fn-ancestry-a-title').textContent = anc.特性A ? anc.特性A.split(/[:：]/)[0] : '种族核心特性';
-    el('fn-ancestry-a-desc').textContent = anc.特性A || anc.简介 || '暂无详细描述';
-    el('fn-ancestry-b-title').textContent = anc.特性B ? anc.特性B.split(/[:：]/)[0] : '种族辅助特性';
-    el('fn-ancestry-b-desc').textContent = anc.特性B || '无特殊辅助特性';
+    el('fn-ancestry-a-title').textContent = cleanTitle(anc.特性A, '种族核心特性');
+    el('fn-ancestry-a-desc').innerHTML = renderMarkdown(anc.特性A || anc.简介 || '暂无详细描述');
+    el('fn-ancestry-b-title').textContent = cleanTitle(anc.特性B, '种族辅助特性');
+    el('fn-ancestry-b-desc').innerHTML = renderMarkdown(anc.特性B || '无特殊辅助特性');
   }
 
   // Class Core Trait
   if (clsObj) {
     el('fn-class-trait-title').textContent = `${clsObj.名称} · 职业特性`;
-    el('fn-class-trait-desc').textContent = clsObj.职业特性 || clsObj.描述 || '标准职业机制';
+    let classDesc = '';
+    if (clsObj.职业特性) classDesc += clsObj.职业特性;
+    if (clsObj.希望特性) {
+      if (classDesc) classDesc += '\n\n';
+      classDesc += (clsObj.希望特性.startsWith(':') ? '' : ':gold[**希望特性**]：') + clsObj.希望特性;
+    }
+    el('fn-class-trait-desc').innerHTML = renderMarkdown(classDesc || clsObj.描述 || '标准职业机制');
   }
 
   // Subclass
   const sc = db?.subclasses?.find(sub => sub.ID === s.subclassId);
   if (sc) {
-    el('fn-subclass-title').textContent = `${sc.名称} (${sc.等级})`;
-    el('fn-subclass-desc').textContent = sc.描述 || '子职业专精能力';
+    el('fn-subclass-title').textContent = cleanTitle(sc.描述, `${sc.名称} (${sc.等级 || '基础'})`);
+    el('fn-subclass-desc').innerHTML = renderMarkdown(sc.描述 || '子职业专精能力');
 
     // Spellcasting Trait
     const spCard = el('spellcasting-card');
     if (sc.施法属性 && sc.施法属性 !== '无' && sc.施法属性 !== 'N/A') {
       spCard.hidden = false;
       el('sp-trait-title').textContent = `核心施法流派 · 属性：【${sc.施法属性}】`;
-      el('sp-trait-desc').textContent = `该角色具有施法能力，法术检定根据【${sc.施法属性}】属性值掷骰。难度DC根据目标调整。`;
+      el('sp-trait-desc').innerHTML = renderMarkdown(`该角色具有施法能力，法术检定根据【${sc.施法属性}】属性值掷骰。难度DC根据目标调整。`);
     } else {
       spCard.hidden = true;
     }
@@ -563,7 +610,7 @@ function renderFoundations(clsObj) {
   const comm = db?.communities?.find(cm => cm.ID === s.communityId);
   if (comm) {
     el('fn-community-title').textContent = comm.名称;
-    el('fn-community-desc').textContent = comm.描述 || comm.简介 || '社群风俗';
+    el('fn-community-desc').innerHTML = renderMarkdown(comm.描述 || comm.简介 || '社群风俗');
   }
 }
 
@@ -638,7 +685,7 @@ function createCardElement(card, isEquipped, index) {
     </div>
     <div class="dh-card-title">${card.名称}</div>
     <div class="dh-card-type">${card.类型 || '领域能力'}</div>
-    <div class="dh-card-desc">${card.描述 || ''}</div>
+    <div class="dh-card-desc">${renderMarkdown(card.描述 || '')}</div>
     <div class="dh-card-action">${isEquipped ? '✕ 点击卸下至秘藏' : '＋ 点击整备至随身'}</div>
   `;
   div.addEventListener('click', () => {
@@ -1035,7 +1082,7 @@ function openItemActionModal(index) {
   if (!item) return;
 
   el('item-action-title').textContent = `物品：【${item.name}】`;
-  el('item-action-desc').textContent = item.desc || '行装杂物';
+  el('item-action-desc').innerHTML = renderMarkdown(item.desc || '行装杂物');
   el('item-qty-val').textContent = item.qty || 1;
   el('item-action-modal').hidden = false;
 }
@@ -1102,7 +1149,7 @@ function renderPickerList(items) {
     card.innerHTML = `
       <div class="picker-item-title">${item.名称}</div>
       <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? `伤害 ${item.伤害}` : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
-      <div class="picker-item-desc">${item.描述 || ''}</div>
+      <div class="picker-item-desc">${renderMarkdown(item.描述 || '')}</div>
       <button class="picker-item-equip-btn">装备此物品</button>
     `;
     card.addEventListener('click', () => {

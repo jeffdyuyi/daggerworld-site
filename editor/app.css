@@ -5,37 +5,94 @@
    ========================================================================== */
 
 :root {
-  /* BO3 Studio Palette */
-  --bo3-primary: #4d698e;
-  --bo3-primary-hover: #5d7fa9;
-  --bo3-primary-deep: #324660;
-  --bo3-blue-light: #5fa8d3;
+  /* 三局两胜 (BO3 Studio) 官方 TRPG 社区经典红金主题配色 (Burgundy & Amber Gold) */
+  --bo3-primary: #5c1913;          /* 社区主色：酒红/绯红 (Burgundy) */
+  --bo3-primary-hover: #79251c;    /* 明亮红辉悬停 */
+  --bo3-primary-deep: #3f110c;     /* 暗红红木底色 */
+  --bo3-gold: #e5a93c;             /* 琥珀金 (Amber Gold) */
+  --bo3-gold-hover: #f3be5d;       /* 亮金色 */
+  --bo3-gold-dark: #b57416;        /* 古铜金/暗黄 */
 
-  --bg-dark: #0f141c;
-  --bg-header: #141b26;
-  --bg-card: #18202c;
-  --bg-surface: #1f2a3a;
-  --bg-input: #121822;
-  --bg-hover: #263447;
+  --bg-dark: #150f0e;              /* 桌面全局深红木暖黑底色 */
+  --bg-header: #381410;            /* 顶栏酒红深檀木色 */
+  --bg-card: #221714;              /* 角色卡片暖皮革/红木底色 */
+  --bg-surface: #2c1e19;           /* 悬浮面板与弹出层微亮底色 */
+  --bg-input: #19110f;             /* 输入框内嵌深色 */
+  --bg-hover: #3a2620;             /* 交互高亮暖棕 */
 
-  --border-bo3: #34465d;
-  --border-subtle: #232f3f;
-  --border-gold: #e5b358;
-  --border-glow: rgba(77, 105, 142, 0.4);
+  --border-bo3: #58372d;           /* 典雅黄铜/红褐边框 */
+  --border-subtle: #3a241d;        /* 柔和分隔线 */
+  --border-gold: #e5a93c;          /* 高光金边 */
+  --border-glow: rgba(229, 169, 60, 0.4); /* 金色泛光 */
 
-  --text-main: #eaf0f8;
-  --text-muted: #7e92ab;
-  --text-gold: #f3c878;
-  --text-blue: #72b5dc;
+  --text-main: #fbf6ec;            /* 羊皮纸暖白正文 */
+  --text-muted: #b8a392;           /* 柔和暖灰/浅沙色 */
+  --text-gold: #f3be5d;            /* 醒目琥珀金字 */
+  --text-red: #ff7b72;             /* 警示/特性朱红 */
 
-  --accent-health: #e25b45;
-  --accent-stress: #d88936;
-  --accent-hope: #5fa8d3;
-  --accent-armor: #8ba2be;
+  --accent-health: #e03131;         /* 生命宝石红 */
+  --accent-stress: #be4bdb;         /* 压力紫水晶 */
+  --accent-hope: #e5a93c;           /* 希望日轮金 */
+  --accent-armor: #9aa4af;          /* 护甲坚钢银 */
 
   --font-serif: Georgia, "Microsoft YaHei", "Songti SC", serif;
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "SF Mono", Consolas, Monaco, monospace;
+}
+
+/* ==========================================================================
+   Markdown 富文本标签与样式 (支持 :red[...] 及 **粗体** 解析呈现)
+   ========================================================================== */
+.md-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-right: 5px;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.md-badge strong {
+  color: inherit !important;
+  font-weight: 700;
+}
+.md-badge.md-red {
+  background: linear-gradient(135deg, #87201c 0%, #5a1410 100%);
+  color: #ffdede;
+  border: 1px solid #b33830;
+}
+.md-badge.md-blue {
+  background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+  color: #dbeafe;
+  border: 1px solid #3b82f6;
+}
+.md-badge.md-gold, .md-badge.md-yellow {
+  background: linear-gradient(135deg, #92400e 0%, #713f12 100%);
+  color: #fef3c7;
+  border: 1px solid #f59e0b;
+}
+.md-badge.md-green {
+  background: linear-gradient(135deg, #166534 0%, #14532d 100%);
+  color: #dcfce7;
+  border: 1px solid #22c55e;
+}
+.md-badge.md-purple {
+  background: linear-gradient(135deg, #6b21a8 0%, #581c87 100%);
+  color: #f3e8ff;
+  border: 1px solid #a855f7;
+}
+
+strong {
+  color: var(--text-gold);
+  font-weight: 700;
+}
+em {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 * {
@@ -241,10 +298,16 @@ body.dw-theme {
 }
 
 .dw-btn-gold {
-  background: linear-gradient(180deg, #4d698e 0%, #364d6b 100%);
-  color: #fff;
-  border: 1px solid var(--bo3-blue-light);
+  background: linear-gradient(180deg, #c87f28 0%, #9e5f17 100%);
+  color: #fff8e8;
+  border: 1px solid var(--border-gold);
   font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.dw-btn-gold:hover {
+  background: linear-gradient(180deg, #e5a93c 0%, #b57416 100%);
+  color: #ffffff;
+  border-color: #ffd885;
 }
 
 .dw-btn-gold:hover {
@@ -316,7 +379,7 @@ body.dw-theme {
    Combat Dashboard (Top Resource Bar)
    ========================================================================== */
 .combat-dashboard {
-  background: linear-gradient(180deg, #141b26 0%, #10151e 100%);
+  background: linear-gradient(180deg, #2a1612 0%, #1c0e0b 100%);
   border-bottom: 2px solid var(--border-bo3);
   padding: 16px 24px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
@@ -517,7 +580,7 @@ body.dw-theme {
    Navigation Tabs (4 Pages)
    ========================================================================== */
 .page-tabs {
-  background: #121822;
+  background: #19100d;
   display: flex;
   border-bottom: 2px solid var(--border-subtle);
   padding: 0 24px;
@@ -546,9 +609,10 @@ body.dw-theme {
 }
 
 .tab-btn.active {
-  color: var(--bo3-blue-light);
-  border-bottom-color: var(--bo3-blue-light);
-  background: rgba(77, 105, 142, 0.12);
+  color: var(--text-gold);
+  border-bottom-color: var(--border-gold);
+  background: linear-gradient(180deg, rgba(92, 25, 19, 0.5) 0%, rgba(92, 25, 19, 0.15) 100%);
+  text-shadow: 0 0 10px rgba(229, 169, 60, 0.3);
 }
 
 /* ==========================================================================
@@ -1061,7 +1125,9 @@ body.dw-theme {
 }
 
 .gm-badge {
-  background: #3b82f6;
+  background: #92400e;
+  color: #fef3c7;
+  border: 1px solid #d97706;
 }
 
 .f-card-header h3 {
@@ -1673,9 +1739,9 @@ body.dw-theme {
 }
 
 .hope-die {
-  background: linear-gradient(135deg, #1c324a 0%, #101c2a 100%);
-  border-color: var(--bo3-blue-light);
-  color: #72b5dc;
+  background: linear-gradient(135deg, #4d330c 0%, #261904 100%);
+  border-color: var(--border-gold);
+  color: #f3be5d;
 }
 
 .fear-die {
