@@ -82,7 +82,7 @@ manifest["skins"]=[x for x in manifest.get("skins", []) if x["ID"]!="daggerworld
 manifest["skins"].append({**base,"ID":"daggerworld","名称":"匕首世界","css":"skins/daggerworld/skin.css"})
 manifest["defaultSkin"]="daggerworld"
 manifest["名称"]="匕首世界 · 角色库"
-manifest["版本"]="1.2.0"
+manifest["版本"]="1.3.0"
 write(package/"manifest.json",manifest)
 print("可选主职", len(live_classes), "秘密卡", len(domains), "框架社群", len(communities))
 

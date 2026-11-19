@@ -60,8 +60,16 @@ advancement = re.search(r'<section class="advancement-region".*?</section>', sto
 # 底部: 升级选项
 # -------------------------------------------------------------
 top_status = (
-    panel("化身登记", grid(modules("character-name", "level")))
-    + panel("战斗状态", grid(modules("hp", "stress", "hope", "armor-slots")), "guide-resources")
+    '<section class="dw-tabletop-dashboard" data-guide-region-id="guide-resources">'
+    + '<div class="dw-dash-identity">'
+    + '<h2>化身登记</h2>'
+    + '<div class="dw-dash-id-grid">' + modules("character-name", "level") + '</div>'
+    + '</div>'
+    + '<div class="dw-dash-combat">'
+    + '<h2>战斗状态与资源池</h2>'
+    + '<div class="dw-dash-resources-grid">' + modules("hp", "stress", "hope", "armor-slots") + '</div>'
+    + '</div>'
+    + '</section>'
 )
 
 paper_doll = (
@@ -232,7 +240,7 @@ manifest["skins"] = [{
 }]
 manifest["shell"] = {"html": "layouts/dw-shell.html", "css": "layouts/dw-sheet.css"}
 manifest.pop("questionnaireCharacterCreation", None)
-manifest["版本"] = "1.2.0"
+manifest["版本"] = "1.3.0"
 manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 (layouts / "dw-shell.html").write_text(

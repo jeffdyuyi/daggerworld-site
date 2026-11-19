@@ -19,6 +19,61 @@
 .dw-table { min-height: 25rem; margin-top: .75rem; }
 
 /* -------------------------------------------------------------
+ * 桌游化身仪表盘 (Tabletop Hero Status Dashboard)
+ * ------------------------------------------------------------- */
+.dw-tabletop-dashboard {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(360px, 2.6fr);
+  gap: 1.1rem;
+  padding: clamp(.85rem, 2vw, 1.35rem);
+  border: 1px solid #715338;
+  border-radius: .7rem;
+  background: linear-gradient(110deg, #2b2229 0%, #1e1d24 100%);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.dw-dash-identity, .dw-dash-combat {
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+.dw-dash-identity h2, .dw-dash-combat h2 {
+  margin: 0;
+  color: #f1ce9a;
+  font-size: .95rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #4d3a31;
+  padding-bottom: .35rem;
+}
+.dw-dash-id-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: .65rem;
+}
+.dw-dash-resources-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .65rem;
+  align-items: center;
+}
+@media (max-width: 980px) {
+  .dw-tabletop-dashboard {
+    grid-template-columns: 1fr;
+  }
+  .dw-dash-resources-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .dw-dash-id-grid {
+    grid-template-columns: 1fr;
+  }
+  .dw-dash-resources-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------
  * 概览页 (Overview): 3/4 装备纸娃娃 + 1/4 属性看板
  * ------------------------------------------------------------- */
 .dw-overview-body {

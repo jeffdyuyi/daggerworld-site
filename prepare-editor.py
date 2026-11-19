@@ -12,6 +12,8 @@ edit(root/"index.html",'</script></body>','</script><script type="module" src=".
 edit(up/"vite.config.ts",'base: "/pbdh/",','base: "/daggerworld-site/editor/",')
 edit(up/"vite.config.ts",'".pbdh-files.json"','"pbdh-files.json"')
 edit(up/"index.html",'<title>PbDH Sheet</title>','<title>匕首世界角色库</title>')
+edit(up/"package.json",'"version": "2.3.0"','"version": "2.4.0"')
+edit(up/"src/store/slices/packageSlice.ts",'const presetIsStale = matchingPreset && (','const presetIsStale = matchingPreset && (\n          true || ')
 unused = up / ".unused-preset-packages"
 unused.mkdir(exist_ok=True)
 for preset in (up / "public/system-packages").iterdir():
