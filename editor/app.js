@@ -45,7 +45,8 @@ function loadCampaignResources() {
           description: parsed.description || '',
           items: Array.isArray(parsed.items) ? parsed.items : [],
           domainCards: Array.isArray(parsed.domainCards) ? parsed.domainCards : [],
-          customDomains: Array.isArray(parsed.customDomains) ? parsed.customDomains : []
+          customDomains: Array.isArray(parsed.customDomains) ? parsed.customDomains : [],
+          statusEffects: Array.isArray(parsed.statusEffects) ? parsed.statusEffects : []
         };
       }
     }
@@ -2270,6 +2271,21 @@ function setupEventListeners() {
   el('ws-import-pack-file')?.addEventListener('change', importPbDHPack);
   el('btn-ws-clear-lib')?.addEventListener('click', clearWorkshopLibrary);
 
+  // Status Effect Workbench Buttons
+  el('btn-ws-dispatch-effect')?.addEventListener('click', () => handleWorkshopEffectSubmit(true));
+  el('btn-ws-save-effect')?.addEventListener('click', () => handleWorkshopEffectSubmit(false));
+  el('btn-ws-clear-all-effects')?.addEventListener('click', clearAllCharacterEffects);
+
+  document.querySelectorAll('.status-quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleQuickCondition(btn.dataset.cond));
+  });
+
+  ['ws-armor-value', 'ws-armor-major', 'ws-armor-severe'].forEach(id => {
+    el(id)?.addEventListener('input', updateItemPreview);
+    el(id)?.addEventListener('change', updateItemPreview);
+  });
+
+
   // Add Item to Bag
   el('ws-catalog').onclick = () => openItemPicker('loot');
   el('btn-loot-catalog').addEventListener('click', () => openItemPicker('loot'));
@@ -3140,6 +3156,235 @@ function renderCustomDomainsManager() {
 }
 
 // 渲染战役储备军械库列表 (带实时多维度过滤与检索)
+
+// ==========================================================================
+// 主持人状态细节与特殊效果控制中枢 (Status & Special Effects Engine)
+// ==========================================================================
+
+function renderActiveCharacterEffects() {
+  const container = el('ws-active-effects-list');
+  const countEl = el('ws-active-effects-count');
+  if (!container) return;
+
+  const target = characters[workshopState.targetCharIndex];
+  if (!target) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px;">请先选定目标角色。</div>';
+    if (countEl) countEl.textContent = '0';
+    return;
+  }
+
+  const s = target.sheet || {};
+  const conditions = s.conditions || {};
+  const specialEffects = s.specialEffects || [];
+
+  const conditionLabels = {
+    vulnerable: { name: '脆弱', desc: '受到的所有伤害翻倍（或受到攻击具有额外希望骰）', type: '条件' },
+    restrained: { name: '束缚', desc: '速度降为0，敏捷检定处于劣势', type: '条件' },
+    hidden: { name: '隐藏', desc: '无法被直接选为目标，下次攻击具有优势', type: '条件' },
+    prone: { name: '倒下', desc: '近战攻击对其有优势，移动前须消耗移动力起身', type: '条件' }
+  };
+
+  document.querySelectorAll('.status-quick-btn').forEach(btn => {
+    const condKey = btn.dataset.cond;
+    btn.classList.toggle('active', Boolean(conditions[condKey]));
+  });
+
+  const allActive = [];
+  for (const [key, meta] of Object.entries(conditionLabels)) {
+    if (conditions[key]) {
+      allActive.push({ isCondition: true, condKey: key, ...meta });
+    }
+  }
+  for (const fx of specialEffects) {
+    allActive.push({ isCondition: false, ...fx });
+  }
+
+  if (countEl) countEl.textContent = allActive.length;
+
+  if (!allActive.length) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:12px;text-align:center;">该角色目前无在身状态或特殊效果。</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  allActive.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'active-effect-card';
+    const tagClass = item.type === '减益' ? 'debuff' : item.type === '增益' ? 'buff' : item.type === '印记' ? 'mark' : item.type === '特质' ? 'trait' : 'condition';
+    card.innerHTML = `
+      <div class="active-effect-left">
+        <div class="active-effect-title-row">
+          <strong>${item.name}</strong>
+          <span class="effect-badge-tag ${tagClass}">${item.type || '效果'}</span>
+          ${item.duration ? `<span class="active-effect-duration">⏳ ${item.duration}</span>` : ''}
+          ${item.modifiers ? `<span style="font-size:11px;color:var(--text-gold);">${item.modifiers}</span>` : ''}
+        </div>
+        <div class="active-effect-desc">${renderMarkdown(item.description || item.desc || '')}</div>
+      </div>
+      <button type="button" class="dw-btn dw-btn-outline ws-btn-mini ws-btn-danger" data-action="remove-effect" title="解除此状态">✕ 解除</button>
+    `;
+    card.querySelector('[data-action="remove-effect"]').addEventListener('click', async () => {
+      await removeCharacterEffect(item);
+    });
+    container.appendChild(card);
+  });
+}
+
+async function removeCharacterEffect(effectItem) {
+  const target = characters[workshopState.targetCharIndex];
+  if (!target) return;
+  const proposed = structuredClone(target);
+  if (!proposed.sheet) proposed.sheet = {};
+
+  if (effectItem.isCondition) {
+    if (!proposed.sheet.conditions) proposed.sheet.conditions = {};
+    proposed.sheet.conditions[effectItem.condKey] = false;
+  } else {
+    proposed.sheet.specialEffects = (proposed.sheet.specialEffects || []).filter(e => e.id !== effectItem.id && e.name !== effectItem.name);
+  }
+
+  try {
+    if (target.updated_at && currentUser?.role === 'gm') {
+      await persist(target, payload(proposed));
+    }
+    target.sheet.conditions = proposed.sheet.conditions;
+    target.sheet.specialEffects = proposed.sheet.specialEffects;
+    saveLocal();
+    renderActiveCharacterEffects();
+    renderAll();
+  } catch (err) {
+    alert('解除状态失败：' + err.message);
+  }
+}
+
+async function clearAllCharacterEffects() {
+  const target = characters[workshopState.targetCharIndex];
+  if (!target) return;
+  if (!confirm(`确定清除【${target.avatar_name}】身上的全部在身状态与特殊效果吗？`)) return;
+
+  const proposed = structuredClone(target);
+  if (!proposed.sheet) proposed.sheet = {};
+  proposed.sheet.conditions = { vulnerable: false, restrained: false, hidden: false, prone: false };
+  proposed.sheet.specialEffects = [];
+
+  try {
+    if (target.updated_at && currentUser?.role === 'gm') {
+      await persist(target, payload(proposed));
+    }
+    target.sheet.conditions = proposed.sheet.conditions;
+    target.sheet.specialEffects = proposed.sheet.specialEffects;
+    saveLocal();
+    renderActiveCharacterEffects();
+    renderAll();
+    alert(`已清除【${target.avatar_name}】的全部状态！`);
+  } catch (err) {
+    alert('清除失败：' + err.message);
+  }
+}
+
+async function toggleQuickCondition(condKey) {
+  const target = characters[workshopState.targetCharIndex];
+  if (!target) return alert('请先选定目标角色。');
+  const proposed = structuredClone(target);
+  if (!proposed.sheet) proposed.sheet = {};
+  if (!proposed.sheet.conditions) proposed.sheet.conditions = {};
+  proposed.sheet.conditions[condKey] = !proposed.sheet.conditions[condKey];
+
+  try {
+    if (target.updated_at && currentUser?.role === 'gm') {
+      await persist(target, payload(proposed));
+    }
+    target.sheet.conditions = proposed.sheet.conditions;
+    saveLocal();
+    renderActiveCharacterEffects();
+    renderAll();
+  } catch (err) {
+    alert('切换状态失败：' + err.message);
+  }
+}
+
+async function handleWorkshopEffectSubmit(isDispatch) {
+  const name = el('ws-effect-name-full')?.value?.trim();
+  if (!name) return alert('请输入状态名称！');
+
+  const type = el('ws-effect-type')?.value || '减益';
+  const duration = el('ws-effect-duration')?.value?.trim() || '';
+  const modifiers = el('ws-effect-modifiers')?.value?.trim() || '';
+  const desc = el('ws-effect-desc-full')?.value?.trim() || '';
+  const editId = el('ws-effect-edit-id')?.value;
+
+  const effectObj = {
+    id: editId || `effect_${Date.now()}`,
+    name,
+    type,
+    duration,
+    modifiers,
+    desc,
+    description: modifiers ? `**【${type}${duration ? ' · ' + duration : ''}】** ${modifiers}\n\n${desc}` : desc
+  };
+
+  if (!campaignResources.statusEffects) campaignResources.statusEffects = [];
+  const exIdx = campaignResources.statusEffects.findIndex(e => (editId ? e.id === editId : e.name === name));
+  if (exIdx >= 0) campaignResources.statusEffects[exIdx] = effectObj;
+  else campaignResources.statusEffects.push(effectObj);
+  saveCampaignResources();
+
+  if (isDispatch) {
+    const target = characters[workshopState.targetCharIndex];
+    if (!target) return alert('未找到目标角色！');
+    const proposed = structuredClone(target);
+    if (!proposed.sheet) proposed.sheet = {};
+    proposed.sheet.specialEffects = [...(proposed.sheet.specialEffects || []), {
+      id: crypto.randomUUID(),
+      name,
+      type,
+      duration,
+      modifiers,
+      desc,
+      description: effectObj.description
+    }];
+
+    try {
+      if (target.updated_at && currentUser?.role === 'gm') {
+        await persist(target, payload(proposed));
+      }
+      target.sheet.specialEffects = proposed.sheet.specialEffects;
+      saveLocal();
+      renderActiveCharacterEffects();
+      renderAll();
+      alert(`已成功发放状态【${name}】给【${target.avatar_name}】！`);
+    } catch (err) {
+      return alert('发放状态失败：' + err.message);
+    }
+  } else {
+    alert(editId ? `已更新战役状态【${name}】！` : `已保存状态【${name}】至战役状态库！`);
+  }
+
+  // Reset form
+  if (el('ws-effect-edit-id')) el('ws-effect-edit-id').value = '';
+  if (el('ws-effect-name-full')) el('ws-effect-name-full').value = '';
+  if (el('ws-effect-duration')) el('ws-effect-duration').value = '';
+  if (el('ws-effect-modifiers')) el('ws-effect-modifiers').value = '';
+  if (el('ws-effect-desc-full')) el('ws-effect-desc-full').value = '';
+
+  renderWorkshopLibrary();
+}
+
+function loadEffectToEdit(effectObj) {
+  switchWorkshopWorkbenchTab('status-effect');
+  if (el('ws-effect-edit-id')) el('ws-effect-edit-id').value = effectObj.id;
+  if (el('ws-effect-name-full')) el('ws-effect-name-full').value = effectObj.name;
+  if (el('ws-effect-type')) el('ws-effect-type').value = effectObj.type || '减益';
+  if (el('ws-effect-duration')) el('ws-effect-duration').value = effectObj.duration || '';
+  if (el('ws-effect-modifiers')) el('ws-effect-modifiers').value = effectObj.modifiers || '';
+  if (el('ws-effect-desc-full')) el('ws-effect-desc-full').value = effectObj.desc || '';
+
+  const banner = el('ws-edit-banner');
+  const targetLabel = el('ws-editing-target-name');
+  if (banner) banner.hidden = false;
+  if (targetLabel) targetLabel.textContent = `状态效果：${effectObj.name}`;
+}
+
 function renderWorkshopLibrary() {
   const container = el('ws-library-list');
   const totalCountEl = el('ws-lib-total-count');
@@ -3202,7 +3447,20 @@ function renderWorkshopLibrary() {
     );
   }
 
-  const grandTotal = matchedItems.length + matchedCards.length + matchedDomains.length;
+  // 4. 过滤状态效果
+  let matchedEffects = statusEffects;
+  if (filter !== 'all' && filter !== '状态效果') {
+    matchedEffects = [];
+  }
+  if (q) {
+    matchedEffects = matchedEffects.filter(e =>
+      (e.name || '').toLowerCase().includes(q) ||
+      (e.desc || '').toLowerCase().includes(q) ||
+      (e.modifiers || '').toLowerCase().includes(q)
+    );
+  }
+
+  const grandTotal = matchedItems.length + matchedCards.length + matchedDomains.length + matchedEffects.length;
   if (!grandTotal) {
     container.innerHTML = `
       <div style="color:var(--text-muted);font-size:13px;padding:36px;text-align:center;">
