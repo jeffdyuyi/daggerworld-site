@@ -1,8 +1,8 @@
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
-import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261120-sync2';
-import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
+import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-boot1';
+import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken, appearanceDefaults } from './paperdoll.js';
 
 // Global App State
 let db = null;
@@ -3336,4 +3336,4 @@ function importCharacterJson(e) {
 }
 
 // Boot application
-init();
+await init();

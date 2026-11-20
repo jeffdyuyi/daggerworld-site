@@ -25,6 +25,13 @@ jobs:
           mkdir -p _site
           cp index.html account.html session.js portal-account.js pixel-theme.css news-archive.js _site/
           cp -R editor assets _site/
+      - name: Verify staged editor modules
+        run: |
+          node --input-type=module <<'JS'
+          globalThis.window = { addEventListener() {}, setInterval() {} };
+          globalThis.location = { replace() {} };
+          await import('./_site/editor/app.js');
+          JS
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

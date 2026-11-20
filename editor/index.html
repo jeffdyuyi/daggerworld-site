@@ -1225,6 +1225,13 @@
     <button type="button" class="dw-btn dw-btn-gold" id="level-dialog-save">确认升级</button>
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
-  <script type="module" src="./app.js?v=20261120-sync2"></script>
+  <script type="module">
+    import('./app.js?v=20261121-boot1').catch(error => {
+      console.error('角色库启动失败', error);
+      document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
+      document.getElementById('current-character').hidden = true;
+      document.getElementById('btn-save-cloud').hidden = true;
+    });
+  </script>
 </body>
 </html>
