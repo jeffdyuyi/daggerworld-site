@@ -3077,3 +3077,23 @@ body.dw-theme {
 .levelup-bottom-bar[hidden] { display:none; }
 
 .bag-empty-summary { grid-column:1/-1; margin:.25rem 0; color:var(--text-muted); }
+
+.dw-theme .paperdoll-container {
+  grid-template-columns: minmax(0,1fr) minmax(0,192px) minmax(0,1fr);
+  justify-items:stretch;
+  align-items:start;
+  gap:clamp(6px,1.5vw,16px);
+  padding:clamp(6px,1.5vw,16px);
+}
+.dw-theme .paperdoll-stage { grid-column:2; grid-row:1; width:100%; }
+.dw-theme .paperdoll-container .left-col { grid-column:1; grid-row:1; }
+.dw-theme .paperdoll-container .right-col { grid-column:3; grid-row:1; }
+.dw-theme .paperdoll-container .gear-slot-col { display:flex; gap:8px; min-width:0; }
+.dw-theme .paperdoll-container .gear-slot { min-width:0; gap:6px; padding:6px; }
+.dw-theme .paperdoll-container .slot-info { min-width:0; overflow-wrap:anywhere; }
+.dw-theme .paperdoll-stage .costume-slot-highlight { align-self:stretch; }
+@media (max-width:600px) {
+  .dw-theme .paperdoll-container { grid-template-columns:minmax(0,1fr) minmax(0,30%) minmax(0,1fr); }
+  .dw-theme .paperdoll-container .gear-slot { flex-wrap:wrap; }
+  .dw-theme .appearance-frame-sheet { height:180px; }
+}

@@ -1013,21 +1013,19 @@ function renderEquipmentSlots(stats) {
   const c = curChar();
   const eq = c.sheet.equipment || {};
 
-  el('suit-mode-tag').textContent = stats.isSuitActive ? `套装生效：${stats.suitItem.名称}` : '散件细分累加计算';
-  el('suit-mode-tag').style.borderColor = stats.isSuitActive ? 'var(--accent-health)' : 'var(--border-bo3)';
 
-  const slotKeys = ['head', 'chest', 'wrists', 'waist', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'suit', 'costume'];
+  const slotKeys = ['head', 'chest', 'wrists', 'waist', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'costume'];
   for (const k of slotKeys) {
     const itemEl = el(`slot-name-${k}`);
     if (itemEl) {
-      const item = eq[k];
-      const locked = suitCoversSlot(c.sheet,k);
+      const item = k === 'chest' && stats.isSuitActive ? stats.suitItem : eq[k];
+      const locked = k !== 'chest' && suitCoversSlot(c.sheet,k);
       const control = itemEl.closest('[data-slot]');
       control?.classList.toggle('suit-locked',locked);
       if (control) control.setAttribute('aria-disabled',String(locked));
       itemEl.textContent = locked ? '套装占用' : item ? item.名称 : '空置';
       itemEl.style.color = item ? 'var(--text-main)' : 'var(--text-muted)';
-      renderSlotArt(k, locked ? null : item);
+      renderSlotArt(k, locked ? null : item, k === 'chest' && stats.isSuitActive ? 'suit' : k);
     }
   }
 
@@ -1076,9 +1074,9 @@ function getEquipmentIssue(slot, item, character = curChar()) {
   return equipmentIssue(slot, item, character.sheet, tierForLevel(character.level), hasSpellcastTrait(character.sheet));
 }
 
-function renderSlotArt(slot, item) {
+function renderSlotArt(slot, item, visualSlot = slot) {
   const icon = el(`slot-icon-${slot.replace('_', '-')}`);
-  if (icon) decorateGear(icon.closest('[data-slot], [data-bag-slot]'), item, slot);
+  if (icon) decorateGear(icon.closest('[data-slot], [data-bag-slot]'), item, visualSlot);
   const slotElement = icon?.closest('[data-slot], [data-bag-slot]');
   if (slotElement) {
     slotElement.querySelector('.legacy-gear-marker')?.remove();
@@ -2159,7 +2157,7 @@ let currentPickerCandidates = [];
 
 // Item Picker Modal Logic
 function openItemPicker(slotKey) {
-  if (suitCoversSlot(curChar()?.sheet,slotKey)) return;
+  if (slotKey !== 'chest' && suitCoversSlot(curChar()?.sheet,slotKey)) return;
   currentPickerSlot = slotKey;
   el('item-picker-modal').hidden = false;
   const isLoot = slotKey === 'loot';
@@ -2175,8 +2173,8 @@ function openItemPicker(slotKey) {
   } else {
     const sheet = curChar().sheet;
     const assigned = new Set(Object.entries({...sheet.equipment,...sheet.bags})
-      .filter(([key]) => key !== slotKey).map(([,item]) => item?.ownedGearId));
-    candidates = sheet.inventoryItems.filter(item => item?.ownedGearId && !assigned.has(item.ownedGearId) && slotMatches(item,slotKey))
+      .filter(([key]) => key !== slotKey && !(slotKey === 'chest' && key === 'suit')).map(([,item]) => item?.ownedGearId));
+    candidates = sheet.inventoryItems.filter(item => item?.ownedGearId && !assigned.has(item.ownedGearId) && (slotMatches(item,slotKey) || (slotKey === 'chest' && slotMatches(item,'suit'))))
       .map(item => item.resourceId ? {...sourceItem(item.resourceId), ownedGearId:item.ownedGearId,slot:item.slot} : ({
         名称:item.name, 描述:item.desc, 位阶:item.tier, 品类:item.type, 容量:item.capacity,
         属性:item.weapon?.trait, 伤害:item.weapon?.damage, 距离:item.weapon?.range,
@@ -2272,7 +2270,12 @@ function grantSourceItem(record) {
 
 function equipItemToSlot(slotKey, item) {
   const c = curChar();
-  if (suitCoversSlot(c.sheet,slotKey) || getEquipmentIssue(slotKey, item, c)) return;
+  if (slotKey === 'chest' && item.slot === 'suit') slotKey = 'suit';
+  if ((slotKey !== 'chest' && suitCoversSlot(c.sheet,slotKey)) || getEquipmentIssue(slotKey,item,c)) return;
+  if (slotKey === 'chest' && c.sheet.equipment.suit) {
+    preserveOldEquipment(c,'suit');
+    c.sheet.equipment.suit = null;
+  }
   if (slotKey === 'suit') for (const slot of suitSlots) {
     preserveOldEquipment(c,slot);
     c.sheet.equipment[slot] = null;
@@ -2300,14 +2303,10 @@ function preserveOldEquipment(c,slot) {
 function unequipCurrentSlot() {
   if (!currentPickerSlot) return;
   const c = curChar();
-  preserveOldEquipment(c,currentPickerSlot);
-  if (currentPickerSlot.startsWith('weapon_')) {
-    c.sheet.equipment[currentPickerSlot] = null;
-  } else if (['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(currentPickerSlot)) {
-    c.sheet.bags[currentPickerSlot] = null;
-  } else {
-    c.sheet.equipment[currentPickerSlot] = null;
-  }
+  const slot = currentPickerSlot === 'chest' && suitCoversSlot(c.sheet,'chest') ? 'suit' : currentPickerSlot;
+  preserveOldEquipment(c,slot);
+  if (Object.hasOwn(c.sheet.bags,slot)) c.sheet.bags[slot] = null;
+  else c.sheet.equipment[slot] = null;
   el('item-picker-modal').hidden = true;
   saveLocal();
   renderAll();

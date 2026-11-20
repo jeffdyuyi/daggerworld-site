@@ -300,11 +300,9 @@
         <div class="equipment-paperdoll-section">
           <div class="section-title-bar">
             <h2>角色随身装备</h2>
-            <div class="suit-mode-tag" id="suit-mode-tag">散件细分累加计算</div>
           </div>
 
           <div class="paperdoll-container">
-            <!-- Left Column: Head, Chest, Wrists, Legs, Feet, Back -->
             <div class="gear-slot-col left-col">
               <div class="gear-slot" data-slot="head">
                 <div class="slot-icon-box" id="slot-icon-head"></div>
@@ -313,7 +311,6 @@
                   <span class="slot-item" id="slot-name-head">空置</span>
                 </div>
               </div>
-
               <div class="gear-slot" data-slot="chest">
                 <div class="slot-icon-box" id="slot-icon-chest"></div>
                 <div class="slot-info">
@@ -321,18 +318,12 @@
                   <span class="slot-item" id="slot-name-chest">空置</span>
                 </div>
               </div>
-
               <div class="gear-slot" data-slot="wrists">
                 <div class="slot-icon-box" id="slot-icon-wrists"></div>
                 <div class="slot-info">
                   <span class="slot-name">腕部</span>
                   <span class="slot-item" id="slot-name-wrists">空置</span>
                 </div>
-              </div>
-
-              <div class="gear-slot" data-slot="waist">
-                <div class="slot-icon-box" id="slot-icon-waist"></div>
-                <div class="slot-info"><strong>腰部</strong><span id="slot-name-waist">空置</span></div>
               </div>
               <div class="gear-slot" data-slot="legs">
                 <div class="slot-icon-box" id="slot-icon-legs"></div>
@@ -341,7 +332,6 @@
                   <span class="slot-item" id="slot-name-legs">空置</span>
                 </div>
               </div>
-
               <div class="gear-slot" data-slot="feet">
                 <div class="slot-icon-box" id="slot-icon-feet"></div>
                 <div class="slot-info">
@@ -349,7 +339,19 @@
                   <span class="slot-item" id="slot-name-feet">空置</span>
                 </div>
               </div>
-
+            </div>
+            <div class="paperdoll-stage">
+              <div id="paperdoll" class="appearance-frame appearance-frame-sheet"></div>
+              <div class="gear-slot costume-slot-highlight" data-slot="costume" title="时装：独立视觉外观">
+                <div class="slot-icon-box" id="slot-icon-costume"></div>
+                <div class="slot-info">
+                  <span class="slot-name">时装</span>
+                  <span class="slot-item" id="slot-name-costume">空置</span>
+                </div>
+              </div>
+              <a class="dw-btn dw-btn-outline" id="fantasy-paperdoll-link" hidden>编辑外观</a>
+            </div>
+            <div class="gear-slot-col right-col">
               <div class="gear-slot" data-slot="back">
                 <div class="slot-icon-box" id="slot-icon-back"></div>
                 <div class="slot-info">
@@ -357,31 +359,10 @@
                   <span class="slot-item" id="slot-name-back">空置</span>
                 </div>
               </div>
-            </div>
-
-            <div class="paperdoll-stage">
-              <div id="paperdoll" class="appearance-frame appearance-frame-sheet"></div>
-              <a class="dw-btn dw-btn-outline" id="fantasy-paperdoll-link" hidden>编辑外观</a>
-            </div>
-
-            <!-- Right Column: Rings, Trinkets, Suit, Costume -->
-            <div class="gear-slot-col right-col">
-              <div class="gear-slot suit-slot-highlight" data-slot="suit" title="套装占用头部、躯干、腿部和足部">
-                <div class="slot-icon-box" id="slot-icon-suit"></div>
-                <div class="slot-info">
-                  <span class="slot-name">套装护甲</span>
-                  <span class="slot-item" id="slot-name-suit">无套装 (无甲)</span>
-                </div>
+              <div class="gear-slot" data-slot="waist">
+                <div class="slot-icon-box" id="slot-icon-waist"></div>
+                <div class="slot-info"><strong>腰部</strong><span id="slot-name-waist">空置</span></div>
               </div>
-
-              <div class="gear-slot costume-slot-highlight" data-slot="costume" title="外观时装：独立视觉外观">
-                <div class="slot-icon-box" id="slot-icon-costume"></div>
-                <div class="slot-info">
-                  <span class="slot-name">外观时装</span>
-                  <span class="slot-item" id="slot-name-costume">空置</span>
-                </div>
-              </div>
-
               <div class="gear-slot" data-slot="ring1">
                 <div class="slot-icon-box" id="slot-icon-ring1"></div>
                 <div class="slot-info">
@@ -389,7 +370,6 @@
                   <span class="slot-item" id="slot-name-ring1">空置</span>
                 </div>
               </div>
-
               <div class="gear-slot" data-slot="ring2">
                 <div class="slot-icon-box" id="slot-icon-ring2"></div>
                 <div class="slot-info">
@@ -397,7 +377,6 @@
                   <span class="slot-item" id="slot-name-ring2">空置</span>
                 </div>
               </div>
-
               <div class="gear-slot" data-slot="trinket1">
                 <div class="slot-icon-box" id="slot-icon-trinket1"></div>
                 <div class="slot-info">
@@ -405,7 +384,6 @@
                   <span class="slot-item" id="slot-name-trinket1">空置</span>
                 </div>
               </div>
-
               <div class="gear-slot" data-slot="trinket2">
                 <div class="slot-icon-box" id="slot-icon-trinket2"></div>
                 <div class="slot-info">
@@ -1208,7 +1186,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-outline1').catch(error => {
+    import('./app.js?v=20261121-gear1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
