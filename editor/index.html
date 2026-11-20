@@ -3,8 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-layout2">
+  <link rel="stylesheet" href="./app.css?v=20261121-portrait-v3">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -1291,10 +1294,10 @@
 
   <!-- MODAL: Equipment / Item Picker -->
   <div class="dw-modal-backdrop" id="portrait-editor-modal" hidden>
-    <div class="dw-modal-window narrow-modal">
+    <div class="dw-modal-window portrait-modal-window">
       <div class="modal-header">
         <h2>🎨 自定义角色立绘</h2>
-        <button class="modal-close-btn" id="portrait-modal-close">✕</button>
+        <button class="modal-close-btn" id="portrait-modal-close" type="button">✕</button>
       </div>
       <div class="modal-body" style="padding:0;">
         <div class="portrait-modal-body">
@@ -1435,7 +1438,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-fix1').catch(error => {
+    import('./app.js?v=20261121-portrait-v3').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;

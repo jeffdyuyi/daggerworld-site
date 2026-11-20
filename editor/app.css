@@ -3498,12 +3498,21 @@ body.dw-theme {
 }
 
 /* Portrait Crop / Adjust Modal */
+.dw-modal-window.portrait-modal-window {
+  max-width: 580px;
+  width: min(95vw, 580px);
+}
 .portrait-modal-body {
   padding: 16px 20px;
   display: flex;
   gap: 20px;
   align-items: flex-start;
   flex-wrap: wrap;
+}
+@media (min-width: 520px) {
+  .portrait-modal-body {
+    flex-wrap: nowrap;
+  }
 }
 .portrait-crop-workspace {
   display: flex;

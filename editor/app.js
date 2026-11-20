@@ -364,6 +364,7 @@ async function init() {
   setupSlotIcons();
   setupCreationWizard();
   setupEventListeners();
+  initPortraitListeners();
 
 
   // 只加载当前账号的缓存。
@@ -4126,6 +4127,8 @@ function switchPortraitMode(targetMode) {
   if (targetMode === 'custom') {
     if (!c.sheet.customPortrait?.dataUrl) {
       openPortraitEditorModal();
+      // 顺带尝试直接唤起本地文件选择器
+      try { el('portrait-file-input')?.click(); } catch (_) {}
       return;
     }
     c.sheet.portraitMode = 'custom';
@@ -4264,13 +4267,25 @@ function savePortraitCustomization() {
   closePortraitEditorModal();
 }
 
+let hasInitPortraitListeners = false;
 function initPortraitListeners() {
+  if (hasInitPortraitListeners) return;
+  hasInitPortraitListeners = true;
+
   el('btn-mode-silhouette')?.addEventListener('click', () => switchPortraitMode('silhouette'));
   el('btn-mode-custom')?.addEventListener('click', () => switchPortraitMode('custom'));
   el('btn-open-portrait-setting')?.addEventListener('click', openPortraitEditorModal);
   el('portrait-modal-close')?.addEventListener('click', closePortraitEditorModal);
   el('btn-cancel-portrait')?.addEventListener('click', closePortraitEditorModal);
   el('btn-save-portrait')?.addEventListener('click', savePortraitCustomization);
+
+  // 点击遮罩空白区域或按 ESC 退出弹窗
+  el('portrait-editor-modal')?.addEventListener('click', e => {
+    if (e.target === el('portrait-editor-modal')) closePortraitEditorModal();
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !el('portrait-editor-modal')?.hidden) closePortraitEditorModal();
+  });
 
   el('btn-select-portrait-file')?.addEventListener('click', () => el('portrait-file-input')?.click());
   el('portrait-file-input')?.addEventListener('change', handlePortraitFileSelect);
@@ -4300,21 +4315,20 @@ function initPortraitListeners() {
     applyPortraitCropPreview();
   });
 
-  // 鼠标拖拽平移视口
+  // 鼠标与触屏手势拖拽平移视口
   const viewport = el('portrait-crop-viewport');
   if (viewport) {
-    viewport.addEventListener('mousedown', e => {
+    const handleDragStart = (clientX, clientY) => {
       if (!tempPortrait.dataUrl) return;
       isDraggingPortrait = true;
-      portraitDragStart = { x: e.clientX, y: e.clientY };
+      portraitDragStart = { x: clientX, y: clientY };
       portraitDragInitial = { x: tempPortrait.offsetX, y: tempPortrait.offsetY };
-    });
+    };
 
-    window.addEventListener('mousemove', e => {
+    const handleDragMove = (clientX, clientY) => {
       if (!isDraggingPortrait) return;
-      const dx = e.clientX - portraitDragStart.x;
-      const dy = e.clientY - portraitDragStart.y;
-      // 灵敏度换算：视口宽约200px，dx/2 差不多对应百分比
+      const dx = clientX - portraitDragStart.x;
+      const dy = clientY - portraitDragStart.y;
       const sensitivity = 0.5;
       tempPortrait.offsetX = Math.max(-100, Math.min(100, Math.round(portraitDragInitial.x + dx * sensitivity)));
       tempPortrait.offsetY = Math.max(-100, Math.min(100, Math.round(portraitDragInitial.y + dy * sensitivity)));
@@ -4322,10 +4336,25 @@ function initPortraitListeners() {
       if (el('slider-portrait-x')) el('slider-portrait-x').value = tempPortrait.offsetX;
       if (el('slider-portrait-y')) el('slider-portrait-y').value = tempPortrait.offsetY;
       applyPortraitCropPreview();
-    });
+    };
 
-    window.addEventListener('mouseup', () => {
+    const handleDragEnd = () => {
       isDraggingPortrait = false;
-    });
+    };
+
+    viewport.addEventListener('mousedown', e => handleDragStart(e.clientX, e.clientY));
+    window.addEventListener('mousemove', e => handleDragMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', handleDragEnd);
+
+    viewport.addEventListener('touchstart', e => {
+      const touch = e.touches?.[0];
+      if (touch) handleDragStart(touch.clientX, touch.clientY);
+    }, { passive: true });
+    window.addEventListener('touchmove', e => {
+      if (!isDraggingPortrait) return;
+      const touch = e.touches?.[0];
+      if (touch) handleDragMove(touch.clientX, touch.clientY);
+    }, { passive: true });
+    window.addEventListener('touchend', handleDragEnd);
   }
 }
