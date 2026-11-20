@@ -3078,3 +3078,10 @@ body.dw-theme {
 .stat-details {grid-column:1/-1;padding:.7rem;background:var(--bg-card)} .stat-details summary{cursor:pointer}.stat-details table{width:100%;text-align:center}.stat-details input{width:5em;max-width:100%}
 
 .md-badge strong, .md-badge em { color: inherit; }
+
+#current-character { cursor: default; }
+#sync-status[hidden], #current-character[hidden] { display: none; }
+.bag-panel-title { flex-wrap: wrap; gap: .65rem; }
+.bag-panel-title .grid-actions { margin-inline-start: auto; }
+.bag-equipment-panel .visual-slots-grid { margin-top: .75rem; }
+.legacy-gear-marker { color: var(--text-main); font-size: .7rem; }

@@ -24,13 +24,12 @@
     </div>
 
     <div class="header-center">
-      <div class="vault-switcher-pill" id="vault-open-btn" title="点击管理或切换角色">
+      <div class="vault-switcher-pill" id="current-character">
         <span class="vault-avatar-icon" id="cur-avatar-icon">🛡️</span>
         <div class="vault-info">
           <span class="cur-char-name" id="cur-char-name">加载角色中…</span>
           <span class="cur-char-class" id="cur-char-class">-</span>
         </div>
-        <span class="dropdown-chevron">▼</span>
       </div>
     </div>
 
@@ -39,18 +38,9 @@
         <span class="status-dot">●</span> <span id="sync-text">本地就绪</span>
       </span>
       <button class="dw-btn dw-btn-outline" id="btn-save-cloud" title="立即保存至云端">☁️ 保存</button>
-      <button class="dw-btn dw-btn-outline" id="btn-open-vault">📋 角色库</button>
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
-          <button id="btn-create-char">新建角色</button>
-          <button id="btn-export-json">💾 导出本卡 JSON</button>
-          <label class="dropdown-file-label">
-            📥 导入角色卡
-            <input type="file" id="import-json-file" accept=".json" hidden>
-          </label>
-          <button id="btn-roll-init">🎲 快速检定</button>
-          <hr>
           <a href="https://forum.bo3studio.com/" target="_blank" rel="noopener noreferrer" class="dropdown-link">🏢 代理商社区：三局两胜 ↗</a>
           <a href="../account.html" class="dropdown-link">游戏入口</a>
           <a href="../index.html#archive" class="dropdown-link">📖 战役图鉴</a>
@@ -272,7 +262,7 @@
         </div>
       </div>
 
-      <details class="stat-details"><summary>数值明细与补正</summary><table><thead><tr><th>数值</th><th>基础</th><th>装备</th><th>补正</th><th>当前</th></tr></thead><tbody id="stat-calculations"></tbody></table><small>致死阈值以当前严重阈值的两倍为基础。三个阈值依次递增。</small></details>
+      <details class="stat-details"><summary>数值明细与补正</summary><table><thead><tr><th>数值</th><th>基础</th><th>装备</th><th>补正</th><th>当前</th></tr></thead><tbody id="stat-calculations"></tbody></table><p id="armor-formula-breakdown"></p><small>致死阈值以当前严重阈值的两倍为基础。三个阈值依次递增。</small></details>
       <div class="condition-strip" aria-live="polite">
         <strong id="stress-condition" hidden>脆弱 · 压力已满</strong>
         <strong id="death-condition" hidden>倒下 · 结算死亡行动</strong>
@@ -373,7 +363,7 @@
                 <label>头发 <select id="paperdoll-hair"><option value="brown">棕发</option><option value="black">黑发</option><option value="gold">金发</option><option value="gray">灰发</option><option value="none">无发</option></select></label>
                 <label><input type="checkbox" id="paperdoll-beard"> 胡须</label>
               </div>
-              <button type="button" class="dw-btn dw-btn-outline" id="paperdoll-export" disabled>导出指示物</button>
+              <button type="button" class="dw-btn dw-btn-outline" id="paperdoll-export" disabled>下载棋子 PNG</button>
               <small id="paperdoll-status" role="status" hidden></small>
             </div>
 
@@ -571,12 +561,13 @@
         <!-- Bag Slots & Expandable Pouches Bar -->
         <div class="bag-equipment-panel">
           <div class="bag-panel-title">
-            <h3>背包与容器</h3>
-            <span class="bag-summary-badge">
-              总容纳：<span id="bag-total-slots">0</span> 格（主包 <span id="bag-base-slots">0</span> + 扩展 <span id="bag-extra-slots">0</span>）
-            </span>
+            <h3>背包</h3>
+            <span class="bag-summary-badge" id="bag-usage"></span>
+            <div class="grid-actions">
+              <button class="dw-btn dw-btn-outline" id="btn-loot-catalog">物品图鉴</button>
+              <button class="dw-btn dw-btn-outline" id="btn-clean-bag">整理</button>
+            </div>
           </div>
-
           <div class="bag-slots-strip">
             <div class="bag-slot-card" data-bag-slot="main_bag">
               <div class="slot-icon-box" id="slot-icon-main-bag"></div>
@@ -618,38 +609,12 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Interactive Visual Grid Bag -->
-        <div class="inventory-grid-panel">
-          <div class="grid-panel-header">
-            <h3>物品栏</h3>
-            <div class="grid-actions">
-              <button class="dw-btn dw-btn-outline" id="btn-loot-catalog">物品图鉴</button>
-
-              <button class="dw-btn dw-btn-outline" id="btn-clean-bag">🧹 整理背包</button>
-            </div>
-          </div>
 
           <p id="inventory-space-note" hidden></p>
           <div class="visual-slots-grid" id="inventory-grid">
             <!-- Rendered Diablo/Velundra style grid cells -->
           </div>
           <div class="visual-slots-grid inventory-overflow" id="inventory-overflow" hidden></div>
-        </div>
-
-        <!-- Modular Armor Formula Engine Card -->
-        <div class="armor-formula-card">
-          <div class="formula-header">
-            <span class="formula-icon">🛡️</span>
-            <div>
-              <h3>防具与伤害阈值动态计算引擎</h3>
-              <p class="formula-subtitle">已穿戴装备与生效奇物合计</p>
-            </div>
-          </div>
-          <div class="formula-body" id="armor-formula-breakdown">
-            <!-- Real-time formula breakdown rendered here -->
-          </div>
         </div>
 
       </div>
@@ -860,7 +825,7 @@
           </button>
         </div>
         <div class="ws-hero-title-group">
-          <h2>🛠️ 主持人资源工坊 & 军械秘藏</h2>
+          <h2>🛠️ 主持人工坊</h2>
           <p class="ws-hero-desc">在此创制原创装备、战利品、领域卡及自定义规则领域，支持全战役统一储存、编辑与全队即时发放。</p>
         </div>
       </div>
@@ -883,7 +848,7 @@
     <!-- Global Dispatch Target Strip (全队受赐角色选择器) -->
     <section class="ws-dispatch-strip">
       <div class="ws-dispatch-strip-left">
-        <span class="dispatch-crown-badge">👑 受赐角色</span>
+        <span class="dispatch-crown-badge">接收角色</span>
         <button type="button" id="ws-catalog" class="dw-btn">发放原版物品</button>
         <select id="ws-target-char-select" class="dw-select ws-target-select" title="选择受赐角色">
           <!-- Populated with all characters -->
@@ -904,7 +869,7 @@
       <section class="ws-col-library">
         <div class="ws-box-header">
           <div class="ws-box-title-row">
-            <h3>📦 战役储备库 (<span id="ws-lib-total-count">0</span>)</h3>
+            <h3>📦 资源库 (<span id="ws-lib-total-count">0</span>)</h3>
             <span class="f-badge" id="ws-active-filter-badge">全部资源</span>
           </div>
           <!-- Search & Filter Bar -->
@@ -1023,8 +988,8 @@
 
           <!-- Action Buttons -->
           <div class="ws-actions-row">
-            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-item">👑 发放至受赐角色背包</button>
-            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-item">💾 保存至储备军械库</button>
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-item">保存并发放</button>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-item">保存</button>
           </div>
         </div>
 
@@ -1080,8 +1045,8 @@
 
           <!-- Action Buttons -->
           <div class="ws-actions-row">
-            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-card">👑 发放至角色领域秘藏</button>
-            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-card">💾 保存至储备军械库</button>
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-card">保存并发放</button>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-card">保存</button>
           </div>
         </div>
 

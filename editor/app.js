@@ -337,7 +337,7 @@ async function init() {
     console.error('Failed to load database.json:', err);
   }
 
-  // 3. 决定初始层级视图 (如果 URL 包含 #sheet 则进入第二层工作台，否则默认进入第一层角色库大厅)
+  // 3. 决定初始层级视图 (如果 URL 包含 #sheet 则进入第二层工作台，否则默认进入第一层角色库)
   const currentHash = (typeof location !== 'undefined' && location.hash) ? location.hash : '';
   if (currentHash === '#sheet' && characters.length > 0) {
     switchLayer('sheet', activeCharIndex);
@@ -422,6 +422,7 @@ function reconcileAccount(account, interactive = false) {
 }
 function saveLocal() {
   if (owner && readSession()?.owner === owner) localStorage.setItem(cacheKey, JSON.stringify({characters,baselines}));
+  renderSaveButton();
 }
 window.addEventListener('storage', () => {
   if (readSession()?.owner !== owner) location.replace('../account.html');
@@ -440,6 +441,16 @@ async function persist(c, data = payload(c)) {
   } finally { pendingWrites.delete(c); }
 }
 
+let saveErrorCharacter = null;
+function renderSaveButton() {
+  const button = el('btn-save-cloud');
+  const character = curChar();
+  if (!button || !character || !db) return;
+  const saving = pendingWrites.has(character);
+  const clean = baselines[character.id] === JSON.stringify(payload(character));
+  button.disabled = saving || clean;
+  button.textContent = saving ? '保存中…' : clean ? '已保存' : saveErrorCharacter === character ? '重试保存' : '保存更改';
+}
 function updateSyncStatus(online, text) {
   const badge = el('sync-status');
   const span = el('sync-text');
@@ -541,13 +552,13 @@ function switchLayer(layer, targetIndex) {
   if (layer === 'sheet' && !characters.length) layer = 'vault';
   if (layer === 'sheet' && !db) { alert('规则资料尚未加载，请刷新后重试。'); return; }
   el('btn-save-cloud').hidden = layer !== 'sheet';
-  el('btn-roll-init').hidden = layer !== 'sheet';
-  el('vault-open-btn').hidden = layer !== 'sheet';
+  el('current-character').hidden = layer !== 'sheet';
   if (layer === 'workshop' && currentUser?.role !== 'gm') return;
   currentLayer = layer;
   const vaultLayer = el('layer-vault');
   const sheetLayer = el('layer-sheet');
   const workshopLayer = el('layer-workshop');
+  el('sync-status').hidden = layer === 'sheet';
   const backBtn = el('btn-back-vault');
   const brandLink = el('brand-link');
 
@@ -581,8 +592,8 @@ function switchLayer(layer, targetIndex) {
     if (workshopLayer) workshopLayer.hidden = true;
     if (backBtn) {
       backBtn.style.display = 'inline-flex';
-      backBtn.innerHTML = '<span>‹</span> 角色库大厅';
-      backBtn.title = '返回第一层角色库大厅';
+      backBtn.innerHTML = '<span>‹</span> 角色库';
+      backBtn.title = '返回角色库';
     }
     renderAll();
     try { history.replaceState(null, '', '#sheet'); } catch {}
@@ -788,6 +799,7 @@ function updateCreatorSubclassOptions() {
 function renderAll() {
   if (!curChar()) return;
   const c = curChar();
+  renderSaveButton();
   renderLastRoll(c);
   const s = c.sheet;
   const stats = calculateStats(c);
@@ -958,6 +970,16 @@ function getEquipmentIssue(slot, item, character = curChar()) {
 function renderSlotArt(slot, item) {
   const icon = el(`slot-icon-${slot.replace('_', '-')}`);
   if (icon) decorateGear(icon.closest('[data-slot], [data-bag-slot]'), item, slot);
+  const slotElement = icon?.closest('[data-slot], [data-bag-slot]');
+  if (slotElement) {
+    slotElement.querySelector('.legacy-gear-marker')?.remove();
+    if (item?.ID?.startsWith('装备:') && !item.ownedGearId) {
+      const marker = document.createElement('small');
+      marker.className = 'legacy-gear-marker';
+      marker.textContent = '旧档待核';
+      slotElement.append(marker);
+    }
+  }
   const source = item ? spriteUrl(itemArt(item)) : slotIconMap[slot] ?? './assets/icons/slot-pouch-1.svg';
   if (icon && source) {
     icon.style.backgroundImage = `url("${source}")`;
@@ -1264,9 +1286,6 @@ function renderInventory(stats) {
   const bags = c.sheet.bags || {};
   const { mainCap, p1Cap, p2Cap, s1Cap, s2Cap, extraCap, totalSlots } = bagCapacity(bags);
 
-  el('bag-base-slots').textContent = mainCap;
-  el('bag-extra-slots').textContent = extraCap;
-  el('bag-total-slots').textContent = totalSlots;
 
   el('bag-name-main').textContent = bags.main_bag?.名称 || '空置';
   el('bag-name-pouch1').textContent = bags.pouch_1 ? `${bags.pouch_1.名称} (+${p1Cap}格)` : '空腰带位 (0格)';
@@ -1279,6 +1298,7 @@ function renderInventory(stats) {
   const grid = el('inventory-grid');
   grid.innerHTML = '';
   const items = storedItems(c.sheet);
+  el('bag-usage').textContent = Math.min(items.length, totalSlots) + ' / ' + totalSlots + ' 格';
 
   const overflow = el('inventory-overflow');
   overflow.replaceChildren();
@@ -1322,12 +1342,7 @@ function renderInventory(stats) {
   // Armor Formula Breakdown Readout
   const fb = el('armor-formula-breakdown');
   fb.textContent = '护甲上限 ' + stats.armorMax + ' · 装备与奇物 ' + stats.baseArmor + ' · 手动补正 ' + adjustment(c.sheet,'armor');
-  const legacy = Object.values({...c.sheet.equipment,...c.sheet.bags}).filter(i => i?.ID?.startsWith('装备:') && !i.ownedGearId);
-  if (legacy.length) {
-    const review = document.createElement('p');
-    review.textContent = '旧档物品待主持人核对：'+legacy.map(i => i.名称).join('、');
-    fb.append(review);
-  }
+
 }
 
 // Event Listeners Setup
@@ -1669,10 +1684,6 @@ function setupEventListeners() {
   el('btn-back-vault')?.addEventListener('click', () => {
     switchLayer('vault');
   });
-  el('btn-open-vault')?.addEventListener('click', () => switchLayer('vault'));
-
-
-  el('vault-open-btn').onclick = () => switchLayer('vault');
   el('btn-vault-refresh').onclick = async () => {
     try { reconcileAccount(await loadAccount(),true); updateSyncStatus(true,'云端已刷新'); }
     catch (err) { alert('刷新失败：' + err.message); }
@@ -1680,8 +1691,12 @@ function setupEventListeners() {
   el('btn-save-cloud').onclick = async () => {
     const c = curChar();
     if (!c || !db) return alert('请等规则资料加载后再保存。');
-    try { await persist(c); updateSyncStatus(true,'角色已保存'); }
-    catch (err) { alert(err.message); updateSyncStatus(false,'本地草稿'); }
+    saveErrorCharacter = null;
+    const saving = persist(c);
+    renderSaveButton();
+    try { await saving; }
+    catch (err) { saveErrorCharacter = c; alert(err.message); }
+    finally { renderSaveButton(); }
   };
 
   // Fixed More Dropdown (Toggle class 'show' and close on outside click)
@@ -1695,24 +1710,6 @@ function setupEventListeners() {
     if (moreDropdown.classList.contains('show') && !moreDropdown.contains(e.target) && e.target !== moreBtn) {
       moreDropdown.hidden = true; moreDropdown.classList.remove('show');
     }
-  });
-
-  el('btn-create-char').addEventListener('click', () => {
-    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
-    switchLayer('vault');
-    showCharacterCreator();
-  });
-  el('btn-export-json').addEventListener('click', () => {
-    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
-    exportCharacterJson();
-  });
-  el('import-json-file').addEventListener('change', e => {
-    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
-    importCharacterJson(e);
-  });
-  el('btn-roll-init').addEventListener('click', () => {
-    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
-    openDiceRoll('agility');
   });
 
   // Picker Modal
@@ -2190,6 +2187,17 @@ function updateWorkshopTargetSelect() {
   const meta = el('ws-target-char-meta');
   if (!sel) return;
 
+  const target = characters[workshopState.targetCharIndex] ?? characters[0];
+  for (const button of document.querySelectorAll('[data-action="dispatch"]')) {
+    button.disabled = !target?.updated_at;
+    button.textContent = target ? '发放给 ' + target.avatar_name : '发放';
+  }
+
+  for (const id of ['btn-ws-dispatch-item', 'btn-ws-dispatch-card']) {
+    const button = el(id);
+    button.disabled = !target?.updated_at;
+    button.textContent = target ? '保存并发放给 ' + target.avatar_name : '保存并发放';
+  }
   sel.innerHTML = '';
   if (!characters.length) {
     sel.innerHTML = '<option value="0">暂无角色（请先创角）</option>';
@@ -2211,14 +2219,7 @@ function updateWorkshopTargetSelect() {
     const invCount = (c.sheet.inventoryItems || []).length;
     const equippedCards = (c.sheet.equippedDomainCards || []).length;
     const vaultCards = (c.sheet.customDomainCards || []).length;
-    meta.innerHTML = `
-      <span class="f-badge" style="background:rgba(212,175,55,0.15);border:1px solid var(--border-gold);color:var(--text-gold);">
-        ${c.avatar_name} · Lv.${c.sheet.level || 1} ${c.sheet.classId || '无职业'}
-      </span>
-      <span style="font-size:12px;color:var(--text-muted);">
-        🎒 背包 ${invCount} 件 ｜ ⚡ 随身卡 ${equippedCards}/5 ｜ 📜 秘藏 ${vaultCards} 张
-      </span>
-    `;
+    meta.textContent = '背包 '+invCount+' 件 · 随身卡 '+equippedCards+'/5 · 秘藏 '+vaultCards+' 张';
   }
 }
 
@@ -2765,7 +2766,7 @@ function renderWorkshopLibrary() {
       ${item.stats ? `<div class="ws-card-stats">${item.stats}</div>` : ''}
       <div class="ws-card-body-desc">${renderMarkdown(item.desc || '暂无说明')}</div>
       <div class="ws-card-item-actions">
-        <button type="button" class="ws-btn-mini ws-btn-gold" data-action="dispatch">👑 发放至受赐角色</button>
+        <button type="button" class="ws-btn-mini ws-btn-gold" data-action="dispatch">发放</button>
         <button type="button" class="ws-btn-mini" data-action="edit">✏️ 编辑</button>
         <button type="button" class="ws-btn-mini ws-btn-mini-danger" data-action="del">🗑️ 删除</button>
       </div>
@@ -2805,7 +2806,7 @@ function renderWorkshopLibrary() {
       </div>
       <div class="ws-card-body-desc">${renderMarkdown(cardObj.描述 || cardObj.desc || '暂无卡牌说明')}</div>
       <div class="ws-card-item-actions">
-        <button type="button" class="ws-btn-mini ws-btn-gold" data-action="dispatch">👑 发放至领域秘藏</button>
+        <button type="button" class="ws-btn-mini ws-btn-gold" data-action="dispatch">发放</button>
         <button type="button" class="ws-btn-mini" data-action="edit">✏️ 编辑</button>
         <button type="button" class="ws-btn-mini ws-btn-mini-danger" data-action="del">🗑️ 删除</button>
       </div>
