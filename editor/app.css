@@ -3096,3 +3096,5 @@ body.dw-theme {
 .dw-theme .suit-locked .slot-icon-box { opacity:.35; }
 #level-rewards { display:grid; gap:.5rem; margin-block:.5rem; }
 #level-rewards label { display:grid; gap:.25rem; }
+
+.levelup-bottom-bar[hidden] { display:none; }

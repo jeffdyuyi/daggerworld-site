@@ -1,8 +1,8 @@
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
-import { readGmNote, writeGmNote, loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
-import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken, appearanceDefaults } from './paperdoll.js';
+import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js';
+import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
 // Global App State
 let db = null;
@@ -396,16 +396,79 @@ function loadLocalFallback() {
     }
   } catch { characters = []; }
 }
+function compareSnapshot(left,right) {
+  const canonical = value => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object')
+      return Object.fromEntries(Object.keys(value).sort().map(key => [key,canonical(value[key])]));
+    return value;
+  };
+  return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
+}
+
+const grantFields = ['experience','inventoryItems','customDomainCards'];
+function mergeIncomingGrants(character, remote) {
+  const baseline = baselines[character.id];
+  if (!baseline || character.updated_at === remote.updated_at) return false;
+  const previous = normalizeCharacter(JSON.parse(baseline));
+  const withoutGrants = ({level,avatar_name,sheet}) => {
+    const fields = {...sheet};
+    for (const key of grantFields) delete fields[key];
+    return {level,avatar_name,sheet:fields};
+  };
+  if (!compareSnapshot(withoutGrants(previous),withoutGrants(remote))) return false;
+
+  const additions = {};
+  for (const key of grantFields.slice(1)) {
+    const before = previous.sheet[key];
+    const after = remote.sheet[key];
+    if (!compareSnapshot(before,after.slice(0,before.length)) || after.length < before.length) return false;
+    additions[key] = after.slice(before.length);
+  }
+  for (const key of grantFields.slice(1)) {
+    const combined = character.sheet[key].slice();
+    for (const item of additions[key]) {
+      if (key === 'customDomainCards' && combined.some(card => cardKey(card) === cardKey(item))) continue;
+      combined.push(item);
+    }
+    character.sheet[key] = combined;
+  }
+  if (remote.sheet.experience) character.sheet.experience = remote.sheet.experience;
+  character.updated_at = remote.updated_at;
+  baselines[character.id] = JSON.stringify(payload(remote));
+  return true;
+}
+
+let refreshPending = false;
+async function refreshOpenSheet() {
+  if (refreshPending || !currentUser || document.hidden || currentLayer !== 'sheet' || pendingWrites.size ||
+      document.querySelector('dialog[open], .modal-backdrop:not([hidden]), .dw-modal-backdrop:not([hidden])') ||
+      document.activeElement?.matches('input,textarea,select,[contenteditable]')) return;
+  refreshPending = true;
+  const versions = new Map(characters.map(c => [c.id,c.updated_at]));
+  try {
+    const account = await loadAccount();
+    if (characters.some(c => versions.get(c.id) !== c.updated_at)) return;
+    if (pendingWrites.size || currentLayer !== 'sheet' || document.activeElement?.matches('input,textarea,select,[contenteditable]')) return;
+    if (account.characters.some(row => !characters.some(c => c.id === row.id && c.updated_at === row.updated_at))) reconcileAccount(account);
+  } catch { /* Keep the local sheet available and retry at the next interval. */ }
+  finally { refreshPending = false; }
+}
+window.setInterval(refreshOpenSheet, 15000);
+window.addEventListener('focus',refreshOpenSheet);
+
 function reconcileAccount(account, interactive = false) {
   if (account.owner !== owner || readSession()?.owner !== owner) return location.reload();
   const selected = curChar()?.id;
   const remote = new Map(account.characters.map(c => [c.id, normalizeCharacter(c)]));
   characters = characters.filter(c => {
+    if (pendingWrites.has(c)) { remote.delete(c.id); return true; }
     const draft = !c.updated_at || !baselines[c.id] || baselines[c.id] !== JSON.stringify(payload(c));
     if (draft) {
       const candidate = remote.get(c.id);
       if (!baselines[c.id] && candidate && c.updated_at === candidate.updated_at && JSON.stringify(payload(c)) === JSON.stringify(payload(candidate))) return false;
       const newer = remote.get(c.id);
+      if (newer && mergeIncomingGrants(c,newer)) { remote.delete(c.id); return true; }
       if (newer && newer.updated_at !== c.updated_at && interactive && confirm('「'+c.avatar_name+'」云端已有新版。导出本地草稿并载入云端版？')) {
         exportCharacterJson(characters.indexOf(c)); return false;
       }
@@ -1408,21 +1471,16 @@ async function grantExperience() {
   if (currentUser?.role !== 'gm' || !target?.updated_at || target.level >= lastLevel) return;
   const button = el('ws-grant-xp');
   const amount = el('ws-xp-amount').valueAsNumber;
-  const points = experience(target).points + amount;
-  if (![amount, points].every(Number.isSafeInteger) || amount < 1)
-    return alert('经验须为正整数。');
-  const proposed = structuredClone(target);
-  proposed.sheet.experience = {points};
+  if (!Number.isSafeInteger(amount) || amount < 1) return alert('经验须为正整数。');
   button.disabled = true;
   try {
-    await persist(target,payload(proposed));
-    target.sheet.experience = proposed.sheet.experience;
-    saveLocal();
+    await sendResource(target,'experience',amount);
     el('ws-xp-amount').value = '';
     alert('已发放给 '+target.avatar_name);
-  } catch (error) { alert('发放失败：'+error.message); }
+  } catch (error) { alert('未确认发放结果，请刷新核对：'+error.message); }
   finally { updateWorkshopTargetSelect(); }
 }
+
 
 function renderAdvancements(character) {
   const marked = markedTraits(character, character.level);
@@ -1435,10 +1493,12 @@ function renderAdvancements(character) {
   const log = el('advancements-container');
   log.replaceChildren();
   for (const [level, choices] of Object.entries(character.sheet.levelAdvancements ?? {})) {
+    if (!choices.length) continue;
     const line = document.createElement('p');
     line.textContent = `${level} 级 · ${choices.map(key => advancementOptions[key]?.[0] ?? key).join('、')}`;
     log.append(line);
   }
+  log.closest('.levelup-bottom-bar').hidden = !log.childElementCount;
 }
 
 function standardRewards(tier) {
@@ -2395,7 +2455,7 @@ function updateWorkshopTargetSelect() {
     const invCount = (c.sheet.inventoryItems || []).length;
     const equippedCards = (c.sheet.equippedDomainCards || []).length;
     const vaultCards = (c.sheet.customDomainCards || []).length;
-    meta.textContent = '背包 '+invCount+' 件 · 随身卡 '+equippedCards+'/5 · 秘藏 '+vaultCards+' 张';
+    meta.textContent = '累计经验 '+experience(c).points.toLocaleString('zh-CN')+' · 背包 '+invCount+' 件 · 随身卡 '+equippedCards+'/5 · 秘藏 '+vaultCards+' 张';
   }
 }
 
@@ -2692,19 +2752,33 @@ async function deliver(index,field,item) {
   if (currentUser?.role !== 'gm' || !target?.updated_at) {
     alert('请选择已经保存到云端的角色。'); return false;
   }
-  if (field === 'customDomainCards' && target.sheet[field].some(c => cardKey(c) === cardKey(item))) {
-    alert('角色已持有这张卡。'); return false;
-  }
-  const proposed = structuredClone(target);
-  proposed.sheet[field].push(item);
-  const data = payload(proposed);
   try {
-    await persist(target,data);
-    target.sheet[field].push(item); saveLocal();
+    await sendResource(target,field,item);
     updateWorkshopTargetSelect();
     if (currentLayer === 'sheet') renderAll();
-    alert('已发放至'+target.avatar_name+'。'); return true;
-  } catch (error) { alert('发放未确认，请刷新后核对。'+error.message); return false; }
+    alert('已发放至 '+target.avatar_name+'。');
+    return true;
+  } catch (error) {
+    alert('未确认发放结果，请刷新核对：'+error.message);
+    return false;
+  }
+}
+
+async function sendResource(target,field,item) {
+  if (pendingWrites.has(target)) throw new Error('角色正在同步。');
+  pendingWrites.add(target);
+  try {
+    const remote = normalizeCharacter(await grantCharacterResource(target.id,field,item));
+    const clean = baselines[target.id] && compareSnapshot(JSON.parse(baselines[target.id]),payload(target));
+    if (clean) {
+      Object.assign(target,remote);
+      baselines[target.id] = JSON.stringify(payload(target));
+    } else mergeIncomingGrants(target,remote);
+    saveLocal();
+  } finally {
+    pendingWrites.delete(target);
+    renderSaveButton();
+  }
 }
 
 // 回显载入物品进入编辑状态

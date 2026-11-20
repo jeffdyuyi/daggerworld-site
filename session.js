@@ -105,6 +105,14 @@ export async function saveCharacter(character, record) {
   return response[0];
 }
 
+export async function grantCharacterResource(id, kind, resource) {
+  const session = await activeSession();
+  return jsonRequest('/rest/v1/rpc/grant_character_resource', {
+    method:'POST',
+    body:JSON.stringify({target_id:id,resource_kind:kind,resource}),
+  }, session.access_token);
+}
+
 export async function deleteCharacter(record) {
   const session = await activeSession();
   const rows = await jsonRequest('/rest/v1/characters?select=id&id=eq.'+encodeURIComponent(record.id)+'&updated_at=eq.'+encodeURIComponent(record.updated_at), {
@@ -126,4 +134,14 @@ export async function writeGmNote(id,body,prior) {
     body:JSON.stringify({character_id:id,body,updated_at:new Date().toISOString()})
   },session.access_token);
   if (!rows.length) throw new Error('私记已更新，请重新打开。');
+}
+export async function appearanceSession(owner) {
+  const session = await activeSession();
+  if (session.owner !== owner) throw new Error('登录账号已变更。');
+  return {base,key,token:session.access_token};
+}
+
+export async function appearanceRequest(owner,path,options = {}) {
+  const {token} = await appearanceSession(owner);
+  return jsonRequest(path,options,token);
 }
