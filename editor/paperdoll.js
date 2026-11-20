@@ -122,9 +122,86 @@ export function appearanceDefaults(sheet) {
   };
 }
 
-function speciesLayer(ctx, kind, look, behind) {
-  ctx.save();
-  ctx.scale(2,2);
+// Original 1px sprites on the same 64×64 grid as the LPC body.
+const creatureHeads = {
+  猫族: [
+    '##..................##',
+    '#h#................#h#',
+    '#hh#..............#hh#',
+    '#hss##############ssh#',
+    '#hssssssssssssssssssh#',
+    '#ssssssddd.dddsssssss#',
+    '#ssssssssssssssssssss#',
+    '#sss##ssssssss##sssss#',
+    '#sss#essssssss#esssss#',
+    '#sssssssllllsssssssss#',
+    '##lssslll##lllssslss##',
+    '.#llllll####llllll##.',
+    '..##lll##ll##llll##..',
+    '....####llll####....',
+    '.......######.......',
+  ],
+  猿族: [
+    '.......########.......',
+    '.....##dddddddd##.....',
+    '....#dddddddddddd#....',
+    '..###dddssssssddd###..',
+    '.#ss#ddssssssssdd#ss#.',
+    '#shs#dss######ssd#shs#',
+    '#hhs#ss#esssse#ss#shh#',
+    '.#ss#ssssssssssss#ss#.',
+    '..###ssssllssssss###..',
+    '...#ssssllllllllsss#..',
+    '...#ssslll#ll#llsss#..',
+    '...#ssllllllllllsss#..',
+    '....#ssll####llss##...',
+    '.....##ssssssss##.....',
+    '.......########.......',
+  ],
+  龙人: [
+    '..#................#..',
+    '..##..............##..',
+    '...#l#..........#l#...',
+    '...#ll#........#ll#...',
+    '....#l##########l#....',
+    '..###ssdssssddsss###..',
+    '.##ddssdssssddssdd##.',
+    '#lddsss##ss##sssddl#',
+    '.##dsss#ess#esssd##.',
+    '..##ssssssssssss##..',
+    '...#sss########sss#.',
+    '...#ss#ssssssss#ss#.',
+    '....##sss#ss#sss##..',
+    '....#lllsssslllll#..',
+    '....#l##########l#..',
+    '.....#llllllllll#...',
+    '......##########....',
+  ],
+};
+
+function drawCreatureHead(ctx, kind, skin) {
+  const palette = { '#':'#2d2330', s:skin, d:shadeSkin(skin,-42),
+    l:shadeSkin(skin,72), h:'#ab6760', e:kind === '猫族' ? '#f2ce62' : kind === '龙人' ? '#f3a654' : '#e7c99f' };
+  creatureHeads[kind].forEach((row,index) => {
+    const left = 32-Math.floor(row.length/2);
+    row.replaceAll('.', ' ').split('').forEach((pixel,column) => {
+      if (!palette[pixel]) return;
+      ctx.fillStyle = palette[pixel];
+      ctx.fillRect(left+column, (kind === '龙人' ? 14 : 16)+index, 1, 1);
+    });
+  });
+}
+
+function shadeSkin(color, amount) {
+  const channels = color.slice(1).match(/../g).map(hex => Math.max(0,Math.min(255,parseInt(hex,16)+amount)));
+  return 'rgb('+channels.join(',')+')';
+}
+
+function speciesLayer(destination, kind, look, behind) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+
   const polygon = (color, points) => {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -168,33 +245,38 @@ function speciesLayer(ctx, kind, look, behind) {
         mirror('#47303a',look.horns === 'curl' ? [[27,20],[19,19],[16,15],[17,9],[21,8],[23,11],[20,12],[20,15],[27,15]] : [[26,20],[19,18],[17,8],[21,11],[26,13]]);
         mirror('#ae7e77',look.horns === 'curl' ? [[22,16],[19,16],[18,13],[19,10],[20,10],[19,14]] : [[20,16],[19,11],[24,15]]);
         break;
-      case '龙人':
-      case '蛙裔':
-      case '龟人':
       case '猫族':
-      case '猿族': {
-        const cat=kind==='猫族', frog=kind==='蛙裔', dragon=kind==='龙人', ape=kind==='猿族';
-        polygon(ink,[[20,19],[cat?18:23,cat?10:15],[28,17],[36,17],[cat?46:41,cat?10:15],[44,20],[frog?48:45,25],[45,32],[39,36],[25,36],[19,32],[frog?16:19,25]]);
-        polygon(skin,[[22,20],[cat?20:24,cat?14:17],[29,19],[35,19],[cat?44:40,cat?14:17],[42,21],[frog?46:43,26],[43,31],[38,34],[26,34],[21,31],[frog?18:21,26]]);
+      case '猿族':
+      case '龙人':
+        drawCreatureHead(ctx,kind,skin);
+        if (kind === '猿族') {
+          mirror(shadeSkin(skin,-25),[[18,38],[21,41],[21,48],[18,51],[15,48],[15,43]]);
+          mirror(skin,[[18,43],[20,45],[20,48],[18,49],[16,47],[16,45]]);
+        } else if (kind === '猫族') {
+          mirror(shadeSkin(skin,65),[[17,44],[21,44],[22,47],[20,48],[16,48]]);
+        } else {
+          mirror(shadeSkin(skin,-42),[[17,41],[21,42],[22,46],[20,48],[17,47],[15,45]]);
+          mirror('#dbc48f',[[16,45],[18,45],[18,47],[17,48]]);
+        }
+        break;
+      case '蛙裔':
+      case '龟人': {
+        const frog=kind==='蛙裔';
+        polygon(ink,[[20,19],[23,15],[28,17],[36,17],[41,15],[44,20],[frog?48:45,25],[45,32],[39,36],[25,36],[19,32],[frog?16:19,25]]);
+        polygon(skin,[[22,20],[24,17],[29,19],[35,19],[40,17],[42,21],[frog?46:43,26],[43,31],[38,34],[26,34],[21,31],[frog?18:21,26]]);
         if (frog) mirror(skin,[[19,41],[22,44],[21,47],[17,48],[14,47],[16,45]]);
-        if (ape) mirror(skin,[[20,41],[22,45],[21,49],[18,51],[15,49],[16,46]]);
-        if (cat || dragon) mirror('#eaddbf',[[18,44],[17,48],[18,49],[20,46],[21,49],[22,46]]);
-        if (frog || ape) mirror(skin,[[23,20],[19,19],[17,23],[19,27],[23,25]]);
-        if (dragon) mirror('#dbc48f',[[25,20],[19,17],[18,11],[22,13],[26,17]]);
-        if (cat) mirror('#e9ac99',[[21,16],[24,17],[22,20]]);
-        rect('#f0cd98',dragon?23:25,28,dragon?18:14,5);
+        if (frog) mirror(skin,[[23,20],[19,19],[17,23],[19,27],[23,25]]);
+        rect('#f0cd98',25,28,14,5);
         mirror(ink,[[24,23],[28,23],[28,26],[24,26]]);
-        if (cat || ape || dragon) rect(ink,30,28,4,2);
         rect(ink,27,32,10,1);
-        if (cat || dragon) mirror('#eaddbf',[[23,29],[18,27],[20,30],[23,31]]);
         break;
       }
     }
   }
-  ctx.restore();
+  destination.drawImage(canvas,0,0,128,128);
 }
 
-function drawSkin(ctx, image, color) {
+function drawSkin(ctx, image, color, replaceHead) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 64;
   const skin = canvas.getContext('2d');
@@ -207,6 +289,7 @@ function drawSkin(ctx, image, color) {
     for(let channel=0;channel<3;channel++) data.data[i+channel]=rgb[channel]+shade;
   }
   skin.putImageData(data,0,0);
+  if (replaceHead) skin.clearRect(0,0,64,29);
   ctx.drawImage(canvas,0,0,128,128);
 }
 const hairVariants = { brown: 'hair', black: 'hairDark', gold: 'hairGold', gray: 'hairGray' };
@@ -267,7 +350,7 @@ export async function paintPaperdoll(canvas, sheet, suitActive) {
   const look = appearanceDefaults(sheet);
   layers.forEach(({ flip, kind, behind, skin }, index) => {
     if (!loaded[index]) { speciesLayer(ctx,kind,look,behind); return; }
-    if (skin) { drawSkin(ctx,loaded[index],skin); return; }
+    if (skin) { drawSkin(ctx,loaded[index],skin,Boolean(creatureHeads[speciesOf(sheet)])); return; }
     ctx.save();
     if (flip) {
       ctx.translate(128, 0);
