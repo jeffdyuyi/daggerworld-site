@@ -1,5 +1,5 @@
 import { slotMatches, totalGearEffects } from './gear-effects.js';
-import { traits, tierForLevel } from './sheet-rules.js';
+import { traits, tierForLevel, rulesLevel } from './sheet-rules.js';
 
 const integer = value => Number.isSafeInteger(Number(value)) ? Number(value) : 0;
 const legacy = { armor:'armorLimitAdjustment', proficiency:'proficiencyAdjustment', evasion:'evasionAdjustment' };
@@ -14,7 +14,7 @@ export function sheetStats(character, job, capacity) {
     (s.advancements ?? []).filter(x => typeof x === 'string' && (x === key || (['hp','stress'].includes(key) && x.startsWith(key)))).length;
   const innate = {...s.attributes, hp: integer(job?.生命点 || 6)+count('hp'), stress:6+count('stress'),
     evasion:integer(job?.闪避值)+count('evasion'), proficiency:tierForLevel(level)+count('prof'),
-    armor:0, major:level, severe:level*2};
+    armor:0, major:rulesLevel(level), severe:rulesLevel(level)*2};
   const seen = new Set();
   let suitItem = null;
   for (const [slot,item] of Object.entries(s.equipment ?? {})) {

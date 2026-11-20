@@ -5,8 +5,16 @@ export const traits = {
 export const startingModifiers = [-1, 0, 0, 1, 1, 2];
 
 export function tierForLevel(level) {
-  return 1 + [2, 5, 8].filter(milestone => level >= milestone).length;
+  return 1 + [3, 9, 15].filter(milestone => level >= milestone).length;
 }
+
+export const experienceThresholds = [
+  0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000,
+  85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000,
+];
+export const lastLevel = experienceThresholds.length;
+export const rulesLevel = level => Math.ceil(level / 2);
+export const advancementCost = key => (key === 'prof' || key === 'multiclass') ? 2 : 1;
 
 export function damageDice(expression, proficiency) {
   if (!expression) return '';
@@ -39,12 +47,12 @@ export function recallCost(card) {
 }
 
 export function unspentCardLevels(level, ownedCards, advancementSlots) {
-  const limits = [1, ...Array.from({ length: level }, (_, index) => index + 1)];
+  const limits = [1, ...Array.from({ length: rulesLevel(level) }, (_, index) => index + 1)];
   for (const [atLevel, slots] of Object.entries(advancementSlots ?? {})) {
     if (Number(atLevel) > level) continue;
     for (const slot of slots) {
       const [tier, option] = slot.split(':');
-      if (option === 'domain') limits.push(Math.min(Number(atLevel), [0, 1, 4, 7, 10][Number(tier)] ?? 0));
+      if (option === 'domain') limits.push(Math.min(rulesLevel(Number(atLevel)), [0, 1, 4, 7, 10][Number(tier)] ?? 0));
     }
   }
   limits.sort((a, b) => a - b);

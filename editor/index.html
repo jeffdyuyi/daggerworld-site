@@ -183,7 +183,7 @@
       <div class="level-control">
         <button class="stepper-btn" id="lvl-down" title="降级">-</button>
         <span>等级</span>
-        <span id="xp-progress" aria-live="polite"></span><button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button>
+        <span id="xp-progress" aria-live="polite"></span><button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button> <button type="button" class="dw-btn" id="allocate-points" hidden>分配升级点</button>
       </div>
     </div>
 
@@ -869,8 +869,8 @@
         <select id="ws-target-char-select" class="dw-select ws-target-select" title="选择受赐角色">
           <!-- Populated with all characters -->
         </select>
-        <label>经验 <input id="ws-xp-amount" class="dw-input" type="number" min="0" step="1" value="0"></label>
-        <label>本级升级需求 <input id="ws-xp-required" class="dw-input" type="number" min="1" step="1"></label>
+        <label>经验 <input id="ws-xp-amount" class="dw-input" type="number" min="1" step="1"></label>
+        <span id="ws-xp-required"></span>
         <button type="button" class="dw-btn" id="ws-grant-xp">发放经验</button>
         <div class="ws-target-char-meta" id="ws-target-char-meta">
           <!-- Slot count & badge -->
@@ -947,10 +947,10 @@
             <div class="f-select-group">
               <label>位阶</label>
               <select id="ws-item-tier" class="dw-select">
-                <option value="1">T1 · 1级</option>
-                <option value="2">T2 · 2–4级</option>
-                <option value="3">T3 · 5–7级</option>
-                <option value="4">T4 · 8–10级</option>
+                <option value="1">T1 · 1–2级</option>
+                <option value="2">T2 · 3–8级</option>
+                <option value="3">T3 · 9–14级</option>
+                <option value="4">T4 · 15–20级</option>
               </select>
             </div>
             <div class="f-select-group ws-col-span-2">
@@ -1035,7 +1035,7 @@
               </select>
             </div>
             <div class="f-select-group">
-              <label>法术等级 (1-10级)</label>
+              <label>卡牌等级（1–10）</label>
               <input type="number" id="ws-card-level" class="dw-input" value="1" min="1" max="10">
             </div>
             <div class="f-select-group">
@@ -1213,7 +1213,8 @@
   <dialog id="level-dialog" class="level-dialog">
     <h2 id="level-dialog-title">升级</h2>
     <p>选择两项升级。</p>
-    <div id="level-options"></div>
+    <p id="level-budget"></p>
+      <div id="level-options"></div>
     <fieldset id="level-trait-options" hidden aria-label="提升属性"></fieldset>
     <fieldset id="level-multiclass-options" hidden>
       <legend>兼职</legend>

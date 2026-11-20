@@ -1,6 +1,6 @@
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula } from './gear-effects.js';
-import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels } from './sheet-rules.js';
+import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
 import { readGmNote, writeGmNote, loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
 import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken, appearanceDefaults } from './paperdoll.js';
 
@@ -880,7 +880,7 @@ function renderAll() {
   renderAdjustments(c, stats);
   el('stat-proficiency').textContent = stats.totalProf;
   const tier = tierForLevel(c.level);
-  el('cur-tier-tag').textContent = `位阶 ${tier} · ${['1', '2–4', '5–7', '8–10'][tier - 1]} 级`;
+  el('cur-tier-tag').textContent = `位阶 ${tier} · ${['1–2', '3–8', '9–14', '15–20'][tier - 1]} 级`;
   renderAdvancements(c);
 
   // 3. Equipment Loadout Slots
@@ -1208,11 +1208,11 @@ function renderDomainCards() {
     const filtered = catalog.filter(card => (!filter.value || card.领域 === filter.value)
       && (!keyword || card.名称?.toLowerCase().includes(keyword)));
     el('domain-catalog').replaceChildren(...filtered.map(card => {
-      const maxLevel = domains.includes(card.领域) ? character.level
-        : card.领域 === sheet.multiclass?.domain ? Math.ceil(character.level / 2) : 0;
+      const maxLevel = domains.includes(card.领域) ? rulesLevel(character.level)
+        : card.领域 === sheet.multiclass?.domain ? Math.ceil(rulesLevel(character.level) / 2) : 0;
       const eligible = cardLevel(card) <= maxLevel && !ownedKeys.has(cardKey(card));
       const replaceable = [...equipped, ...vault].filter(old => !grants.has(cardKey(old)) && cardLevel(old) >= cardLevel(card));
-      const canReplace = eligible && !sheet.domainExchanges?.[character.level] && character.level > 1 && replaceable.length;
+      const canReplace = eligible && !sheet.domainExchanges?.[rulesLevel(character.level)] && rulesLevel(character.level) > 1 && replaceable.length;
       return domainCard(card, eligible && openLevels.some(level => level >= cardLevel(card)) ? 'learn' : canReplace ? 'replace' : 'reference',
         character, ownedKeys.has(cardKey(card)), replaceable);
     }));
@@ -1276,11 +1276,11 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
       sheet.vaultDomainCards = swapped ? uniqueCards([...vault, swapped]) : vault;
       sheet.equippedDomainCards = [...active.filter(item => item !== swapped), card];
     } else if (action === 'replace') {
-      if (!exchange.value || sheet.domainExchanges?.[character.level]) return;
+      if (!exchange.value || sheet.domainExchanges?.[rulesLevel(character.level)]) return;
       if (!confirm(`用「${exchange.selectedOptions[0].textContent}」交换「${card.名称}」？`)) return;
       sheet.equippedDomainCards = sheet.equippedDomainCards.filter(item => cardKey(item) !== exchange.value);
       sheet.vaultDomainCards = uniqueCards([...sheet.vaultDomainCards.filter(item => cardKey(item) !== exchange.value), card]);
-      sheet.domainExchanges = { ...sheet.domainExchanges, [character.level]: true };
+      sheet.domainExchanges = { ...sheet.domainExchanges, [rulesLevel(character.level)]: true };
     } else if (sheet.equippedDomainCards.length < 5) {
       sheet.equippedDomainCards.push(card);
     } else {
@@ -1392,32 +1392,31 @@ function markedTraits(character, targetLevel) {
 
 function experience(character) {
   const entry = character.sheet.experience;
-  return { points: entry?.points ?? 0, required: entry?.level === character.level ? entry.required : null };
+  return { points: entry?.points ?? 0, required: experienceThresholds[character.level] };
 }
 
 function canLevelUp(character) {
   const {points,required} = experience(character);
-  return character.level < 10 && required > 0 && points >= required;
+  return character.level < lastLevel && required > 0 && points >= required;
 }
 
 async function grantExperience() {
   const target = characters[workshopState.targetCharIndex];
-  if (currentUser?.role !== 'gm' || !target?.updated_at || target.level >= 10) return;
+  if (currentUser?.role !== 'gm' || !target?.updated_at || target.level >= lastLevel) return;
   const button = el('ws-grant-xp');
   const amount = el('ws-xp-amount').valueAsNumber;
-  const required = el('ws-xp-required').valueAsNumber;
   const points = experience(target).points + amount;
-  if (![amount,required,points].every(Number.isSafeInteger) || amount < 0 || required < 1)
-    return alert('经验须为非负整数，升级需求须为正整数。');
+  if (![amount, points].every(Number.isSafeInteger) || amount < 1)
+    return alert('经验须为正整数。');
   const proposed = structuredClone(target);
-  proposed.sheet.experience = {points,required,level:target.level};
+  proposed.sheet.experience = {points};
   button.disabled = true;
   try {
     await persist(target,payload(proposed));
     target.sheet.experience = proposed.sheet.experience;
     saveLocal();
     el('ws-xp-amount').value = '';
-    alert(amount ? '已发放给 '+target.avatar_name : '已更新升级需求。');
+    alert('已发放给 '+target.avatar_name);
   } catch (error) { alert('发放失败：'+error.message); }
   finally { updateWorkshopTargetSelect(); }
 }
@@ -1428,8 +1427,10 @@ function renderAdvancements(character) {
     input.checked = marked.has(input.dataset.traitMark);
   });
   el('lvl-up').hidden = !canLevelUp(character);
+  el('allocate-points').hidden = !(character.level >= 3 && (character.sheet.advancementPoints ?? 0) > 0);
+  el('allocate-points').textContent = '分配升级点 · '+(character.sheet.advancementPoints ?? 0);
   const {points,required} = experience(character);
-  el('xp-progress').textContent = character.level >= 10 ? '已满级' : required ? '经验 '+points+' / '+required : '经验 '+points;
+  el('xp-progress').textContent = character.level >= lastLevel ? '已满级' : required ? '经验 '+points+' / '+required : '经验 '+points;
   el('lvl-down').hidden = currentUser?.role !== 'gm';
   const log = el('advancements-container');
   log.replaceChildren();
@@ -1440,12 +1441,14 @@ function renderAdvancements(character) {
   }
 }
 
-function advanceCharacter() {
+function advanceCharacter(levelUp = true) {
   const character = curChar();
-  if (!character || !canLevelUp(character)) return;
+  if (!character || (levelUp && !canLevelUp(character))) return;
   const proposed = structuredClone(character);
   const sheet = proposed.sheet;
-  const level = character.level + 1;
+  const startingLevel = character.level;
+  const level = startingLevel + Number(levelUp);
+  const budget = (sheet.advancementPoints ?? 0) + Number(levelUp);
   const tier = tierForLevel(level);
   const usedSlots = Object.values(sheet.levelAdvancementSlots ?? {}).flat();
   const dialog = el('level-dialog');
@@ -1504,13 +1507,17 @@ function advanceCharacter() {
     multiclassFields.hidden = !chosenSlots().some(slot => slot.endsWith(':multiclass'));
   };
   traitChoices.hidden = true;
-  el('level-dialog-title').textContent = `升至 ${level} 级 · T${tier}`;
+  el('level-budget').textContent = '可用 '+budget+' 点。未使用的点数可保留。';
+  el('level-dialog-title').textContent = (levelUp ? `升至 ${level} 级` : '分配升级点') + ' · T'+tier;
   el('level-dialog-save').onclick = async () => {
-    if (curChar() !== character || !canLevelUp(character) || character.level + 1 !== level || pendingWrites.has(character)) return;
+    if (curChar() !== character || character.level !== startingLevel || (levelUp && !canLevelUp(character)) || pendingWrites.has(character)) return;
     const slots = chosenSlots();
     const choices = slots.map(slot => slot.split(':')[1]);
-    const cost = choices.reduce((total, key) => total + (key === 'prof' || key === 'multiclass' ? 2 : 1), 0);
-    if (cost !== 2) return alert('请选择合计两项的升级选项。');
+    const cost = choices.reduce((total,key) => total + advancementCost(key),0);
+    if (cost > budget || (!levelUp && !cost)) return alert('请选择可用点数内的升级选项。');
+    if (choices.filter(key => key === 'multiclass').length > 1 ||
+        slots.some(slot => slot.endsWith(':multiclass') && slots.includes(slot.replace(':multiclass',':subclass'))))
+      return alert('兼职只能选择一次，且同一位阶的兼职与子职业升级互斥。');
     const selectedTraits = [...traitChoices.querySelectorAll('input:checked')].map(input => input.value);
     if (choices.includes('traits') && selectedTraits.length !== choices.filter(key => key === 'traits').length * 2) {
       return alert('每项属性提升须选择两项未标记属性。');
@@ -1526,7 +1533,7 @@ function advanceCharacter() {
     const sheet = proposed.sheet;
     if (choices.includes('traits')) {
       for (const key of selectedTraits) sheet.attributes[key]++;
-      sheet.levelTraitMarks = { ...sheet.levelTraitMarks, [level]: selectedTraits };
+      sheet.levelTraitMarks = { ...sheet.levelTraitMarks, [level]: [...(sheet.levelTraitMarks?.[level] ?? []),...selectedTraits] };
       for (const key of selectedTraits) delete sheet.traitMarkOverrides?.[tier]?.[key];
     }
     if (choices.includes('subclass')) {
@@ -1535,11 +1542,10 @@ function advanceCharacter() {
     if (choices.includes('multiclass')) {
       sheet.multiclass = { classId: secondClass.value, domain: secondDomain.value, subclassId: secondSubclass.value };
     }
-    sheet.levelAdvancements = { ...sheet.levelAdvancements, [level]: choices };
-    sheet.levelAdvancementSlots = { ...sheet.levelAdvancementSlots, [level]: slots };
-    const xp = experience(character);
+    sheet.levelAdvancements = { ...sheet.levelAdvancements, [level]: [...(sheet.levelAdvancements?.[level] ?? []),...choices] };
+    sheet.levelAdvancementSlots = { ...sheet.levelAdvancementSlots, [level]: [...(sheet.levelAdvancementSlots?.[level] ?? []),...slots] };
+    sheet.advancementPoints = budget-cost;
     proposed.level = level;
-    sheet.experience = {points:xp.points-xp.required};
     const button = el('level-dialog-save');
     button.disabled = true;
     try {
@@ -1598,6 +1604,7 @@ function renderAdjustments(character, stats) {
 function setupEventListeners() {
   // Steppers: Level
   el('ws-grant-xp').onclick = grantExperience;
+  el('allocate-points').onclick = () => advanceCharacter(false);
   el('lvl-up').addEventListener('click', () => {
     advanceCharacter();
   });
@@ -2268,8 +2275,8 @@ function updateWorkshopTargetSelect() {
   if (!sel) return;
 
   const target = characters[workshopState.targetCharIndex] ?? characters[0];
-  el('ws-grant-xp').disabled = !target?.updated_at || target.level >= 10;
-  el('ws-xp-required').value = target ? experience(target).required ?? '' : '';
+  el('ws-grant-xp').disabled = !target?.updated_at || target.level >= lastLevel;
+  el('ws-xp-required').textContent = target && target.level < lastLevel ? '下一级 '+experience(target).required.toLocaleString('zh-CN')+' 经验' : '';
 
   for (const button of document.querySelectorAll('[data-action="dispatch"]')) {
     button.disabled = !target?.updated_at;
@@ -3133,6 +3140,7 @@ function importCharacterJson(e) {
       if (!imported.sheet) throw new Error('无效的角色卡格式');
       delete imported.updated_at; delete imported.owner_id; delete imported.notes;
       delete imported.sheet.experience;
+      delete imported.sheet.advancementPoints;
       imported.id = 'imported_' + Date.now();
       characters.push(normalizeCharacter(imported));
       activeCharIndex = characters.length - 1;
