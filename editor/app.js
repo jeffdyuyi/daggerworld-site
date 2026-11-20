@@ -1,8 +1,9 @@
+import {setupAdventureBoard} from './adventure-board.js?v=20261121-board1';
 import {livePaperdollEnabled, showCharacterOutline} from './appearance-preview.js?v=20261121-body1';
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
-import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-boot1';
+import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-board1';
 import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
 // Global App State
@@ -241,7 +242,7 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
         satchel_2: null
       },
       inventoryItems: [],
-      currency: { handfuls: 0, bags: 0, chests: 0 },
+      currency: { handfuls: 0, bags: 0, chests: 0, diamonds: 0 },
       equippedDomainCards: [],
       vaultDomainCards: [],
       customDomainCards: []
@@ -327,7 +328,7 @@ function curChar() {
 // Application Initialization
 async function init() {
   if (!readSession()?.owner) { location.replace("../account.html"); return; }
-  setupTabs();
+  setupTabs(setupAdventureBoard());
   setupSlotIcons();
   setupCreationWizard();
   setupEventListeners();
@@ -415,7 +416,7 @@ function compareSnapshot(left,right) {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
-const grantFields = ['experience','inventoryItems','customDomainCards'];
+const grantFields = ['experience','inventoryItems','customDomainCards','specialEffects'];
 function mergeIncomingGrants(character, remote) {
   const baseline = baselines[character.id];
   if (!baseline || character.updated_at === remote.updated_at) return false;
@@ -429,13 +430,13 @@ function mergeIncomingGrants(character, remote) {
 
   const additions = {};
   for (const key of grantFields.slice(1)) {
-    const before = previous.sheet[key];
-    const after = remote.sheet[key];
+    const before = previous.sheet[key] ?? [];
+    const after = remote.sheet[key] ?? [];
     if (!compareSnapshot(before,after.slice(0,before.length)) || after.length < before.length) return false;
     additions[key] = after.slice(before.length);
   }
   for (const key of grantFields.slice(1)) {
-    const combined = character.sheet[key].slice();
+    const combined = (character.sheet[key] ?? []).slice();
     for (const item of additions[key]) {
       if (key === 'customDomainCards' && combined.some(card => cardKey(card) === cardKey(item))) continue;
       combined.push(item);
@@ -553,7 +554,7 @@ function setupSlotIcons() {
 }
 
 // Setup Tab Navigation
-function setupTabs() {
+function setupTabs(refreshAdventureBoard) {
   const tabs = document.querySelectorAll('.tab-btn');
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -565,6 +566,7 @@ function setupTabs() {
       const page = el(pageId);
       if (page) page.classList.add('active');
       if (btn.dataset.page === 'skills') renderDomainCards();
+      if (btn.dataset.page === 'adventure') void refreshAdventureBoard();
     });
   });
 }
@@ -574,14 +576,10 @@ function populateSelectOptions() {
   if (!db) return;
 
   const selAncestry = el('fn-select-ancestry');
-  const selComm = el('fn-select-community');
   const selClass = el('fn-select-class');
 
   if (selAncestry && db.ancestries) {
     selAncestry.innerHTML = db.ancestries.map(a => `<option value="${a.ID}">${a.名称}</option>`).join('');
-  }
-  if (selComm && db.communities) {
-    selComm.innerHTML = '<option value="">未登记</option>' + db.communities.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
   }
   if (selClass && db.classes) {
     selClass.innerHTML = db.classes.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
@@ -598,6 +596,7 @@ function populateSelectOptions() {
   if (newCls && db.classes) {
     newCls.innerHTML = db.classes.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
   }
+  newCls.refreshStartingCards?.();
   updateCreatorSubclassOptions();
   updateCreatorAncestryPreview();
   updateCreatorClassPreview();
@@ -797,6 +796,11 @@ function previewAppearance() {
   setAppearanceFrame('creator-paperdoll', {sheet:{ancestryId:el('new-char-ancestry').value,bodyShape:el('new-char-body-shape').value}});
 }
 
+function startingCards(job) {
+  const domains = (job?.领域 ?? '').split(/[+、,，]/).map(name => name.trim());
+  return uniqueCards(db?.domain_cards ?? []).filter(card => cardLevel(card) === 1 && domains.includes(card.领域));
+}
+
 function setupCreationWizard() {
   el('new-char-body-shape').addEventListener('change',previewAppearance);
   const genderPills = document.querySelectorAll('#gender-selector .gender-pill');
@@ -836,6 +840,25 @@ function setupCreationWizard() {
     el('creator-attribute-grid').append(row);
     return [key,select];
   });
+  const cardSelectors = ['第一张','第二张'].map(label => {
+    const row = document.createElement('label');
+    const select = document.createElement('select');
+    select.className = 'creator-select';
+    row.append(label,select);
+    el('creator-domain-grid').append(row);
+    return select;
+  });
+  function refreshStartingCards() {
+    const job = db?.classes?.find(item => item.ID === selCls.value);
+    const cards = startingCards(job);
+    cardSelectors.forEach(select => {
+      const prior = select.value;
+      select.replaceChildren(new Option('请选择',''),...cards.map(card => new Option(card.名称+' · '+card.领域,cardKey(card))));
+      if (cards.some(card => cardKey(card) === prior)) select.value = prior;
+    });
+  }
+  selCls.addEventListener('change',refreshStartingCards);
+  el('new-char-class').refreshStartingCards = refreshStartingCards;
   const error = el('creator-error');
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -858,6 +881,13 @@ function setupCreationWizard() {
     const character = createDefaultCharacter(name,genderHidden.value,ancestry.ID,job.ID,subclass.ID);
     const bodyShape = el('new-char-body-shape').value;
     if (bodyShape) character.sheet.bodyShape = bodyShape;
+    const selectedCards = cardSelectors.map(select => startingCards(job).find(card => cardKey(card) === select.value));
+    if (selectedCards.some(card => !card) || cardKey(selectedCards[0]) === cardKey(selectedCards[1])) {
+      error.textContent = '请选择两张不同的 1 级职业领域卡。';
+      return;
+    }
+    character.sheet.equippedDomainCards = selectedCards;
+    cardSelectors.forEach(select => { select.value = ''; });
     character.sheet.attributes = attributes;
     character.sheet.hp.cur = character.sheet.hp.max = Number(job.生命点) || 6;
 
@@ -975,11 +1005,6 @@ function renderAll() {
   el('threshold-a').textContent = stats.majorThreshold;
   el('threshold-b').textContent = stats.severeThreshold;
   el('threshold-c').textContent = stats.lethalThreshold;
-  el('stress-condition').hidden = current.stress < stats.maxStress;
-  el('death-condition').hidden = current.hp > 0;
-  for (const condition of ['vulnerable', 'restrained', 'hidden']) {
-    el('condition-' + condition).checked = Boolean(s.conditions?.[condition]);
-  }
 
   // Thresholds Dashboard Readout
   el('stat-armor-score').textContent = stats.baseArmor;
@@ -1148,17 +1173,13 @@ function renderFoundations(clsObj) {
   const c = curChar();
   const s = c.sheet;
   const canViewCommunity = currentUser?.role === 'gm';
-  el('gm-community-field').hidden = !canViewCommunity;
-  el('gm-community-feature').hidden = !canViewCommunity;
 
 
   if (el('fn-char-name')) el('fn-char-name').value = c.avatar_name || '';
   if (s.ancestryId && el('fn-select-ancestry')) el('fn-select-ancestry').value = s.ancestryId;
-  if (el('fn-select-community')) el('fn-select-community').value = s.communityId;
   if (s.classId && el('fn-select-class')) el('fn-select-class').value = s.classId;
   updateSubclassOptions();
   if (s.subclassId && el('fn-select-subclass')) el('fn-select-subclass').value = s.subclassId;
-  el('player-notes').value = s.journal || '';
   el('gm-notes-panel').hidden = !canViewCommunity || !c.updated_at;
   if (el('gm-note-dialog').open) el('gm-note-dialog').close();
 
@@ -1178,7 +1199,6 @@ function renderFoundations(clsObj) {
   const lockedInputs = [
     el('fn-char-name'),
     el('fn-select-ancestry'),
-    el('fn-select-community'),
     el('fn-select-class'),
     el('fn-select-subclass')
   ];
@@ -1258,12 +1278,22 @@ function renderFoundations(clsObj) {
   }
 
   // Community
-  const comm = db?.communities?.find(cm => cm.ID === s.communityId);
-  el('fn-community-title').textContent = '社群';
-  el('fn-community-desc').textContent = '未登记';
-  if (comm) {
-    el('fn-community-title').textContent = comm.名称;
-    el('fn-community-desc').innerHTML = renderMarkdown(comm.描述 || comm.简介 || '社群风俗');
+  const effects = el('character-effects');
+  effects.replaceChildren();
+  const names = {vulnerable:'脆弱',restrained:'束缚',hidden:'隐藏'};
+  const recorded = [...(s.specialEffects ?? [])];
+  for (const [key,name] of Object.entries(names)) {
+    if (s.conditions?.[key] && !recorded.some(effect => effect.name === name)) recorded.push({name});
+  }
+  if (!recorded.length) {
+    const empty = document.createElement('li');
+    empty.textContent = '无特殊效果';
+    effects.append(empty);
+  }
+  for (const effect of recorded) {
+    const row = document.createElement('li');
+    row.textContent = effect.description ? effect.name+' · '+effect.description : effect.name;
+    effects.append(row);
   }
 }
 
@@ -1312,13 +1342,8 @@ function renderDomainCards() {
     const filtered = catalog.filter(card => (!filter.value || card.领域 === filter.value)
       && (!keyword || card.名称?.toLowerCase().includes(keyword)));
     el('domain-catalog').replaceChildren(...filtered.map(card => {
-      const maxLevel = domains.includes(card.领域) ? rulesLevel(character.level)
-        : card.领域 === sheet.multiclass?.domain ? Math.ceil(rulesLevel(character.level) / 2) : 0;
-      const eligible = cardLevel(card) <= maxLevel && !ownedKeys.has(cardKey(card));
-      const replaceable = [...equipped, ...vault].filter(old => !grants.has(cardKey(old)) && cardLevel(old) >= cardLevel(card));
-      const canReplace = eligible && !sheet.domainExchanges?.[rulesLevel(character.level)] && rulesLevel(character.level) > 1 && replaceable.length;
-      return domainCard(card, eligible && openLevels.some(level => level >= cardLevel(card)) ? 'learn' : canReplace ? 'replace' : 'reference',
-        character, ownedKeys.has(cardKey(card)), replaceable);
+      return domainCard(card,currentUser?.role === 'gm' && !ownedKeys.has(cardKey(card)) && character.updated_at ? 'grant' : 'reference',
+        character,ownedKeys.has(cardKey(card)));
     }));
   }
   filter.addEventListener('change', renderCatalog);
@@ -1326,7 +1351,7 @@ function renderDomainCards() {
   renderCatalog();
 }
 
-function domainCard(card, action, character, owned = false, replaceable = []) {
+function domainCard(card, action, character, owned = false) {
   const entry = document.createElement('article');
   entry.className = 'dh-card';
   const title = document.createElement('h4');
@@ -1348,13 +1373,7 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'dw-btn dw-btn-outline';
-  button.textContent = { equipped: '移回宝库', vault: '加入配置', learn: '选择此卡', replace: '交换已获得的卡' }[action];
-  const exchange = document.createElement('select');
-  if (action === 'replace') {
-    exchange.setAttribute('aria-label', '选择交出的领域卡');
-    for (const old of replaceable) exchange.add(new Option(old.名称, cardKey(old)));
-    entry.append(exchange);
-  }
+  button.textContent = { equipped: '移回宝库', vault: '加入配置', grant: '发放此卡' }[action];
   const swap = document.createElement('select');
   if (action === 'vault' && character.sheet.equippedDomainCards.length >= 5) {
     swap.setAttribute('aria-label', '选择移回宝库的卡');
@@ -1379,21 +1398,28 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
       const vault = sheet.vaultDomainCards.filter(item => cardKey(item) !== key);
       sheet.vaultDomainCards = swapped ? uniqueCards([...vault, swapped]) : vault;
       sheet.equippedDomainCards = [...active.filter(item => item !== swapped), card];
-    } else if (action === 'replace') {
-      if (!exchange.value || sheet.domainExchanges?.[rulesLevel(character.level)]) return;
-      if (!confirm(`用「${exchange.selectedOptions[0].textContent}」交换「${card.名称}」？`)) return;
-      sheet.equippedDomainCards = sheet.equippedDomainCards.filter(item => cardKey(item) !== exchange.value);
-      sheet.vaultDomainCards = uniqueCards([...sheet.vaultDomainCards.filter(item => cardKey(item) !== exchange.value), card]);
-      sheet.domainExchanges = { ...sheet.domainExchanges, [rulesLevel(character.level)]: true };
-    } else if (sheet.equippedDomainCards.length < 5) {
-      sheet.equippedDomainCards.push(card);
-    } else {
-      sheet.vaultDomainCards = uniqueCards([...sheet.vaultDomainCards, card]);
+    } else if (action === 'grant' && currentUser?.role === 'gm') {
+      void deliver(characters.indexOf(character),'customDomainCards',card);
+      return;
     }
     saveLocal();
     renderAll();
   });
   entry.append(button);
+  if (currentUser?.role === 'gm' && (action === 'equipped' || action === 'vault')) {
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'dw-btn dw-btn-outline';
+    remove.textContent = '移除';
+    remove.onclick = () => {
+      if (!confirm('移除「'+card.名称+'」？')) return;
+      for (const field of ['equippedDomainCards','vaultDomainCards','customDomainCards'])
+        character.sheet[field] = character.sheet[field].filter(item => cardKey(item) !== cardKey(card));
+      saveLocal();
+      renderDomainCards();
+    };
+    entry.append(remove);
+  }
   return entry;
 }
 
@@ -1472,7 +1498,7 @@ function renderInventory(stats) {
 
   // Currency
   const curr = c.sheet.currency;
-  for (const unit of ['handfuls', 'bags', 'chests']) el('coin-' + unit).value = curr[unit] ?? 0;
+  for (const unit of ['handfuls', 'bags', 'chests', 'diamonds']) el('coin-' + unit).value = curr[unit] ?? 0;
   const legacyWealth = el('legacy-wealth');
   legacyWealth.hidden = !curr.gold && !curr.dust;
   legacyWealth.textContent = '旧档记录：' + [curr.gold && `${curr.gold} 枚金币`, curr.dust && `${curr.dust} 粉末`].filter(Boolean).join(' · ');
@@ -1800,6 +1826,27 @@ function renderAdjustments(character, stats) {
 }
 function setupEventListeners() {
   // Steppers: Level
+  el('ws-grant-effect').onclick = async () => {
+    const name = el('ws-effect-name').value.trim();
+    const description = el('ws-effect-description').value.trim();
+    if (!name) return alert('请输入效果名称。');
+    const target = characters[workshopState.targetCharIndex];
+    if (currentUser?.role !== 'gm' || !target?.updated_at) return alert('请选择已保存的角色。');
+    const proposed = structuredClone(target);
+    proposed.sheet.specialEffects = [...(proposed.sheet.specialEffects ?? []),{id:crypto.randomUUID(),name,description}];
+    const button = el('ws-grant-effect');
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      await persist(target,payload(proposed));
+      target.sheet.specialEffects = proposed.sheet.specialEffects;
+      saveLocal();
+      el('ws-effect-name').value = '';
+      el('ws-effect-description').value = '';
+      alert('已发放给 '+target.avatar_name);
+    } catch(error) { alert('发放失败：'+error.message); }
+    finally { button.disabled = false; }
+  };
   el('ws-grant-xp').onclick = grantExperience;
   el('allocate-points').onclick = () => advanceCharacter(false);
   el('lvl-up').addEventListener('click', () => {
@@ -1836,13 +1883,6 @@ function setupEventListeners() {
       renderAll();
     });
   });
-  for (const condition of ['vulnerable', 'restrained', 'hidden']) {
-    el('condition-' + condition).addEventListener('change', event => {
-      const sheet = curChar().sheet;
-      sheet.conditions = { ...sheet.conditions, [condition]: event.target.checked };
-      saveLocal();
-    });
-  }
 
 
   // Gear Slot Clicks (Open Picker Modal)
@@ -1902,12 +1942,6 @@ function setupEventListeners() {
     renderAll();
   });
 
-  el('fn-select-community').addEventListener('change', e => {
-    const c = curChar();
-    c.sheet.communityId = e.target.value;
-    saveLocal();
-    renderAll();
-  });
 
   el('fn-select-class').addEventListener('change', e => {
     const c = curChar();
@@ -1925,7 +1959,6 @@ function setupEventListeners() {
     renderAll();
   });
 
-  el('player-notes').oninput = e => { curChar().sheet.journal = e.target.value; saveLocal(); };
   el('gm-note-open').onclick = async () => {
     const c = curChar();
     if (currentUser?.role !== 'gm' || !c?.updated_at) return;
@@ -1941,7 +1974,7 @@ function setupEventListeners() {
     } catch (error) { alert(error.message); }
   };
   // Currency Inputs
-  ['handfuls', 'bags', 'chests'].forEach(type => {
+  ['handfuls', 'bags', 'chests', 'diamonds'].forEach(type => {
     el(`coin-${type}`).addEventListener('change', e => {
       const c = curChar();
       c.sheet.currency[type] = Math.max(0, Math.trunc(Number(e.target.value)) || 0);

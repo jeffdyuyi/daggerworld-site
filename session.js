@@ -145,3 +145,19 @@ export async function appearanceRequest(owner,path,options = {}) {
   const {token} = await appearanceSession(owner);
   return jsonRequest(path,options,token);
 }
+
+export async function loadAdventureCards() {
+  const session = await activeSession();
+  return jsonRequest('/rest/v1/adventure_board_cards?order=updated_at.desc,id',{},session.access_token);
+}
+export async function writeAdventureCard(card, prior, remove = false) {
+  const session = await activeSession();
+  const query = prior ? '?id=eq.'+encodeURIComponent(prior.id)+'&revision=eq.'+prior.revision : '';
+  const rows = await jsonRequest('/rest/v1/adventure_board_cards'+query, {
+    method: remove ? 'DELETE' : prior ? 'PATCH' : 'POST',
+    headers:{Prefer:'return=representation'},
+    ...(remove ? {} : {body:JSON.stringify(card)})
+  },session.access_token);
+  if (!rows?.length) throw new Error('这张记录已有新版，请先复制你的修改，再刷新核对。');
+  return rows[0];
+}

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-create1">
+  <link rel="stylesheet" href="./app.css?v=20261121-board1">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -153,6 +153,10 @@
             </div>
 
             <fieldset class="creator-attributes">
+              <legend>初始领域卡</legend>
+              <div id="creator-domain-grid"></div>
+            </fieldset>
+            <fieldset class="creator-attributes">
               <legend>初始属性</legend>
               <p>分配 +2、+1、+1、0、0、−1。</p>
               <div id="creator-attribute-grid"></div>
@@ -176,10 +180,29 @@
        LAYER 2: 角色卡与跑团工作台 (Workbench Sheet)
        ========================================================================== -->
   <div id="layer-sheet" class="app-layer layer-sheet" hidden>
+  <!-- 角色页签 -->
+  <nav class="page-tabs" id="page-tabs">
+    <button class="tab-btn active" data-page="overview">
+      <span class="tab-icon">👤</span> 角色概览
+    </button>
+    <button class="tab-btn" data-page="foundations">
+      <span class="tab-icon">📜</span> 角色资料
+    </button>
+    <button class="tab-btn" data-page="skills">
+      <span class="tab-icon">✨</span> 领域能力
+    </button>
+    <button class="tab-btn" data-page="adventure">冒险记录</button>
+  </nav>
+
 
 
   <!-- Top Combat Resource Dashboard -->
-  <section class="combat-dashboard" id="combat-dashboard">
+  <!-- Tab Content Containers -->
+  <main class="page-viewport">
+
+    <!-- PAGE 1: 【概览】 -->
+    <section class="tab-page active" id="page-overview">
+<section class="combat-dashboard" id="combat-dashboard">
     <div class="char-summary-strip">
       <div class="avatar-tag">
         <span class="name-badge" id="dash-name">无名角色</span>
@@ -281,34 +304,8 @@
       </div>
 
       <details class="stat-details"><summary>数值明细与补正</summary><table><thead><tr><th>数值</th><th>基础</th><th>装备</th><th>补正</th><th>当前</th></tr></thead><tbody id="stat-calculations"></tbody></table><p id="armor-formula-breakdown"></p><small>致死阈值以当前严重阈值的两倍为基础。三个阈值依次递增。</small></details>
-      <div class="condition-strip" aria-live="polite">
-        <strong id="stress-condition" hidden>脆弱 · 压力已满</strong>
-        <strong id="death-condition" hidden>倒下 · 结算死亡行动</strong>
-        <label><input type="checkbox" id="condition-vulnerable"> 脆弱</label>
-        <label><input type="checkbox" id="condition-restrained"> 束缚</label>
-        <label><input type="checkbox" id="condition-hidden"> 隐藏</label>
-      </div>
     </div>
   </section>
-
-  <!-- 角色页签 -->
-  <nav class="page-tabs" id="page-tabs">
-    <button class="tab-btn active" data-page="overview">
-      <span class="tab-icon">👤</span> 角色概览
-    </button>
-    <button class="tab-btn" data-page="foundations">
-      <span class="tab-icon">📜</span> 角色资料
-    </button>
-    <button class="tab-btn" data-page="skills">
-      <span class="tab-icon">✨</span> 领域卡
-    </button>
-  </nav>
-
-  <!-- Tab Content Containers -->
-  <main class="page-viewport">
-
-    <!-- PAGE 1: 【概览】 -->
-    <section class="tab-page active" id="page-overview">
       <div class="overview-grid">
 
         <!-- Left 3/4: Equipment Silhouette & Paper Doll -->
@@ -535,6 +532,7 @@
             <label class="currency-card">把 <input type="number" id="coin-handfuls" class="coin-input" value="0" min="0" step="1"></label>
             <label class="currency-card">袋 <input type="number" id="coin-bags" class="coin-input" value="0" min="0" step="1"></label>
             <label class="currency-card">箱 <input type="number" id="coin-chests" class="coin-input" value="0" min="0" step="1"></label>
+            <label class="currency-card">钻石 <input type="number" id="coin-diamonds" class="coin-input" value="0" min="0" step="1"></label>
           </div>
           <small id="legacy-wealth" hidden></small>
         </section>
@@ -656,10 +654,6 @@
               <label>血统种族</label>
               <select id="fn-select-ancestry" class="dw-select locked-field" disabled></select>
             </div>
-            <div class="f-select-group" id="gm-community-field" hidden>
-              <label>社群文化</label>
-              <select id="fn-select-community" class="dw-select locked-field" disabled></select>
-            </div>
             <div class="f-select-group">
               <label>主职职业</label>
               <select id="fn-select-class" class="dw-select locked-field" disabled></select>
@@ -726,19 +720,8 @@
             </div>
           </div>
 
-          <!-- Community Feature -->
-          <div class="f-card" id="gm-community-feature" hidden>
-            <div class="f-card-header">
-              <span class="f-badge">社群归属</span>
-              <h3 id="fn-community-title">社群特性</h3>
-            </div>
-            <div class="f-card-body" id="fn-community-desc">
-              请选择社群文化以加载成长背景。
-            </div>
-          </div>
-
-          <section class="f-card"><h3>冒险笔记</h3><textarea id="player-notes" class="dw-textarea" aria-label="冒险笔记" rows="4"></textarea>
-          <p id="gm-notes-panel" hidden><button type="button" id="gm-note-open" class="dw-btn">主持人私记</button></p></section>
+          <section class="f-card"><h3>特殊效果</h3><ul id="character-effects"></ul></section>
+          <p id="gm-notes-panel" hidden><button type="button" id="gm-note-open" class="dw-btn">主持人私记</button></p>
           <dialog id="gm-note-dialog"><h3>主持人私记</h3><textarea id="fn-gm-notes" aria-label="主持人私记" placeholder="人格社群、现实经历、个人身份、身份赠礼及裁定" rows="8"></textarea>
           <form method="dialog"><button type="button" id="gm-note-save">保存</button><button>关闭</button></form></dialog>
         </div>
@@ -785,6 +768,30 @@
     </section>
 
 
+
+    <section class="tab-page" id="page-adventure">
+      <div class="adventure-toolbar">
+        <h2>冒险记录</h2>
+        <button type="button" class="dw-btn dw-btn-gold" id="adventure-new">新建记录</button>
+        <button type="button" class="dw-btn dw-btn-outline" id="adventure-refresh">刷新</button>
+        <p id="adventure-status" role="status"></p>
+      </div>
+      <div class="adventure-board">
+        <section id="adventure-journal"></section><section id="adventure-npc"></section><section id="adventure-clue"></section>
+      </div>
+      <dialog id="adventure-dialog">
+        <form id="adventure-form">
+          <h3>编辑记录</h3>
+          <label>分类 <select name="category"><option value="journal">冒险笔记</option><option value="npc">NPC 记录</option><option value="clue">线索墙</option></select></label>
+          <label>标题 <input name="title" required maxlength="120"></label>
+          <label>内容 <textarea name="body" rows="12" maxlength="20000"></textarea></label>
+          <p id="adventure-edit-status" role="status"></p>
+          <button type="submit" class="dw-btn dw-btn-gold" id="adventure-save">保存</button>
+          <button type="button" class="dw-btn" id="adventure-cancel">取消</button>
+          <button type="button" class="dw-btn" id="adventure-remove">删除</button>
+        </form>
+      </dialog>
+    </section>
 
   </main>
 
@@ -838,6 +845,10 @@
         <label>经验 <input id="ws-xp-amount" class="dw-input" type="number" min="1" step="1"></label>
         <span id="ws-xp-required"></span>
         <button type="button" class="dw-btn" id="ws-grant-xp">发放经验</button>
+        <label>效果名称 <input id="ws-effect-name" maxlength="80" class="dw-input" list="effect-presets"></label>
+        <datalist id="effect-presets"><option value="脆弱"><option value="束缚"><option value="隐藏"><option value="倒下"></datalist>
+        <label>说明 <input id="ws-effect-description" maxlength="1000" class="dw-input"></label>
+        <button type="button" class="dw-btn" id="ws-grant-effect">发放效果</button>
         <div class="ws-target-char-meta" id="ws-target-char-meta">
           <!-- Slot count & badge -->
         </div>
@@ -1194,7 +1205,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-create1').catch(error => {
+    import('./app.js?v=20261121-board1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
