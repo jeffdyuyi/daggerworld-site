@@ -2314,21 +2314,25 @@ function setupEventListeners() {
       updateItemPreview();
     });
   });
-  for (const [key, title] of Object.entries(gearEffects)) {
-    const label = document.createElement('label');
-    const input = document.createElement('input');
-    input.id = 'gear-effect-' + key;
-    input.type = 'number';
-    input.step = '1';
-    input.min = '-99';
-    input.max = '99';
-    input.className = 'dw-input';
-    label.append(title, input);
-    el('ws-gear-fields').append(label);
+  if (el('ws-gear-fields')) {
+    el('ws-gear-fields').innerHTML = '';
+    for (const [key, title] of Object.entries(gearEffects)) {
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.id = 'gear-effect-' + key;
+      input.type = 'number';
+      input.step = '1';
+      input.min = '-99';
+      input.max = '99';
+      input.className = 'dw-input';
+      input.addEventListener('input', updateItemPreview);
+      input.addEventListener('change', updateItemPreview);
+      label.append(title, input);
+      el('ws-gear-fields').append(label);
+    }
   }
-  for (const trait of Object.values(traits)) el('ws-weapon-trait').add(new Option(trait));
-  for (const field of el('ws-item-effects').querySelectorAll('input')) field.addEventListener('input', updateItemPreview);
-  for (const [value, label] of Object.entries(itemAppearances)) appearanceSelect.add(new Option(label, value));
+  for (const trait of Object.values(traits)) el('ws-weapon-trait')?.add(new Option(trait));
+  for (const [value, label] of Object.entries(itemAppearances)) appearanceSelect?.add(new Option(label, value));
   ['ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-stats', 'ws-item-desc', 'ws-item-appearance', 'ws-item-slot', 'ws-item-quality'].forEach(id => {
     el(id)?.addEventListener('input', updateItemPreview);
     el(id)?.addEventListener('change', updateItemPreview);
