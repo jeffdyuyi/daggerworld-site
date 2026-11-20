@@ -2,7 +2,7 @@ import {setupAdventureBoard} from './adventure-board.js?v=20261121-board1';
 import {livePaperdollEnabled, showCharacterOutline} from './appearance-preview.js?v=20261121-body1';
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
-import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
+import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
 import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-board1';
 import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
@@ -801,6 +801,69 @@ function startingCards(job) {
   return uniqueCards(db?.domain_cards ?? []).filter(card => cardLevel(card) === 1 && domains.includes(card.领域));
 }
 
+function setupStartingAllocation() {
+  const bank = el('creator-attribute-bank');
+  const grid = el('creator-attribute-grid');
+  const tokens = [...startingModifiers].reverse();
+  const assignments = new Map();
+  let selected = null;
+  const button = (label, action) => {
+    const control = document.createElement('button');
+    control.type = 'button';
+    control.className = 'dw-btn dw-btn-outline';
+    control.textContent = label;
+    control.onclick = action;
+    return control;
+  };
+  const signed = value => value > 0 ? '+'+value : String(value);
+  function place(key, token) {
+    if (!Number.isInteger(token) || token < 0 || token >= tokens.length) return;
+    const source = [...assignments].find(([,id]) => id === token)?.[0];
+    const old = assignments.get(key);
+    if (source) {
+      if (old === undefined) assignments.delete(source);
+      else assignments.set(source,old);
+    }
+    assignments.set(key,token);
+    selected = null;
+    render();
+  }
+  function draggable(control, token) {
+    control.draggable = true;
+    control.ondragstart = event => event.dataTransfer.setData('application/x-attribute-token',String(token));
+  }
+  function render() {
+    bank.replaceChildren(...tokens.flatMap((value,token) => {
+      if ([...assignments.values()].includes(token)) return [];
+      const control = button(signed(value),() => { selected = selected === token ? null : token; render(); bank.querySelector('[aria-pressed="true"]')?.focus(); });
+      control.setAttribute('aria-pressed',String(selected === token));
+      draggable(control,token);
+      return [control];
+    }));
+    grid.replaceChildren(...Object.entries(traits).map(([key,label]) => {
+      const token = assignments.get(key);
+      const control = button(label+'  '+(token === undefined ? '—' : signed(tokens[token])),() => {
+        if (selected !== null) place(key,selected);
+        else if (token !== undefined) { assignments.delete(key); render(); }
+      });
+      if (token !== undefined) draggable(control,token);
+      control.ondragover = event => event.preventDefault();
+      control.ondrop = event => {
+        event.preventDefault();
+        const data = event.dataTransfer.getData('application/x-attribute-token');
+        if (data !== '') place(key,Number(data));
+      };
+      return control;
+    }));
+    el('creator-attribute-count').textContent = assignments.size+' / 6';
+  }
+  render();
+  return {
+    values: () => Object.fromEntries([...assignments].map(([key,id]) => [key,tokens[id]])),
+    reset() { assignments.clear(); selected = null; render(); },
+  };
+}
+
 function setupCreationWizard() {
   el('new-char-body-shape').addEventListener('change',previewAppearance);
   const genderPills = document.querySelectorAll('#gender-selector .gender-pill');
@@ -828,18 +891,7 @@ function setupCreationWizard() {
   }
 
   const form = el('form-create-character');
-  const starting = createDefaultCharacter().sheet.attributes;
-  const allocation = Object.entries(traits).map(([key,label]) => {
-    const row = document.createElement('label');
-    const select = document.createElement('select');
-    select.className = 'creator-select';
-    for (const value of new Set(startingModifiers))
-      select.add(new Option(value > 0 ? '+'+value : String(value),String(value)));
-    select.value = String(starting[key]);
-    row.append(label,select);
-    el('creator-attribute-grid').append(row);
-    return [key,select];
-  });
+  const allocation = setupStartingAllocation();
   const cardSelectors = ['第一张','第二张'].map(label => {
     const row = document.createElement('label');
     const select = document.createElement('select');
@@ -873,7 +925,7 @@ function setupCreationWizard() {
     const job = db?.classes?.find(item => item.ID === selCls.value);
     const subclass = db?.subclasses?.find(item => item.ID === selSub.value && item.等级 === '基础' && item.主职 === job?.名称);
     if (!ancestry || !job || !subclass) { error.textContent = '请选择有效的种族、职业和子职业。'; return; }
-    const attributes = Object.fromEntries(allocation.map(([key,input]) => [key,Number(input.value)]));
+    const attributes = allocation.values();
     if (Object.values(attributes).sort((a,b) => a-b).join(',') !== startingModifiers.join(',')) {
       error.textContent = '请各用一次 +2、−1，各用两次 +1、0。';
       return;
@@ -896,7 +948,7 @@ function setupCreationWizard() {
     saveLocal();
     nameInput.value = '';
     el('new-char-body-shape').value = '';
-    for (const [key,input] of allocation) input.value = String(starting[key]);
+    allocation.reset();
     error.textContent = '';
     el('vault-creator-section').hidden = true;
     switchLayer('sheet',activeCharIndex);
@@ -1306,17 +1358,20 @@ function renderDomainCards() {
   const vault = uniqueCards([...sheet.vaultDomainCards, ...sheet.customDomainCards])
     .filter(card => !equippedKeys.has(cardKey(card)));
   const ownedKeys = new Set([...equipped, ...vault].map(cardKey));
-  const grants = new Set(sheet.customDomainCards.map(cardKey));
-  const learned = [...equipped, ...vault].filter(card => !grants.has(cardKey(card)));
-  const openLevels = unspentCardLevels(character.level, learned, sheet.levelAdvancementSlots);
-  const allowance = learned.length + openLevels.length;
-  const job = db?.classes?.find(item => item.ID === sheet.classId || item.名称 === sheet.classId);
-  const domains = (job?.领域 ?? '').split(/[+、,，]/).map(name => name.trim()).filter(Boolean);
+  const domains = [...new Set((db?.domain_cards ?? []).map(card => card.领域).filter(Boolean))];
 
   el('equipped-cards-count').textContent = equipped.length;
-  el('domain-learning-limit').textContent = `已选择 ${learned.length} / ${allowance}`;
+  el('domain-owned-count').textContent = String(ownedKeys.size);
   el('equipped-cards-container').replaceChildren(...equipped.map(card => domainCard(card, 'equipped', character)));
   el('domain-vault-cards-container').replaceChildren(...vault.map(card => domainCard(card, 'vault', character)));
+  for (const [id,count] of [['domain-empty-loadout',equipped.length],['domain-empty-vault',vault.length]])
+    el(id).hidden = count > 0;
+  const manager = el('domain-manager');
+  manager.hidden = currentUser?.role !== 'gm';
+  if (manager.hidden) {
+    el('domain-catalog').replaceChildren();
+    return;
+  }
   const filterBar = el('domain-filters-bar');
   const sameCharacter = filterBar.dataset.character === character.id;
   const previousDomain = sameCharacter ? filterBar.querySelector('select')?.value : '';
@@ -1373,7 +1428,7 @@ function domainCard(card, action, character, owned = false) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'dw-btn dw-btn-outline';
-  button.textContent = { equipped: '移回宝库', vault: '加入配置', grant: '发放此卡' }[action];
+  button.textContent = { equipped: '移回宝库', vault: '回想至配置', grant: '发放此卡' }[action];
   const swap = document.createElement('select');
   if (action === 'vault' && character.sheet.equippedDomainCards.length >= 5) {
     swap.setAttribute('aria-label', '选择移回宝库的卡');

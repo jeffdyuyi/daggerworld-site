@@ -3115,3 +3115,11 @@ body.dw-theme {
 .adventure-board article p { white-space:pre-wrap; overflow-wrap:anywhere; }
 #adventure-dialog { width:min(92vw,42rem); }
 #adventure-form label { margin-bottom:.65rem; }
+
+#creator-attribute-bank { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.65rem; min-height:2.2rem; }
+#creator-attribute-bank button { min-width:2.7rem; }
+#creator-attribute-bank [aria-pressed="true"] { background:#f4c678; border-color:#855122; }
+#creator-attribute-count { margin-inline-start:.5rem; }
+#creator-attribute-grid button { min-height:2.5rem; }
+#domain-manager[hidden] { display:none; }
+#domain-manager summary { cursor:pointer; margin-block:.75rem; }
