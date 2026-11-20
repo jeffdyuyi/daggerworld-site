@@ -8,6 +8,37 @@ import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art
 
 // Global App State
 let db = null;
+let dbPromise = null;
+
+async function loadDatabase() {
+  if (db) return db;
+  const urls = [
+    new URL('./data/database.json', import.meta.url).href,
+    './data/database.json',
+    './editor/data/database.json'
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
+      if (res.ok) {
+        db = await res.json();
+        populateSelectOptions();
+        updateSyncStatus(true, '规则资料已就绪');
+        return db;
+      }
+    } catch (e) {
+      console.warn('加载规则资料尝试失败:', url, e);
+    }
+  }
+  updateSyncStatus(false, '规则资料加载失败');
+  return null;
+}
+
+function ensureDatabaseLoaded() {
+  if (db) return Promise.resolve(db);
+  if (!dbPromise) dbPromise = loadDatabase();
+  return dbPromise;
+}
 let currentUser = null;
 let characters = [];
 let activeCharIndex = 0;
@@ -339,15 +370,8 @@ async function init() {
   loadLocalFallback();
 
   // 2. 异步加载规则数据库并填充下拉菜单与创角选项
-  try {
-    const res = await fetch('./data/database.json',{signal:AbortSignal.timeout(10000)});
-    if (!res.ok) throw new Error('规则资料请求失败：'+res.status);
-    db = await res.json();
-    populateSelectOptions();
-  } catch (err) {
-    updateSyncStatus(false,'规则资料加载失败');
-    console.error('Failed to load database.json:', err);
-  }
+  dbPromise = loadDatabase();
+  await dbPromise;
 
   // 3. 决定初始层级视图 (如果 URL 包含 #sheet 则进入第二层工作台，否则默认进入第一层角色库)
   const currentHash = (typeof location !== 'undefined' && location.hash) ? location.hash : '';
@@ -637,9 +661,13 @@ function calculateStats(char) {
 // ==========================================================================
 // 核心两层架构控制器 (Two-Tier Layer Controller)
 // ==========================================================================
-function switchLayer(layer, targetIndex) {
+async function switchLayer(layer, targetIndex) {
   if (layer === 'sheet' && !characters.length) layer = 'vault';
-  if (layer === 'sheet' && !db) { alert('规则资料尚未加载，请刷新后重试。'); return; }
+  if (layer === 'sheet' && !db) {
+    updateSyncStatus(true, '正在加载规则资料…');
+    await ensureDatabaseLoaded();
+    if (!db) { alert('规则资料尚未加载完成，请检查网络或刷新后重试。'); return; }
+  }
   el('btn-save-cloud').hidden = layer !== 'sheet';
   el('current-character').hidden = layer !== 'sheet';
   if (layer === 'workshop' && currentUser?.role !== 'gm') return;
@@ -732,9 +760,13 @@ function renderVaultLobby() {
   container.append(create);
 }
 
-function showCharacterCreator() {
+async function showCharacterCreator() {
   const section = el('vault-creator-section');
-  if (!db) return alert('规则资料尚未加载，请刷新后重试。');
+  if (!db) {
+    updateSyncStatus(true, '正在加载规则资料…');
+    await ensureDatabaseLoaded();
+  }
+  if (!db) return alert('规则资料尚未加载完成，请检查网络或刷新后重试。');
   section.hidden = false;
   previewAppearance();
   section.scrollIntoView({ block: 'nearest' });
