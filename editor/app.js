@@ -1,4 +1,4 @@
-import {livePaperdollEnabled, showCharacterOutline} from './appearance-preview.js';
+import {livePaperdollEnabled, showCharacterOutline} from './appearance-preview.js?v=20261121-body1';
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
@@ -772,7 +772,7 @@ function appearanceUrl(character) {
 function setAppearanceFrame(id, character, download = false) {
   const target = el(id);
   if (!livePaperdollEnabled) {
-    showCharacterOutline(target, character.sheet?.ancestryId);
+    showCharacterOutline(target, character.sheet?.ancestryId, character.sheet?.bodyShape);
     return;
   }
   let frame = target.querySelector('iframe');
@@ -791,10 +791,11 @@ function setAppearanceFrame(id, character, download = false) {
 }
 
 function previewAppearance() {
-  setAppearanceFrame('creator-paperdoll', {sheet:{ancestryId:el('new-char-ancestry').value}});
+  setAppearanceFrame('creator-paperdoll', {sheet:{ancestryId:el('new-char-ancestry').value,bodyShape:el('new-char-body-shape').value}});
 }
 
 function setupCreationWizard() {
+  el('new-char-body-shape').addEventListener('change',previewAppearance);
   const genderPills = document.querySelectorAll('#gender-selector .gender-pill');
   const genderHidden = el('new-char-gender');
   genderPills.forEach(pill => {
@@ -832,6 +833,8 @@ function setupCreationWizard() {
 
       // 确立新角色
       const newChar = createDefaultCharacter(name, gender, ancestryId, classId, subclassId);
+      const bodyShape = el('new-char-body-shape').value;
+      if (bodyShape) newChar.sheet.bodyShape = bodyShape;
       
       // 根据所选职业同步初始生命与闪避
       const clsObj = db?.classes?.find(c => c.ID === classId || c.名称 === classId);

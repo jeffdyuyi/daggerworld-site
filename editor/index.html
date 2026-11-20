@@ -128,6 +128,14 @@
             </div>
 
             <fieldset class="creator-appearance"><legend>种族外观</legend>
+              <label for="new-char-body-shape">体型</label>
+              <select id="new-char-body-shape" class="creator-select">
+                <option value="">种族默认</option>
+                <option value="tall">高大型</option>
+                <option value="medium">中型</option>
+                <option value="slender">纤细型</option>
+                <option value="short">矮小型</option>
+              </select>
               <div id="creator-paperdoll" class="appearance-frame"></div>
             </fieldset>
 
@@ -1179,7 +1187,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-gear2').catch(error => {
+    import('./app.js?v=20261121-body1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;

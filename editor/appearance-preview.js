@@ -7,9 +7,10 @@ const shapes = {
   medium: {label:'中型', ancestries:[]},
 };
 
-export function showCharacterOutline(target, ancestryId) {
+export function showCharacterOutline(target, ancestryId, bodyShape) {
   const ancestry = typeof ancestryId === 'string' ? ancestryId.split(':').at(-1) : '';
-  const [id,shape] = Object.entries(shapes).find(([,entry])=>entry.ancestries.includes(ancestry)) ?? ['medium',shapes.medium];
+  const id = Object.hasOwn(shapes,bodyShape) ? bodyShape : Object.keys(shapes).find(key => shapes[key].ancestries.includes(ancestry)) ?? 'medium';
+  const shape = shapes[id];
   const url = new URL('./assets/silhouettes/'+id+'.webp',import.meta.url);
   let picture = target.querySelector('img');
   if (!picture) {
