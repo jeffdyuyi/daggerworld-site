@@ -3596,4 +3596,129 @@ body.dw-theme {
   cursor: pointer;
 }
 
+/* ==========================================================================
+   GM Inline Adjustments & Bug Report System
+   ========================================================================== */
+.gm-inline-adjust {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 6px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px dashed rgba(212, 175, 55, 0.35);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.gm-inline-adjust[hidden] {
+  display: none !important;
+}
+.gm-adj-title {
+  color: var(--text-gold);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.gm-adj-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.gm-adj-btn:hover {
+  background: var(--bo3-gold);
+  color: #1a120b;
+}
+.gm-adj-input {
+  width: 44px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.trait-adj-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: rgba(212, 175, 55, 0.2);
+  color: var(--text-gold);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 3px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+.trait-adj-badge[hidden] {
+  display: none !important;
+}
+
+/* GM Bug Report Banner */
+.gm-bug-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: linear-gradient(90deg, rgba(143, 36, 29, 0.25) 0%, rgba(20, 16, 12, 0.9) 100%);
+  border: 1px solid rgba(230, 80, 70, 0.5);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  animation: fadeIn 0.3s ease;
+}
+.gm-bug-banner[hidden] {
+  display: none !important;
+}
+.gm-bug-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.gm-bug-badge {
+  background: #a83226;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.gm-bug-text {
+  font-size: 12px;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-bug-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  height: 24px;
+  border-color: rgba(230, 80, 70, 0.4);
+  color: #e27d73;
+}
+.dw-bug-btn:hover {
+  background: rgba(230, 80, 70, 0.15);
+  color: #ff9d94;
+}
+
+.dw-btn-xs {
+  font-size: 11px;
+  padding: 2px 8px;
+  height: 22px;
+}
+
+.gm-only-control[hidden] {
+  display: none !important;
+}
+
+
 

@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-portrait-v3">
+  <link rel="stylesheet" href="./app.css?v=20261121-inline-adj-v1">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -209,6 +209,17 @@
     <!-- PAGE 1: 【概览】 -->
     <section class="tab-page active" id="page-overview">
 <section class="combat-dashboard" id="combat-dashboard">
+    <!-- GM Bug Report Notification Banner -->
+    <div class="gm-bug-banner" id="gm-bug-banner" hidden>
+      <div class="gm-bug-info">
+        <span class="gm-bug-badge">🔔 待处理玩家报修 (<b id="gm-bug-count">0</b>)</span>
+        <span class="gm-bug-text" id="gm-bug-text">暂无未处理事项</span>
+      </div>
+      <div class="gm-bug-actions">
+        <button type="button" class="dw-btn dw-btn-gold dw-btn-xs" id="btn-gm-resolve-bug">✓ 标记已解决</button>
+      </div>
+    </div>
+
     <div class="char-summary-strip">
       <div class="avatar-tag">
         <span class="name-badge" id="dash-name">无名角色</span>
@@ -220,6 +231,7 @@
       <div class="level-control">
         <span>等级</span>
         <button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button> <button type="button" class="dw-btn" id="allocate-points" hidden>分配升级点</button>
+        <button type="button" class="dw-btn dw-btn-outline dw-bug-btn" id="btn-open-bug-report" title="属性或机制有误？向主持人提交报告">🐛 申报问题</button>
       </div>
     </div>
 
@@ -238,6 +250,12 @@
           </div>
         </div>
         <div class="res-pips-bar" id="hp-pips"></div>
+        <div class="gm-inline-adjust gm-only-control" data-gm-track="hp" hidden>
+          <span class="gm-adj-title">👑 上限补正</span>
+          <button type="button" class="gm-adj-btn" data-track-delta="hp" data-delta="-1">−</button>
+          <input type="number" class="dw-input gm-adj-input" id="adj-input-hp" step="1" value="0">
+          <button type="button" class="gm-adj-btn" data-track-delta="hp" data-delta="1">+</button>
+        </div>
         <div class="res-stepper">
           <button class="res-btn" id="hp-minus">-1</button>
           <button class="res-btn" id="hp-plus">+1</button>
@@ -253,6 +271,12 @@
           </div>
         </div>
         <div class="res-pips-bar" id="stress-pips"></div>
+        <div class="gm-inline-adjust gm-only-control" data-gm-track="stress" hidden>
+          <span class="gm-adj-title">👑 上限补正</span>
+          <button type="button" class="gm-adj-btn" data-track-delta="stress" data-delta="-1">−</button>
+          <input type="number" class="dw-input gm-adj-input" id="adj-input-stress" step="1" value="0">
+          <button type="button" class="gm-adj-btn" data-track-delta="stress" data-delta="1">+</button>
+        </div>
         <div class="res-stepper">
           <button class="res-btn" id="stress-minus">-1</button>
           <button class="res-btn" id="stress-plus">+1</button>
@@ -278,9 +302,13 @@
         <div class="def-item">
           <span class="def-label">闪避</span>
           <strong class="def-val" id="stat-evasion">—</strong>
-          <label for="evasion-adjustment">手动补正</label>
           <small id="evasion-breakdown"></small>
-          <span class="quick-value"><button type="button" data-adjust="evasion-adjustment" data-delta="-1" aria-label="减少闪避">−</button><input id="evasion-adjustment" type="number" step="1" class="dw-input" value="0"><button type="button" data-adjust="evasion-adjustment" data-delta="1" aria-label="增加闪避">+</button></span>
+          <div class="gm-inline-adjust gm-only-control" hidden>
+            <span class="gm-adj-title">👑 补正</span>
+            <button type="button" class="gm-adj-btn" data-adjust="evasion-adjustment" data-delta="-1">−</button>
+            <input id="evasion-adjustment" type="number" step="1" class="dw-input gm-adj-input" value="0">
+            <button type="button" class="gm-adj-btn" data-adjust="evasion-adjustment" data-delta="1">+</button>
+          </div>
         </div>
         <div class="def-item">
           <span class="def-label">基础护甲</span>
@@ -289,7 +317,12 @@
         <div class="def-item">
           <span class="def-label">熟练值</span>
           <strong class="def-val" id="stat-proficiency">1</strong>
-          <label class="limit-control">手动补正 <span class="quick-value"><button type="button" data-adjust="proficiency-current" data-delta="-1" aria-label="减少熟练值">−</button><input id="proficiency-current" type="number" step="1" value="1" class="dw-input"><button type="button" data-adjust="proficiency-current" data-delta="1" aria-label="增加熟练值">+</button></span></label>
+          <div class="gm-inline-adjust gm-only-control" hidden>
+            <span class="gm-adj-title">👑 补正</span>
+            <button type="button" class="gm-adj-btn" data-adjust="proficiency-current" data-delta="-1">−</button>
+            <input id="proficiency-current" type="number" step="1" value="1" class="dw-input gm-adj-input">
+            <button type="button" class="gm-adj-btn" data-adjust="proficiency-current" data-delta="1">+</button>
+          </div>
         </div>
       </div>
 
@@ -302,14 +335,20 @@
           </div>
         </div>
         <div class="res-pips-bar" id="armor-pips"></div>
-        <label class="limit-control">上限补正 <span class="quick-value"><button type="button" data-adjust="armor-limit" data-delta="-1" aria-label="减少护甲上限">−</button><input id="armor-limit" type="number" step="1" value="0" class="dw-input"><button type="button" data-adjust="armor-limit" data-delta="1" aria-label="增加护甲上限">+</button></span></label>
+        <div class="gm-inline-adjust gm-only-control" hidden>
+          <span class="gm-adj-title">👑 上限补正</span>
+          <button type="button" class="gm-adj-btn" data-adjust="armor-limit" data-delta="-1">−</button>
+          <input id="armor-limit" type="number" step="1" value="0" class="dw-input gm-adj-input">
+          <button type="button" class="gm-adj-btn" data-adjust="armor-limit" data-delta="1">+</button>
+        </div>
         <div class="res-stepper">
           <button class="res-btn" id="armor-minus">-1</button>
           <button class="res-btn" id="armor-plus">+1</button>
         </div>
       </div>
 
-      <details class="stat-details"><summary>数值明细与补正</summary><table><thead><tr><th>数值</th><th>基础</th><th>装备</th><th>补正</th><th>当前</th></tr></thead><tbody id="stat-calculations"></tbody></table><p id="armor-formula-breakdown"></p><small>致死阈值以当前严重阈值的两倍为基础。三个阈值依次递增。</small></details>
+      <!-- 旧版数值大表格已隐藏，改为就地内联修订 -->
+      <details class="stat-details" id="stat-details-container" hidden><summary>数值明细与补正</summary><table><thead><tr><th>数值</th><th>基础</th><th>装备</th><th>补正</th><th>当前</th></tr></thead><tbody id="stat-calculations"></tbody></table><p id="armor-formula-breakdown"></p><small>致死阈值以当前严重阈值的两倍为基础。三个阈值依次递增。</small></details>
     </div>
   </section>
       <div class="overview-grid">
@@ -463,7 +502,7 @@
           <div class="attributes-list">
             <div class="attr-card" data-attr="agility">
               <div class="attr-header">
-                <span class="attr-name">敏捷 (Agility)</span>
+                <span class="attr-name">敏捷 (Agility) <span class="trait-adj-badge" id="adj-badge-agility" hidden></span></span>
                 <div class="attr-stepper">
                   <input class="attr-mod" id="attr-mod-agility" data-trait="agility" type="number" step="1" value="0">
                   <label class="trait-mark"><input type="checkbox" data-trait-mark="agility"> 已加点</label>
@@ -471,11 +510,17 @@
               </div>
               <p class="attr-desc">冲刺 · 闪避 · 杂技 · 移动</p>
               <button class="roll-trigger-btn" data-attr-roll="agility" aria-label="敏捷检定" title="二元骰检定">🎲</button>
+              <div class="gm-inline-adjust gm-only-control" data-gm-trait="agility" hidden>
+                <span class="gm-adj-title">👑 补正:</span>
+                <button type="button" class="gm-adj-btn" data-trait-delta="agility" data-delta="-1">−</button>
+                <input type="number" class="dw-input gm-adj-input" data-trait-input="agility" step="1" value="0">
+                <button type="button" class="gm-adj-btn" data-trait-delta="agility" data-delta="1">+</button>
+              </div>
             </div>
 
             <div class="attr-card" data-attr="strength">
               <div class="attr-header">
-                <span class="attr-name">力量 (Strength)</span>
+                <span class="attr-name">力量 (Strength) <span class="trait-adj-badge" id="adj-badge-strength" hidden></span></span>
                 <div class="attr-stepper">
                   <input class="attr-mod" id="attr-mod-strength" data-trait="strength" type="number" step="1" value="2">
                   <label class="trait-mark"><input type="checkbox" data-trait-mark="strength"> 已加点</label>
@@ -483,11 +528,17 @@
               </div>
               <p class="attr-desc">粉碎 · 举重 · 近战 · 坚韧</p>
               <button class="roll-trigger-btn" data-attr-roll="strength" aria-label="力量检定" title="二元骰检定">🎲</button>
+              <div class="gm-inline-adjust gm-only-control" data-gm-trait="strength" hidden>
+                <span class="gm-adj-title">👑 补正:</span>
+                <button type="button" class="gm-adj-btn" data-trait-delta="strength" data-delta="-1">−</button>
+                <input type="number" class="dw-input gm-adj-input" data-trait-input="strength" step="1" value="0">
+                <button type="button" class="gm-adj-btn" data-trait-delta="strength" data-delta="1">+</button>
+              </div>
             </div>
 
             <div class="attr-card" data-attr="finesse">
               <div class="attr-header">
-                <span class="attr-name">灵巧 (Finesse)</span>
+                <span class="attr-name">灵巧 (Finesse) <span class="trait-adj-badge" id="adj-badge-finesse" hidden></span></span>
                 <div class="attr-stepper">
                   <input class="attr-mod" id="attr-mod-finesse" data-trait="finesse" type="number" step="1" value="1">
                   <label class="trait-mark"><input type="checkbox" data-trait-mark="finesse"> 已加点</label>
@@ -495,11 +546,17 @@
               </div>
               <p class="attr-desc">瞄准 · 潜行 · 巧手 · 锁匠</p>
               <button class="roll-trigger-btn" data-attr-roll="finesse" aria-label="灵巧检定" title="二元骰检定">🎲</button>
+              <div class="gm-inline-adjust gm-only-control" data-gm-trait="finesse" hidden>
+                <span class="gm-adj-title">👑 补正:</span>
+                <button type="button" class="gm-adj-btn" data-trait-delta="finesse" data-delta="-1">−</button>
+                <input type="number" class="dw-input gm-adj-input" data-trait-input="finesse" step="1" value="0">
+                <button type="button" class="gm-adj-btn" data-trait-delta="finesse" data-delta="1">+</button>
+              </div>
             </div>
 
             <div class="attr-card" data-attr="instinct">
               <div class="attr-header">
-                <span class="attr-name">本能 (Instinct)</span>
+                <span class="attr-name">本能 (Instinct) <span class="trait-adj-badge" id="adj-badge-instinct" hidden></span></span>
                 <div class="attr-stepper">
                   <input class="attr-mod" id="attr-mod-instinct" data-trait="instinct" type="number" step="1" value="1">
                   <label class="trait-mark"><input type="checkbox" data-trait-mark="instinct"> 已加点</label>
@@ -507,11 +564,17 @@
               </div>
               <p class="attr-desc">洞察 · 察觉 · 野性 · 直觉</p>
               <button class="roll-trigger-btn" data-attr-roll="instinct" aria-label="本能检定" title="二元骰检定">🎲</button>
+              <div class="gm-inline-adjust gm-only-control" data-gm-trait="instinct" hidden>
+                <span class="gm-adj-title">👑 补正:</span>
+                <button type="button" class="gm-adj-btn" data-trait-delta="instinct" data-delta="-1">−</button>
+                <input type="number" class="dw-input gm-adj-input" data-trait-input="instinct" step="1" value="0">
+                <button type="button" class="gm-adj-btn" data-trait-delta="instinct" data-delta="1">+</button>
+              </div>
             </div>
 
             <div class="attr-card" data-attr="presence">
               <div class="attr-header">
-                <span class="attr-name">风采 (Presence)</span>
+                <span class="attr-name">风采 (Presence) <span class="trait-adj-badge" id="adj-badge-presence" hidden></span></span>
                 <div class="attr-stepper">
                   <input class="attr-mod" id="attr-mod-presence" data-trait="presence" type="number" step="1" value="0">
                   <label class="trait-mark"><input type="checkbox" data-trait-mark="presence"> 已加点</label>
@@ -519,11 +582,17 @@
               </div>
               <p class="attr-desc">魅力 · 威吓 · 说服 · 领导</p>
               <button class="roll-trigger-btn" data-attr-roll="presence" aria-label="风采检定" title="二元骰检定">🎲</button>
+              <div class="gm-inline-adjust gm-only-control" data-gm-trait="presence" hidden>
+                <span class="gm-adj-title">👑 补正:</span>
+                <button type="button" class="gm-adj-btn" data-trait-delta="presence" data-delta="-1">−</button>
+                <input type="number" class="dw-input gm-adj-input" data-trait-input="presence" step="1" value="0">
+                <button type="button" class="gm-adj-btn" data-trait-delta="presence" data-delta="1">+</button>
+              </div>
             </div>
 
             <div class="attr-card" data-attr="knowledge">
               <div class="attr-header">
-                <span class="attr-name">知识 (Knowledge)</span>
+                <span class="attr-name">知识 (Knowledge) <span class="trait-adj-badge" id="adj-badge-knowledge" hidden></span></span>
                 <div class="attr-stepper">
                   <input class="attr-mod" id="attr-mod-knowledge" data-trait="knowledge" type="number" step="1" value="-1">
                   <label class="trait-mark"><input type="checkbox" data-trait-mark="knowledge"> 已加点</label>
@@ -531,6 +600,12 @@
               </div>
               <p class="attr-desc">回想 · 分析 · 奥术 · 调查</p>
               <button class="roll-trigger-btn" data-attr-roll="knowledge" aria-label="知识检定" title="二元骰检定">🎲</button>
+              <div class="gm-inline-adjust gm-only-control" data-gm-trait="knowledge" hidden>
+                <span class="gm-adj-title">👑 补正:</span>
+                <button type="button" class="gm-adj-btn" data-trait-delta="knowledge" data-delta="-1">−</button>
+                <input type="number" class="dw-input gm-adj-input" data-trait-input="knowledge" step="1" value="0">
+                <button type="button" class="gm-adj-btn" data-trait-delta="knowledge" data-delta="1">+</button>
+              </div>
             </div>
           </div>
 
@@ -1419,6 +1494,44 @@
     </div>
   </div>
 
+  <!-- MODAL: Bug Report Modal (玩家向主持人报修) -->
+  <div class="dw-modal-backdrop" id="bug-report-modal" hidden>
+    <div class="dw-modal-window narrow-modal">
+      <div class="modal-header">
+        <h2>🐛 属性与机制报修</h2>
+        <button class="modal-close-btn" id="bug-report-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">发现属性数值计算不准或规则有误？向主持人提交申请，主持人将能在后台直接为你就地补正修订。</p>
+        <div style="margin-bottom:12px;">
+          <label for="bug-report-target" style="display:block;font-size:12px;color:var(--text-main);margin-bottom:4px;font-weight:bold;">申报项目 / 属性</label>
+          <select id="bug-report-target" class="dw-select" style="width:100%;">
+            <option value="敏捷">敏捷 (Agility)</option>
+            <option value="力量">力量 (Strength)</option>
+            <option value="灵巧">灵巧 (Finesse)</option>
+            <option value="本能">本能 (Instinct)</option>
+            <option value="风采">风采 (Presence)</option>
+            <option value="知识">知识 (Knowledge)</option>
+            <option value="生命上限">生命槽上限 (HP Max)</option>
+            <option value="压力上限">压力槽上限 (Stress Max)</option>
+            <option value="闪避">闪避 (Evasion)</option>
+            <option value="护甲">护甲上限 (Armor)</option>
+            <option value="熟练值">熟练值 (Proficiency)</option>
+            <option value="其他">其他机制 / 装备效果</option>
+          </select>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label for="bug-report-reason" style="display:block;font-size:12px;color:var(--text-main);margin-bottom:4px;font-weight:bold;">说明（期望数值或问题详情）</label>
+          <textarea id="bug-report-reason" class="dw-input" rows="3" style="width:100%;resize:vertical;" placeholder="例如：我需要修改力量属性，装备了护腕但没算上+1；或基础属性应为2..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="dw-btn dw-btn-outline" id="bug-report-cancel">取消</button>
+        <button type="button" class="dw-btn dw-btn-gold" id="btn-submit-bug-report">📤 发送给主持人</button>
+      </div>
+    </div>
+  </div>
+
   <!-- App Main Entry Module -->
   <dialog id="level-dialog" class="level-dialog">
     <h2 id="level-dialog-title">升级</h2>
@@ -1438,7 +1551,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-portrait-v3').catch(error => {
+    import('./app.js?v=20261121-inline-adj-v1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;

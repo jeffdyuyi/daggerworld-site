@@ -1202,6 +1202,7 @@ function renderAll() {
   el('evasion-breakdown').textContent = '基础与装备 ' + stats.automatic.evasion;
   for (const [id, key] of Object.entries(quickAdjustments)) el(id).value = adjustment(s, key);
   renderAdjustments(c, stats);
+  renderInlineAdjustments(c, stats);
   el('stat-proficiency').textContent = stats.totalProf;
   renderAdvancements(c);
 
@@ -2020,6 +2021,61 @@ function renderAdjustments(character, stats) {
     row.insertCell().textContent = stats.values[key];
   }
 }
+function renderInlineAdjustments(character, stats) {
+  const isGm = currentUser?.role === 'gm';
+  const s = character.sheet;
+  // 1. 控制 GM 专属内联微调控件的显隐
+  document.querySelectorAll('.gm-only-control').forEach(elem => {
+    elem.hidden = !isGm;
+  });
+
+  // 2. 六维属性卡内联数值与补正 Badge
+  const traitKeys = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'];
+  for (const trait of traitKeys) {
+    const adjVal = adjustment(s, trait);
+    const inputEl = document.querySelector(`[data-trait-input="${trait}"]`);
+    if (inputEl && document.activeElement !== inputEl) inputEl.value = adjVal;
+
+    const badgeEl = el(`adj-badge-${trait}`);
+    if (badgeEl) {
+      if (adjVal !== 0) {
+        badgeEl.textContent = adjVal > 0 ? `+${adjVal}` : `${adjVal}`;
+        badgeEl.hidden = false;
+      } else {
+        badgeEl.hidden = true;
+      }
+    }
+  }
+
+  // 3. HP 与 Stress 资源上限内联补正
+  const hpInput = el('adj-input-hp');
+  if (hpInput && document.activeElement !== hpInput) hpInput.value = adjustment(s, 'hp');
+  const stressInput = el('adj-input-stress');
+  if (stressInput && document.activeElement !== stressInput) stressInput.value = adjustment(s, 'stress');
+
+  // 4. GM 待处理报修 Banner
+  const gmBanner = el('gm-bug-banner');
+  if (gmBanner) {
+    if (isGm) {
+      const reports = (s.bugReports || []).filter(r => r.status === 'open');
+      if (reports.length > 0) {
+        gmBanner.hidden = false;
+        const countEl = el('gm-bug-count');
+        if (countEl) countEl.textContent = reports.length;
+        const textEl = el('gm-bug-text');
+        if (textEl) {
+          const latest = reports[reports.length - 1];
+          textEl.textContent = `最新：[${latest.target || '机制'}] ${latest.reason || '无说明'}`;
+          textEl.title = reports.map((r, i) => `${i + 1}. [${r.target}] ${r.reason} (${r.date || ''})`).join('\n');
+        }
+      } else {
+        gmBanner.hidden = true;
+      }
+    } else {
+      gmBanner.hidden = true;
+    }
+  }
+}
 function setupEventListeners() {
   // Steppers: Level
   el('ws-grant-effect').onclick = async () => {
@@ -2069,6 +2125,103 @@ function setupEventListeners() {
       writeAdjustment(quickAdjustments[id], Number(el(id).value) + Number(button.dataset.delta));
     };
   });
+
+  // GM Inline Trait Adjustments
+  document.querySelectorAll('[data-trait-delta]').forEach(button => {
+    button.onclick = () => {
+      const trait = button.dataset.traitDelta;
+      const current = adjustment(curChar().sheet, trait);
+      const delta = Number(button.dataset.delta) || 0;
+      writeAdjustment(trait, current + delta);
+    };
+  });
+  document.querySelectorAll('[data-trait-input]').forEach(input => {
+    input.onchange = () => {
+      const trait = input.dataset.traitInput;
+      writeAdjustment(trait, input.value);
+    };
+  });
+
+  // GM Inline Track (HP / Stress) Adjustments
+  document.querySelectorAll('[data-track-delta]').forEach(button => {
+    button.onclick = () => {
+      const track = button.dataset.trackDelta;
+      const current = adjustment(curChar().sheet, track);
+      const delta = Number(button.dataset.delta) || 0;
+      writeAdjustment(track, current + delta);
+    };
+  });
+  ['hp', 'stress'].forEach(track => {
+    const input = el(`adj-input-${track}`);
+    if (input) {
+      input.onchange = () => writeAdjustment(track, input.value);
+    }
+  });
+
+  // Player Bug Report Modal
+  const bugModal = el('bug-report-modal');
+  const btnOpenBug = el('btn-open-bug-report');
+  if (btnOpenBug) {
+    btnOpenBug.onclick = () => {
+      el('bug-report-reason').value = '';
+      if (bugModal) bugModal.hidden = false;
+    };
+  }
+  const closeBug = () => { if (bugModal) bugModal.hidden = true; };
+  const btnCloseBug = el('bug-report-close');
+  if (btnCloseBug) btnCloseBug.onclick = closeBug;
+  const btnCancelBug = el('bug-report-cancel');
+  if (btnCancelBug) btnCancelBug.onclick = closeBug;
+
+  const btnSubmitBug = el('btn-submit-bug-report');
+  if (btnSubmitBug) {
+    btnSubmitBug.onclick = async () => {
+      const target = el('bug-report-target').value;
+      const reason = el('bug-report-reason').value.trim();
+      if (!reason) return alert('请填写报修说明，以便主持人准确修订。');
+      const c = curChar();
+      c.sheet.bugReports ??= [];
+      const report = {
+        id: crypto.randomUUID(),
+        target,
+        reason,
+        status: 'open',
+        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      c.sheet.bugReports.push(report);
+      saveLocal();
+      closeBug();
+      alert('已成功向主持人提交报修！主持人打开您的角色卡时将收到醒目提醒。');
+      if (c.updated_at) {
+        try {
+          await persist(c, payload(c));
+        } catch (err) {
+          console.warn('云端同步报修状态失败', err);
+        }
+      }
+      renderAll();
+    };
+  }
+
+  // GM Resolve Bug
+  const btnResolveBug = el('btn-gm-resolve-bug');
+  if (btnResolveBug) {
+    btnResolveBug.onclick = async () => {
+      const c = curChar();
+      if (!c?.sheet?.bugReports?.length) return;
+      c.sheet.bugReports.forEach(r => { r.status = 'resolved'; });
+      saveLocal();
+      if (c.updated_at) {
+        try {
+          await persist(c, payload(c));
+        } catch (err) {
+          console.warn('云端同步标记失败', err);
+        }
+      }
+      renderAll();
+      alert('已将当前角色的报修标记为已解决。');
+    };
+  }
   document.querySelectorAll('[data-trait-mark]').forEach(input => {
     input.addEventListener('change', () => {
       const character = curChar();
