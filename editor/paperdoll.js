@@ -109,16 +109,114 @@ function loadSprite(name) {
 const torsoSprites = new Set(['leather', 'chain', 'plate', 'robe', 'tunic']);
 const headSprites = new Set(['helm', 'hood', 'crown']);
 const handSprites = new Set(['sword', 'dagger', 'axe', 'hammer', 'staff', 'spear', 'bow', 'crossbow', 'scythe', 'shield', 'steelShield']);
-const skinVariants = new Set(['pale', 'tan', 'deep', 'green']);
+const oldColors = {pale:'#d9a582',tan:'#b47c52',deep:'#744630',green:'#799746'};
+const speciesColors = {兽人:'#799746',魔裔:'#a34e78',蛙裔:'#79a764',龟人:'#889550',龙人:'#9f6946',猫族:'#c58d59',猿族:'#886346',哥布林:'#819456'};
+const speciesOf = sheet => sheet.ancestryId?.split(':').at(-1) ?? '';
+export function appearanceDefaults(sheet) {
+  const look = sheet.paperdoll ?? {};
+  return {
+    skin: /^#[a-f0-9]{6}$/i.test(look.skin) ? look.skin : oldColors[look.skin] ?? speciesColors[speciesOf(sheet)] ?? oldColors.pale,
+    hair: look.hair ?? (['龙人','蛙裔','龟人','猫族','猿族'].includes(speciesOf(sheet)) ? 'none' : 'brown'),
+    beard: Boolean(look.beard), horns: look.horns === 'curl' ? 'curl' : 'point',
+    wings: look.wings === 'vein' ? 'vein' : 'petal',
+  };
+}
+
+function speciesLayer(ctx, kind, look, behind) {
+  ctx.save();
+  ctx.scale(2,2);
+  const polygon = (color, points) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    points.forEach(([x,y],i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+    ctx.closePath(); ctx.fill();
+  };
+  const rect = (color,x,y,w,h) => {ctx.fillStyle=color;ctx.fillRect(x,y,w,h);};
+  const mirror = (color,points) => {
+    polygon(color,points);
+    polygon(color,points.map(([x,y]) => [64-x,y]));
+  };
+  const skin=look.skin, ink='#302531';
+  if (behind && kind === '仙灵') {
+    const thin = look.wings === 'vein';
+    mirror('#674870',[[29,39],[10,34],[4,22],[5,13],[15,16],[26,29],[30,34]]);
+    mirror(thin?'#addbe4':'#d99acf',[[27,36],[11,31],[7,22],[7,16],[14,19],[24,30]]);
+    mirror('#b58ac5',[[28,37],[18,35],[10,39],[10,45],[18,47],[27,42]]);
+    mirror('#f4d8eb',[[23,32],[11,23],[10,19],[14,22]]);
+  }
+  if (behind && ['猫族','猿族','龙人'].includes(kind)) {
+    polygon(ink,[[39,43],[47,46],[52,44],[54,39],[58,38],[57,46],[53,50],[46,51],[39,48]]);
+    polygon(skin,[[41,45],[47,48],[52,46],[55,42],[55,46],[52,49],[46,50],[41,47]]);
+  }
+  if (behind && kind === '龟人') {
+    polygon('#4a4630',[[20,28],[44,28],[50,35],[49,47],[44,53],[20,53],[15,47],[14,35]]);
+    mirror('#726541',[[20,30],[25,32],[22,40],[16,42],[16,35]]);
+    mirror('#85794a',[[16,44],[22,42],[24,48],[20,51],[17,48]]);
+  }
+  if (!behind) {
+    switch (kind) {
+      case '精灵':
+      case '兽人':
+        mirror(ink,[[25,24],[15,20],[16,25],[23,30],[26,29]]);
+        mirror(skin,[[24,25],[17,22],[18,25],[23,28]]);
+        if (kind === '兽人') {
+          rect('#efe4bc',25,29,2,4); rect('#efe4bc',37,29,2,4);
+          rect(ink,27,31,10,1);
+        }
+        break;
+      case '魔裔':
+        mirror('#47303a',look.horns === 'curl' ? [[27,20],[19,19],[16,15],[17,9],[21,8],[23,11],[20,12],[20,15],[27,15]] : [[26,20],[19,18],[17,8],[21,11],[26,13]]);
+        mirror('#ae7e77',look.horns === 'curl' ? [[22,16],[19,16],[18,13],[19,10],[20,10],[19,14]] : [[20,16],[19,11],[24,15]]);
+        break;
+      case '龙人':
+      case '蛙裔':
+      case '龟人':
+      case '猫族':
+      case '猿族': {
+        const cat=kind==='猫族', frog=kind==='蛙裔', dragon=kind==='龙人', ape=kind==='猿族';
+        polygon(ink,[[20,19],[cat?18:23,cat?10:15],[28,17],[36,17],[cat?46:41,cat?10:15],[44,20],[frog?48:45,25],[45,32],[39,36],[25,36],[19,32],[frog?16:19,25]]);
+        polygon(skin,[[22,20],[cat?20:24,cat?14:17],[29,19],[35,19],[cat?44:40,cat?14:17],[42,21],[frog?46:43,26],[43,31],[38,34],[26,34],[21,31],[frog?18:21,26]]);
+        if (frog) mirror(skin,[[19,41],[22,44],[21,47],[17,48],[14,47],[16,45]]);
+        if (ape) mirror(skin,[[20,41],[22,45],[21,49],[18,51],[15,49],[16,46]]);
+        if (cat || dragon) mirror('#eaddbf',[[18,44],[17,48],[18,49],[20,46],[21,49],[22,46]]);
+        if (frog || ape) mirror(skin,[[23,20],[19,19],[17,23],[19,27],[23,25]]);
+        if (dragon) mirror('#dbc48f',[[25,20],[19,17],[18,11],[22,13],[26,17]]);
+        if (cat) mirror('#e9ac99',[[21,16],[24,17],[22,20]]);
+        rect('#f0cd98',dragon?23:25,28,dragon?18:14,5);
+        mirror(ink,[[24,23],[28,23],[28,26],[24,26]]);
+        if (cat || ape || dragon) rect(ink,30,28,4,2);
+        rect(ink,27,32,10,1);
+        if (cat || dragon) mirror('#eaddbf',[[23,29],[18,27],[20,30],[23,31]]);
+        break;
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawSkin(ctx, image, color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const skin = canvas.getContext('2d');
+  skin.drawImage(image,0,0,64,64);
+  const data = skin.getImageData(0,0,64,64);
+  const rgb = color.slice(1).match(/../g).map(v=>parseInt(v,16));
+  for (let i=0; i<data.data.length; i+=4) {
+    if (!data.data[i+3]) continue;
+    const shade = (.3*data.data[i]+.55*data.data[i+1]+.15*data.data[i+2]-165)*.8;
+    for(let channel=0;channel<3;channel++) data.data[i+channel]=rgb[channel]+shade;
+  }
+  skin.putImageData(data,0,0);
+  ctx.drawImage(canvas,0,0,128,128);
+}
 const hairVariants = { brown: 'hair', black: 'hairDark', gold: 'hairGold', gray: 'hairGray' };
 
 export function outfitLayers(sheet, suitActive) {
   const gear = sheet.equipment ?? {};
-  const look = sheet.paperdoll ?? {};
+  const look = appearanceDefaults(sheet);
+  const kind = speciesOf(sheet);
   const gender = sheet.gender === '女' ? 'female' : 'male';
   const fitted = name => name + '-' + gender;
-  const skin = skinVariants.has(look.skin) ? look.skin
-    : /兽人|地精|蛙裔|蛙裔畜/.test(sheet.ancestryId ?? '') ? 'green' : 'pale';
   const hair = look.hair === 'none' ? null : Object.hasOwn(hairVariants, look.hair) ? hairVariants[look.hair] : 'hair';
   const chest = suitActive ? gear.suit : gear.chest;
   const armor = chest ? itemArt(chest) : null;
@@ -137,7 +235,8 @@ export function outfitLayers(sheet, suitActive) {
   }
 
   if ([gear.back, gear.costume, chest].some(item => item && itemArt(item) === 'cape')) add('cape');
-  add(fitted(skin === 'pale' ? 'skin' : skin));
+  layers.push({kind,behind:true});
+  layers.push({sprite:fitted('skin'),skin:look.skin});
   add(fitted('pants'));
   add(fitted('boots'));
   if (itemArt(gear.legs ?? {}) === 'legs') add(fitted('greaves'));
@@ -147,6 +246,7 @@ export function outfitLayers(sheet, suitActive) {
   if (itemArt(gear.wrists ?? {}) === 'gloves') add(fitted('gloves'));
   if (hair) add(hair);
   if (look.beard) add('beard');
+  layers.push({kind,behind:false});
   hand(gear.weapon_off, true);
   hand(gear.weapon_main, false);
   if (headSprites.has(helmet)) add(headSprites.has(helmet) && helmet !== 'helm' ? helmet : fitted('helm'));
@@ -159,12 +259,15 @@ export async function paintPaperdoll(canvas, sheet, suitActive) {
   const render = Symbol();
   canvasRenders.set(canvas, render);
   const layers = outfitLayers(sheet, suitActive);
-  const loaded = await Promise.all(layers.map(layer => loadSprite(layer.sprite)));
+  const loaded = await Promise.all(layers.map(layer => layer.sprite ? loadSprite(layer.sprite) : null));
   if (canvasRenders.get(canvas) !== render) return false;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, 128, 128);
   ctx.imageSmoothingEnabled = false;
-  layers.forEach(({ flip }, index) => {
+  const look = appearanceDefaults(sheet);
+  layers.forEach(({ flip, kind, behind, skin }, index) => {
+    if (!loaded[index]) { speciesLayer(ctx,kind,look,behind); return; }
+    if (skin) { drawSkin(ctx,loaded[index],skin); return; }
     ctx.save();
     if (flip) {
       ctx.translate(128, 0);

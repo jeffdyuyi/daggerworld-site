@@ -127,6 +127,17 @@
               <div class="preview-card-mini" id="preview-ancestry-card"></div>
             </div>
 
+            <fieldset class="creator-appearance"><legend>外观</legend>
+              <canvas id="creator-paperdoll" width="128" height="128" role="img" aria-label="外观预览"></canvas>
+              <div class="paperdoll-options">
+                <label>肤色 <input type="color" id="paperdoll-skin"><button type="button" id="paperdoll-reset">默认</button></label>
+                <label>头发 <select id="paperdoll-hair"><option value="brown">棕发</option><option value="black">黑发</option><option value="gold">金发</option><option value="gray">灰发</option><option value="none">无发</option></select></label>
+                <label><input type="checkbox" id="paperdoll-beard"> 胡须</label>
+                <label id="paperdoll-horn-option">角 <select id="paperdoll-horns"><option value="point">尖角</option><option value="curl">弯角</option></select></label>
+                <label id="paperdoll-wing-option">翅膀 <select id="paperdoll-wings"><option value="petal">蝶翼</option><option value="vein">薄翼</option></select></label>
+              </div>
+            </fieldset>
+
             <!-- Class -->
             <div class="form-group">
               <label for="new-char-class">主职法门 (Class)</label>
@@ -185,7 +196,7 @@
           <span>致死 <strong id="threshold-c">—</strong></span>
         </div>
         <div class="res-header">
-          <span class="res-title">生命点 · 剩余</span>
+          <span class="res-title">生命点</span>
           <div class="res-counter">
             <span id="hp-cur">6</span> / <span id="hp-max">6</span>
           </div>
@@ -200,7 +211,7 @@
       <!-- Stress Track -->
       <div class="resource-card stress-card">
         <div class="res-header">
-          <span class="res-title">压力点 · 已标记</span>
+          <span class="res-title">压力点</span>
           <div class="res-counter">
             <span id="stress-cur">0</span> / <span id="stress-max">6</span>
           </div>
@@ -215,7 +226,7 @@
       <!-- Hope Track -->
       <div class="resource-card hope-card">
         <div class="res-header">
-          <span class="res-title">希望点 · 持有</span>
+          <span class="res-title">希望点</span>
           <div class="res-counter">
             <span id="hope-cur">2</span> / <span id="hope-max">6</span>
           </div>
@@ -358,11 +369,15 @@
 
             <div class="paperdoll-stage">
               <canvas id="paperdoll" width="128" height="128" role="img" aria-label="角色像素立绘">角色立绘</canvas>
+              <details id="gm-appearance" hidden><summary>编辑外观</summary>
               <div class="paperdoll-options">
-                <label>肤色 <select id="paperdoll-skin"><option value="">默认</option><option value="pale">浅色</option><option value="tan">棕色</option><option value="deep">深色</option><option value="green">绿色</option></select></label>
-                <label>头发 <select id="paperdoll-hair"><option value="brown">棕发</option><option value="black">黑发</option><option value="gold">金发</option><option value="gray">灰发</option><option value="none">无发</option></select></label>
-                <label><input type="checkbox" id="paperdoll-beard"> 胡须</label>
+                <label>肤色 <input type="color" id="gm-paperdoll-skin"><button type="button" id="gm-paperdoll-reset">默认</button></label>
+                <label>头发 <select id="gm-paperdoll-hair"><option value="brown">棕发</option><option value="black">黑发</option><option value="gold">金发</option><option value="gray">灰发</option><option value="none">无发</option></select></label>
+                <label><input type="checkbox" id="gm-paperdoll-beard"> 胡须</label>
+                <label id="gm-paperdoll-horn-option">角 <select id="gm-paperdoll-horns"><option value="point">尖角</option><option value="curl">弯角</option></select></label>
+                <label id="gm-paperdoll-wing-option">翅膀 <select id="gm-paperdoll-wings"><option value="petal">蝶翼</option><option value="vein">薄翼</option></select></label>
               </div>
+              </details>
               <button type="button" class="dw-btn dw-btn-outline" id="paperdoll-export" disabled>下载棋子 PNG</button>
               <small id="paperdoll-status" role="status" hidden></small>
             </div>
@@ -477,7 +492,7 @@
                 </div>
               </div>
               <p class="attr-desc">冲刺 · 闪避 · 杂技 · 移动</p>
-              <button class="roll-trigger-btn" data-attr-roll="agility">🎲 双元骰检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="agility" aria-label="敏捷检定" title="二元骰检定">🎲</button>
             </div>
 
             <div class="attr-card" data-attr="strength">
@@ -489,7 +504,7 @@
                 </div>
               </div>
               <p class="attr-desc">粉碎 · 举重 · 近战 · 坚韧</p>
-              <button class="roll-trigger-btn" data-attr-roll="strength">🎲 双元骰检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="strength" aria-label="力量检定" title="二元骰检定">🎲</button>
             </div>
 
             <div class="attr-card" data-attr="finesse">
@@ -501,7 +516,7 @@
                 </div>
               </div>
               <p class="attr-desc">瞄准 · 潜行 · 巧手 · 锁匠</p>
-              <button class="roll-trigger-btn" data-attr-roll="finesse">🎲 双元骰检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="finesse" aria-label="灵巧检定" title="二元骰检定">🎲</button>
             </div>
 
             <div class="attr-card" data-attr="instinct">
@@ -513,7 +528,7 @@
                 </div>
               </div>
               <p class="attr-desc">洞察 · 察觉 · 野性 · 直觉</p>
-              <button class="roll-trigger-btn" data-attr-roll="instinct">🎲 双元骰检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="instinct" aria-label="本能检定" title="二元骰检定">🎲</button>
             </div>
 
             <div class="attr-card" data-attr="presence">
@@ -525,7 +540,7 @@
                 </div>
               </div>
               <p class="attr-desc">魅力 · 威吓 · 说服 · 领导</p>
-              <button class="roll-trigger-btn" data-attr-roll="presence">🎲 双元骰检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="presence" aria-label="风采检定" title="二元骰检定">🎲</button>
             </div>
 
             <div class="attr-card" data-attr="knowledge">
@@ -537,7 +552,7 @@
                 </div>
               </div>
               <p class="attr-desc">回想 · 分析 · 奥术 · 调查</p>
-              <button class="roll-trigger-btn" data-attr-roll="knowledge">🎲 双元骰检定</button>
+              <button class="roll-trigger-btn" data-attr-roll="knowledge" aria-label="知识检定" title="二元骰检定">🎲</button>
             </div>
           </div>
 

@@ -3085,3 +3085,8 @@ body.dw-theme {
 .bag-panel-title .grid-actions { margin-inline-start: auto; }
 .bag-equipment-panel .visual-slots-grid { margin-top: .75rem; }
 .legacy-gear-marker { color: var(--text-main); font-size: .7rem; }
+
+.creator-appearance canvas { width:128px; height:128px; image-rendering: pixelated; }
+.paperdoll-options label[hidden], #gm-appearance[hidden] { display:none; }
+.roll-trigger-btn { width:1.9rem; min-height:1.9rem; padding:0; justify-self:end; }
+.attr-mod { font-size:1.22rem; font-weight:bold; }

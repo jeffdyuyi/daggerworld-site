@@ -2,7 +2,7 @@ import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels } from './sheet-rules.js';
 import { readGmNote, writeGmNote, loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
-import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
+import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken, appearanceDefaults } from './paperdoll.js';
 
 // Global App State
 let db = null;
@@ -648,6 +648,8 @@ function showCharacterCreator() {
   const section = el('vault-creator-section');
   if (!db) return alert('规则资料尚未加载，请刷新后重试。');
   section.hidden = false;
+  creatorLook = {};
+  previewAppearance();
   section.scrollIntoView({ block: 'nearest' });
   el('new-char-name').focus({ preventScroll: true });
 }
@@ -681,6 +683,23 @@ async function deleteCharacterByIndex(idx) {
 // ==========================================================================
 // 创角向导 (Character Creation Wizard) 控制器
 // ==========================================================================
+let creatorLook = {};
+function fillAppearance(prefix, sheet) {
+  const look = appearanceDefaults(sheet);
+  for (const key of ['skin','hair','horns','wings']) el(prefix+'paperdoll-'+key).value = look[key];
+  el(prefix+'paperdoll-beard').checked = look.beard;
+  el(prefix+'paperdoll-horn-option').hidden = !sheet.ancestryId?.endsWith(':魔裔');
+  el(prefix+'paperdoll-wing-option').hidden = !sheet.ancestryId?.endsWith(':仙灵');
+}
+function creatorSheet() {
+  return { ancestryId:el('new-char-ancestry').value, gender:el('new-char-gender').value, paperdoll:creatorLook };
+}
+function previewAppearance() {
+  const sheet = creatorSheet();
+  fillAppearance('',sheet);
+  paintPaperdoll(el('creator-paperdoll'),sheet,false).catch(console.warn);
+}
+
 function setupCreationWizard() {
   const genderPills = document.querySelectorAll('#gender-selector .gender-pill');
   const genderHidden = el('new-char-gender');
@@ -689,6 +708,7 @@ function setupCreationWizard() {
       genderPills.forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       if (genderHidden) genderHidden.value = pill.dataset.gender;
+      previewAppearance();
     });
   });
 
@@ -697,7 +717,7 @@ function setupCreationWizard() {
   const selSub = el('new-char-subclass');
 
   if (selAnc) {
-    selAnc.addEventListener('change', updateCreatorAncestryPreview);
+    selAnc.addEventListener('change', () => { updateCreatorAncestryPreview(); previewAppearance(); });
   }
   if (selCls) {
     selCls.addEventListener('change', () => {
@@ -719,6 +739,7 @@ function setupCreationWizard() {
 
       // 确立新角色
       const newChar = createDefaultCharacter(name, gender, ancestryId, classId, subclassId);
+      newChar.sheet.paperdoll = {...creatorLook};
       
       // 根据所选职业同步初始生命与闪避
       const clsObj = db?.classes?.find(c => c.ID === classId || c.名称 === classId);
@@ -1007,10 +1028,8 @@ function itemImage(item) {
 }
 
 function renderPaperdoll(character, suitActive) {
-  const look = character.sheet.paperdoll ?? {};
-  el('paperdoll-skin').value = look.skin ?? '';
-  el('paperdoll-hair').value = look.hair ?? 'brown';
-  el('paperdoll-beard').checked = Boolean(look.beard);
+  el('gm-appearance').hidden = currentUser?.role !== 'gm';
+  fillAppearance('gm-', character.sheet);
   const exportButton = el('paperdoll-export');
   const status = el('paperdoll-status');
   exportButton.disabled = true;
@@ -1817,14 +1836,23 @@ function setupEventListeners() {
   // Add Item to Bag
   el('ws-catalog').onclick = () => openItemPicker('loot');
   el('btn-loot-catalog').addEventListener('click', () => openItemPicker('loot'));
-  for (const field of ['skin', 'hair', 'beard']) {
-    el(`paperdoll-${field}`).addEventListener('change', event => {
+  for (const prefix of ['', 'gm-']) {
+    const update = (field,value) => {
+      if (!prefix) {
+        creatorLook[field] = value;
+        previewAppearance();
+        return;
+      }
+      if (currentUser?.role !== 'gm' || !curChar()) return;
       const character = curChar();
-      const value = field === 'beard' ? event.target.checked : event.target.value;
-      character.sheet.paperdoll = { ...character.sheet.paperdoll, [field]: value };
+      character.sheet.paperdoll = {...character.sheet.paperdoll,[field]:value};
       saveLocal();
-      renderPaperdoll(character, calculateStats(character).isSuitActive);
-    });
+      renderPaperdoll(character,calculateStats(character).isSuitActive);
+    };
+    for (const field of ['skin','hair','beard','horns','wings']) {
+      el(prefix+'paperdoll-'+field).onchange = event => update(field,field === 'beard' ? event.target.checked : event.target.value);
+    }
+    el(prefix+'paperdoll-reset').onclick = () => update('skin','');
   }
   el('paperdoll-export').addEventListener('click', () => downloadToken(el('paperdoll'), curChar().avatar_name));
   el('btn-clean-bag').addEventListener('click', () => {
