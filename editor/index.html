@@ -70,6 +70,7 @@
         <h1>角色库</h1>
       </div>
       <div class="vault-hero-actions">
+        <a class="dw-btn dw-btn-outline" href="./assets/lpc/credits.csv">美术来源</a>
         <button type="button" class="dw-btn dw-btn-outline" id="btn-open-workshop" hidden>主持人工坊</button>
         <button class="dw-btn dw-btn-outline" id="btn-vault-refresh">🔄 刷新云端</button>
         <button class="dw-btn dw-btn-outline" id="btn-hero-import">📥 导入角色卡 JSON</button>
@@ -89,6 +90,18 @@
           <!-- Dynamically Injected by renderVaultLobby() -->
         </div>
       </div>
+
+      <section class="vault-preview" id="vault-preview" aria-labelledby="vault-preview-name" hidden>
+        <canvas id="vault-preview-canvas" width="128" height="128" role="img" aria-label="所选角色立绘"></canvas>
+        <div class="vault-preview-footer">
+          <div><h2 id="vault-preview-name"></h2><p id="vault-preview-details"></p></div>
+          <button type="button" class="dw-btn dw-btn-gold" id="vault-preview-open">打开角色卡</button>
+          <details><summary>更多</summary>
+            <button type="button" class="dw-btn dw-btn-outline" id="vault-preview-export">导出 JSON</button>
+            <button type="button" class="dw-btn dw-btn-outline" id="vault-preview-delete">删除角色</button>
+          </details>
+        </div>
+      </section>
 
       <!-- Right: Character Creation Wizard -->
       <div class="vault-creator-section" id="vault-creator-section" hidden>

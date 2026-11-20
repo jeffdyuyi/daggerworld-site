@@ -55,7 +55,7 @@ body:has(.route) nav a:is(:hover, [aria-current="page"]) { background: #f5c77e; 
   text-decoration: none;
 }
 .portal-library:hover, .home .button:hover { background: #ffde9c; color: #511f1c; }
-body:has(.route) .home { padding: clamp(1rem, 4vw, 3.5rem); }
+body:has(.route) .home { justify-content: end; padding: clamp(1rem, 4vw, 3.5rem); }
 body:has(.route) .hero-copy {
   margin: 0;
   padding: clamp(1rem, 3.5vw, 2.4rem);
@@ -221,12 +221,48 @@ body.game-entry {
   color: var(--pixel-ink);
 }
 .dw-theme .vault-hero-content h1 { color: var(--pixel-ink); }
-.dw-theme .vault-layout-grid { grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
+.dw-theme .vault-layout-grid { grid-template-columns: minmax(13rem, 19rem) minmax(0, 1fr); gap: 1.2rem; }
 .dw-theme .vault-creator-section { max-width: 46rem; }
 .dw-theme .vault-cards-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 14rem));
-  gap: .85rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .55rem;
 }
+.vault-choice {
+  min-height: 2.75rem;
+  padding: .65rem .8rem;
+  text-align: start;
+  background: var(--pixel-surface);
+  border: 1px solid var(--pixel-edge);
+  color: var(--pixel-ink);
+  cursor: pointer;
+}
+.vault-choice[aria-pressed="true"] { background: #f3cb8e; border-left: 5px solid #9b3f32; }
+.vault-preview {
+  min-width: 0;
+  min-height: 25rem;
+  padding: 1rem;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  background: linear-gradient(#462d2466, #21140eaa), url("./assets/game-entry.jpg") center / cover;
+  border: 3px solid #805033;
+  box-shadow: inset 0 0 0 2px #d2a56c, 3px 4px 0 #b9915d;
+}
+.vault-preview canvas { width: min(100%, 256px); height: auto; image-rendering: pixelated; }
+.vault-preview-footer {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .65rem;
+  padding: .75rem;
+  background: #fff1d5;
+  color: var(--pixel-ink);
+  border: 2px solid var(--pixel-edge);
+}
+.vault-preview-footer > div { margin-inline-end: auto; }
+.vault-preview-footer :is(h2, p) { margin: 0; }
+.vault-preview-footer summary { cursor: pointer; }
 .dw-theme :is(.vault-char-card, .vault-create-card, .creator-card) {
   background: #fff2d4;
   color: var(--pixel-ink);
@@ -259,7 +295,7 @@ body.game-entry {
 .dw-theme .vcard-btn-enter:hover { background: #f5c77e; }
 .dw-theme .vault-create-card {
   padding: .8rem;
-  min-height: 15rem;
+  min-height: 3.25rem;
   display: grid;
   place-content: center;
   gap: .4rem;
@@ -344,7 +380,9 @@ body.game-entry {
   .dw-theme .overview-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 768px) {
-  .dw-theme .vault-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body:has(.route) .home { justify-content: start; }
+  .dw-theme .vault-layout-grid { grid-template-columns: minmax(0, 1fr); }
+  .vault-preview { min-height: 18rem; }
   .dw-theme .vcard-actions { flex-wrap: wrap; }
   .dw-theme .vcard-avatar { height: 7.25rem; }
   .dw-theme .vcard-avatar canvas { width: 96px; height: 96px; }

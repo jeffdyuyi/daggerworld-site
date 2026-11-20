@@ -1,4 +1,5 @@
 const art = new URL('./assets/paperdoll/', import.meta.url);
+const avatarArt = new URL('./assets/lpc/', import.meta.url);
 const sprites = new Map();
 export const itemAppearances = {
   sword: '剑', dagger: '匕首', axe: '斧', hammer: '锤', spear: '长矛', staff: '法杖',
@@ -91,7 +92,7 @@ function loadSprite(name) {
       const image = new Image();
       image.onload = () => resolve(image);
       image.onerror = () => reject(new Error(`无法加载贴图 ${name}`));
-      image.src = spriteUrl(name);
+      image.src = new URL(`${name}.png`, avatarArt).href;
     }).catch(error => {
       sprites.delete(name);
       throw error;
@@ -103,40 +104,47 @@ function loadSprite(name) {
 const torsoSprites = new Set(['leather', 'chain', 'plate', 'robe', 'tunic']);
 const headSprites = new Set(['helm', 'hood', 'crown']);
 const handSprites = new Set(['sword', 'dagger', 'axe', 'hammer', 'staff', 'spear', 'bow', 'crossbow', 'scythe', 'shield', 'steelShield']);
-const skinVariants = { pale: ['body', 'body2'], tan: ['tan', 'tan2'], deep: ['deep', 'deep2'], green: ['green', 'green2'] };
+const skinVariants = new Set(['pale', 'tan', 'deep', 'green']);
 const hairVariants = { brown: 'hair', black: 'hairDark', gold: 'hairGold', gray: 'hairGray' };
 
 export function outfitLayers(sheet, suitActive) {
   const gear = sheet.equipment ?? {};
   const look = sheet.paperdoll ?? {};
-  const ancestry = sheet.ancestryId ?? '';
-  const skin = Object.hasOwn(skinVariants, look.skin) ? skinVariants[look.skin]
-    : /兽人|地精|蛙裔|蛙裔畜/.test(ancestry) ? skinVariants.green : skinVariants.pale;
-  const body = skin[sheet.gender === '女' ? 1 : 0];
+  const gender = sheet.gender === '女' ? 'female' : 'male';
+  const fitted = name => name + '-' + gender;
+  const skin = skinVariants.has(look.skin) ? look.skin
+    : /兽人|地精|蛙裔|蛙裔畜/.test(sheet.ancestryId ?? '') ? 'green' : 'pale';
   const hair = look.hair === 'none' ? null : Object.hasOwn(hairVariants, look.hair) ? hairVariants[look.hair] : 'hair';
   const chest = suitActive ? gear.suit : gear.chest;
   const armor = chest ? itemArt(chest) : null;
   const dress = itemArt(gear.costume ?? {});
   const torso = torsoSprites.has(armor) ? armor : chest ? 'plate' : torsoSprites.has(dress) ? dress : 'shirt';
   const helmet = gear.head ? itemArt(gear.head) : null;
-  const main = gear.weapon_main ? itemArt(gear.weapon_main) : null;
-  const off = gear.weapon_off ? itemArt(gear.weapon_off) : null;
-  const offSprite = off === 'shield' && /铁|钢/.test(gear.weapon_off.名称 ?? '') ? 'steelShield' : off;
-  return {
-    cape: Boolean(gear.back) || /披风|斗篷/.test(gear.costume?.名称 ?? ''),
-    layers: [
-      { sprite: body },
-      { sprite: gear.legs ? 'legs' : 'boots' },
-      { sprite: torso },
-      ...(gear.wrists ? [{ sprite: 'gloves' }] : []),
-      ...(gear.feet ? [{ sprite: 'boots', metal: true }] : []),
-      ...(hair ? [{ sprite: hair }] : []),
-      ...(look.beard ? [{ sprite: 'beard' }] : []),
-      ...(off ? [{ sprite: handSprites.has(off) ? offSprite : 'staff', flip: off !== 'shield' && off !== 'steelShield' }] : []),
-      ...(main ? [{ sprite: handSprites.has(main) ? main : 'staff', flip: main === 'shield' || main === 'steelShield' }] : []),
-      ...(helmet ? [{ sprite: headSprites.has(helmet) ? helmet : 'helm' }] : []),
-    ],
-  };
+  const layers = [];
+  function add(sprite, flip = false) { layers.push({ sprite, flip }); }
+  function hand(item, isOffHand) {
+    if (!item) return;
+    const image = itemArt(item);
+    const isShield = image === 'shield' || image === 'steelShield';
+    const metalShield = image === 'steelShield' || (isShield && /铁|钢/.test(item.名称 ?? ''));
+    add(metalShield ? fitted('steelShield') : handSprites.has(image) ? image : 'staff', isShield ? !isOffHand : isOffHand);
+  }
+
+  if (gear.back || /披风|斗篷/.test(gear.costume?.名称 ?? '')) add('cape');
+  add(fitted(skin === 'pale' ? 'skin' : skin));
+  add(fitted('pants'));
+  add(fitted('boots'));
+  if (gear.legs) add(fitted('greaves'));
+  if (gear.feet) add(fitted('armoredBoots'));
+  add(fitted('shirt'));
+  if (torso !== 'shirt') add(torso === 'robe' ? 'robe' : fitted(torso));
+  if (gear.wrists) add(fitted('gloves'));
+  if (hair) add(hair);
+  if (look.beard) add('beard');
+  hand(gear.weapon_off, true);
+  hand(gear.weapon_main, false);
+  if (helmet) add(headSprites.has(helmet) && helmet !== 'helm' ? helmet : fitted('helm'));
+  return layers;
 }
 
 const canvasRenders = new WeakMap();
@@ -144,28 +152,19 @@ const canvasRenders = new WeakMap();
 export async function paintPaperdoll(canvas, sheet, suitActive) {
   const render = Symbol();
   canvasRenders.set(canvas, render);
-  const { cape, layers } = outfitLayers(sheet, suitActive);
+  const layers = outfitLayers(sheet, suitActive);
   const loaded = await Promise.all(layers.map(layer => loadSprite(layer.sprite)));
   if (canvasRenders.get(canvas) !== render) return false;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, 128, 128);
   ctx.imageSmoothingEnabled = false;
-  if (cape) {
-    ctx.fillStyle = '#401e26';
-    ctx.fillRect(38, 52, 52, 52);
-    ctx.fillStyle = '#863c45';
-    ctx.fillRect(44, 52, 40, 46);
-    ctx.fillStyle = '#b76b57';
-    ctx.fillRect(44, 94, 40, 4);
-  }
-  layers.forEach(({ flip, metal }, index) => {
+  layers.forEach(({ flip }, index) => {
     ctx.save();
     if (flip) {
       ctx.translate(128, 0);
       ctx.scale(-1, 1);
     }
-    if (metal) ctx.filter = 'grayscale(1) brightness(1.35)';
-    ctx.drawImage(loaded[index], 8, 8, 112, 112);
+    ctx.drawImage(loaded[index], 0, 0, 128, 128);
     ctx.restore();
   });
   return true;
@@ -182,7 +181,7 @@ export function downloadToken(canvas, name) {
   ctx.clip();
   ctx.fillStyle = '#312329';
   ctx.fillRect(0, 0, 256, 256);
-  ctx.drawImage(canvas, 24, 15, 80, 80, 0, 0, 256, 256);
+  ctx.drawImage(canvas, 28, 24, 72, 72, 0, 0, 256, 256);
   ctx.restore();
   ctx.strokeStyle = '#e3b36c';
   ctx.lineWidth = 8;

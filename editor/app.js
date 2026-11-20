@@ -622,61 +622,34 @@ function renderVaultLobby() {
   if (!container) return;
 
   container.innerHTML = '';
-  characters.forEach((char, idx) => {
-    const s = char.sheet || {};
-    const clsObj = db?.classes?.find(c => c.ID === s.classId || c.名称 === s.classId);
-    const clsName = clsObj?.名称 || '战士';
-    const ancObj = db?.ancestries?.find(a => a.ID === s.ancestryId || a.名称 === s.ancestryId);
-    const ancName = ancObj?.名称 || '人类';
-    const scObj = db?.subclasses?.find(sc => sc.ID === s.subclassId);
-    const scName = scObj?.名称 || '初阶';
-    const gender = s.gender || '男';
-    const isActive = idx === activeCharIndex;
-
-    const card = document.createElement('div');
-    card.className = `vault-char-card ${isActive ? 'active-char' : ''}`;
-    card.innerHTML = `
-      <div class="vcard-top">
-        <div class="vcard-avatar"><canvas width="128" height="128" aria-hidden="true"></canvas></div>
-        <div class="vcard-meta">
-          <div class="vcard-name-row">
-            <h3 class="vcard-name"></h3>
-            <span class="gender-badge gender-${gender}">${gender === '男' ? '♂ 男' : (gender === '女' ? '♀ 女' : '⚪ 无')}</span>
-          </div>
-          <div class="vcard-tags">
-            <span class="vcard-tag">${ancName}</span>
-            <span class="vcard-tag vcard-class">${clsName} · ${scName}</span>
-            <span class="vcard-tag vcard-level">Lv.${char.level || 1}</span>
-          </div>
-        </div>
-      </div>
-      <div class="vcard-actions">
-        <button class="vcard-btn-enter" data-index="${idx}">
-          <span>⚔️</span> 打开角色卡
-        </button>
-        <button class="vcard-btn-icon" data-action="export" data-index="${idx}" title="导出本卡 JSON">💾</button>
-        <button class="vcard-btn-icon" data-action="delete" data-index="${idx}" title="删除角色" style="color:#ef4444;">🗑️</button>
-      </div>
-    `;
-
-    card.querySelector('.vcard-name').textContent = char.avatar_name || '无名角色';
-    void paintPaperdoll(card.querySelector('canvas'), s, calculateStats(char).isSuitActive)
-      .catch(() => card.querySelector('canvas').hidden = true);
-    // Bind card actions
-    card.querySelector('.vcard-btn-enter').addEventListener('click', () => {
-      switchLayer('sheet', idx);
-    });
-    card.querySelector('[data-action="export"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      exportCharacterJson(idx);
-    });
-    card.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteCharacterByIndex(idx);
-    });
-
-    container.appendChild(card);
+  const stage = el('vault-preview');
+  stage.hidden = !characters.length;
+  const rows = characters.map((character, index) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'vault-choice';
+    row.textContent = `${character.avatar_name || '无名角色'} · ${character.level || 1} 级`;
+    row.setAttribute('aria-pressed', 'false');
+    row.addEventListener('click', () => select(index));
+    container.append(row);
+    return row;
   });
+  function select(index) {
+    const character = characters[index];
+    const sheet = character.sheet;
+    rows.forEach((row, rowIndex) => row.setAttribute('aria-pressed', String(rowIndex === index)));
+    const job = db?.classes?.find(item => item.ID === sheet.classId || item.名称 === sheet.classId);
+    const ancestry = db?.ancestries?.find(item => item.ID === sheet.ancestryId || item.名称 === sheet.ancestryId);
+    el('vault-preview-name').textContent = character.avatar_name || '无名角色';
+    el('vault-preview-details').textContent = [ancestry?.名称, job?.名称, `${character.level || 1} 级`].filter(Boolean).join(' · ');
+    el('vault-preview-open').onclick = () => switchLayer('sheet', index);
+    el('vault-preview-export').onclick = () => exportCharacterJson(index);
+    el('vault-preview-delete').onclick = () => deleteCharacterByIndex(index);
+    const canvas = el('vault-preview-canvas');
+    canvas.hidden = false;
+    void paintPaperdoll(canvas, sheet, calculateStats(character).isSuitActive).catch(() => {});
+  }
+  if (rows.length) select(Math.min(Math.max(activeCharIndex, 0), rows.length - 1));
   const create = document.createElement('button');
   create.type = 'button';
   create.className = 'vault-create-card';
