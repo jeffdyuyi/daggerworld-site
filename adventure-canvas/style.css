@@ -1,0 +1,12 @@
+html,body,#canvas-root {height:100%;margin:0}
+body {font-family:system-ui,sans-serif;color:#34261d;background:#fff7e5}
+.canvas-layout {height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr)}
+.canvas-toolbar,.canvas-tools {display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;padding:.55rem .75rem;border-bottom:1px solid #bc9a72}
+.canvas-toolbar {background:#ead2a8}
+.canvas-toolbar a {color:inherit}
+.canvas-toolbar span {overflow-wrap:anywhere}
+.canvas-tools select {max-width:min(45vw,22rem)}
+.canvas-toolbar button,.canvas-tools button,.record-popover button,.canvas-tools select {font:inherit;padding:.25rem .5rem}
+.canvas-editor {min-width:0;min-height:0}
+.record-popover {position:fixed;z-index:10;right:1rem;top:7rem;width:min(24rem,85vw);max-height:70vh;overflow:auto;background:#fff7e5;padding:1rem;border:1px solid #9e7853;box-shadow:0 5px 16px #0004}
+.record-popover p {white-space:pre-wrap;overflow-wrap:anywhere}

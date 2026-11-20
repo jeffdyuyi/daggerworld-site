@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-cards2">
+  <link rel="stylesheet" href="./app.css?v=20261121-canvas1">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -154,6 +154,7 @@
 
             <fieldset class="creator-attributes">
               <legend>初始领域卡</legend>
+              <p id="creator-domain-count" aria-live="polite"></p>
               <div id="creator-domain-grid"></div>
             </fieldset>
             <fieldset class="creator-attributes">
@@ -772,6 +773,7 @@
     <section class="tab-page" id="page-adventure">
       <div class="adventure-toolbar">
         <h2>冒险记录</h2>
+        <a class="dw-btn dw-btn-gold" href="../adventure-canvas/">打开线索画布</a>
         <button type="button" class="dw-btn dw-btn-gold" id="adventure-new">新建记录</button>
         <button type="button" class="dw-btn dw-btn-outline" id="adventure-refresh">刷新</button>
         <p id="adventure-status" role="status"></p>
@@ -1205,7 +1207,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-cards2').catch(error => {
+    import('./app.js?v=20261121-canvas1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;

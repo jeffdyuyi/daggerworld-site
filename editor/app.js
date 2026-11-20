@@ -350,8 +350,11 @@ async function init() {
 
   // 3. 决定初始层级视图 (如果 URL 包含 #sheet 则进入第二层工作台，否则默认进入第一层角色库)
   const currentHash = (typeof location !== 'undefined' && location.hash) ? location.hash : '';
-  if (currentHash === '#sheet' && characters.length > 0) {
-    switchLayer('sheet', activeCharIndex);
+  const openAdventure = currentHash === '#adventure';
+  const openSheet = openAdventure || currentHash === '#sheet';
+  if (openSheet && characters.length) {
+    switchLayer('sheet',activeCharIndex);
+    if (openAdventure) document.querySelector('[data-page="adventure"]')?.click();
   } else {
     switchLayer('vault');
   }
@@ -365,6 +368,10 @@ async function init() {
       if (account.role === 'gm') loadCampaignResources();
       el('btn-open-workshop').hidden = account.role !== 'gm';
       reconcileAccount(account);
+      if (openAdventure && currentLayer === 'vault' && characters.length) {
+        switchLayer('sheet',activeCharIndex);
+        document.querySelector('[data-page="adventure"]')?.click();
+      }
       if (currentHash === '#workshop' && account.role === 'gm') switchLayer('workshop');
       updateSyncStatus(true, `云端已载入 · ${currentUser.login || '冒险者'}`);
     }).catch(err => {
@@ -892,24 +899,51 @@ function setupCreationWizard() {
 
   const form = el('form-create-character');
   const allocation = setupStartingAllocation();
-  const cardSelectors = ['第一张','第二张'].map(label => {
-    const row = document.createElement('label');
-    const select = document.createElement('select');
-    select.className = 'creator-select';
-    row.append(label,select);
-    el('creator-domain-grid').append(row);
-    return select;
-  });
+  const selectedKeys = new Set();
+  const requiredCards = () => selSub.value === '子职:法师:知识学派:基础' && selCls.value === '职业:法师' ? 3 : 2;
   function refreshStartingCards() {
     const job = db?.classes?.find(item => item.ID === selCls.value);
     const cards = startingCards(job);
-    cardSelectors.forEach(select => {
-      const prior = select.value;
-      select.replaceChildren(new Option('请选择',''),...cards.map(card => new Option(card.名称+' · '+card.领域,cardKey(card))));
-      if (cards.some(card => cardKey(card) === prior)) select.value = prior;
-    });
+    const allowed = new Set(cards.map(cardKey));
+    for (const key of selectedKeys) if (!allowed.has(key)) selectedKeys.delete(key);
+    while (selectedKeys.size > requiredCards()) selectedKeys.delete([...selectedKeys].at(-1));
+    const grid = el('creator-domain-grid');
+    const open = new Set([...grid.querySelectorAll('details[open]')].map(row => row.dataset.card));
+    grid.replaceChildren(...cards.map(card => {
+      const key = cardKey(card);
+      const row = document.createElement('article');
+      const details = document.createElement('details');
+      details.dataset.card = key;
+      details.open = open.has(key);
+      const label = document.createElement('summary');
+      label.textContent = card.名称+' · '+card.领域;
+      const meta = document.createElement('small');
+      meta.textContent = [card.属性,'回想 '+recallCost(card)+' 压力'].filter(Boolean).join(' · ');
+      const effects = document.createElement('div');
+      effects.innerHTML = renderMarkdown(card.描述 || '');
+      details.append(label,meta,effects);
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'dw-btn dw-btn-outline';
+      toggle.dataset.card = key;
+      const picked = selectedKeys.has(key);
+      toggle.textContent = picked ? '取消选择' : '选择';
+      toggle.setAttribute('aria-pressed',String(picked));
+      toggle.disabled = !picked && selectedKeys.size >= requiredCards();
+      toggle.onclick = () => {
+        if (picked) selectedKeys.delete(key);
+        else if (selectedKeys.size < requiredCards()) selectedKeys.add(key);
+        refreshStartingCards();
+        [...grid.querySelectorAll('button')].find(button => button.dataset.card === key)?.focus();
+      };
+      row.append(details,toggle);
+      return row;
+    }));
+    el('creator-domain-count').textContent = '已选 '+selectedKeys.size+' / '+requiredCards()+' 张'+
+      (requiredCards() === 3 ? ' · 知识学派额外 1 张' : '');
   }
   selCls.addEventListener('change',refreshStartingCards);
+  selSub.addEventListener('change',refreshStartingCards);
   el('new-char-class').refreshStartingCards = refreshStartingCards;
   const error = el('creator-error');
   form.addEventListener('submit', event => {
@@ -933,13 +967,14 @@ function setupCreationWizard() {
     const character = createDefaultCharacter(name,genderHidden.value,ancestry.ID,job.ID,subclass.ID);
     const bodyShape = el('new-char-body-shape').value;
     if (bodyShape) character.sheet.bodyShape = bodyShape;
-    const selectedCards = cardSelectors.map(select => startingCards(job).find(card => cardKey(card) === select.value));
-    if (selectedCards.some(card => !card) || cardKey(selectedCards[0]) === cardKey(selectedCards[1])) {
-      error.textContent = '请选择两张不同的 1 级职业领域卡。';
+    const selectedCards = startingCards(job).filter(card => selectedKeys.has(cardKey(card)));
+    if (selectedCards.length !== requiredCards()) {
+      error.textContent = '请选择 '+requiredCards()+' 张不同的 1 级职业领域卡。';
       return;
     }
     character.sheet.equippedDomainCards = selectedCards;
-    cardSelectors.forEach(select => { select.value = ''; });
+    selectedKeys.clear();
+    refreshStartingCards();
     character.sheet.attributes = attributes;
     character.sheet.hp.cur = character.sheet.hp.max = Number(job.生命点) || 6;
 

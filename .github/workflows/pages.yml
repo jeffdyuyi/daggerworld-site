@@ -20,11 +20,23 @@ jobs:
         id: artifact
         run: echo "name=github-pages-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:adventure
       - name: Stage website
         run: |
           mkdir -p _site
           cp index.html account.html session.js portal-account.js pixel-theme.css news-archive.js _site/
           tar --exclude=editor/assets/lpc --exclude=editor/paperdoll.js -cf - editor assets | tar -xf - -C _site
+      - name: Stage shared adventure canvas
+        run: |
+          cp -R dist/adventure-canvas _site/
+          test -s _site/adventure-canvas/index.html
+          cp -R node_modules/@excalidraw/excalidraw/dist/prod/fonts _site/adventure-canvas/
+          test -d _site/adventure-canvas/fonts
       - name: Verify staged editor modules
         run: |
           node --input-type=module <<'JS'
