@@ -33,6 +33,13 @@ export function slotMatches(item, slot) {
   return part === slot.replace(/_?[12]$/, '');
 }
 
+export const suitSlots = ['head','chest','legs','feet'];
+export function suitCoversSlot(sheet, slot) {
+  const suit = sheet?.equipment?.suit;
+  return Boolean(suit && suitSlots.includes(slot) && (!suit.ownedGearId ||
+    sheet.inventoryItems?.some(item => item?.ownedGearId === suit.ownedGearId && item.slot === 'suit' && (item.qty ?? 1) > 0)));
+}
+
 export function storedItems(sheet) {
   const worn = new Set(Object.values({...sheet.equipment,...sheet.bags}).map(i => i?.ownedGearId).filter(Boolean));
   return (sheet.inventoryItems ?? []).filter(i => i && !worn.has(i.ownedGearId));
@@ -44,7 +51,7 @@ export function totalGearEffects(sheet, capacity = Infinity) {
   const active = new Set();
   for (const [slot, item] of Object.entries({...sheet.equipment,...sheet.bags})) {
     const held = owned.get(item?.ownedGearId);
-    if (slot !== 'weapon_spare' && held && slotMatches(held, slot)) active.add(held);
+    if (!suitCoversSlot(sheet,slot) && slot !== 'weapon_spare' && held && slotMatches(held, slot)) active.add(held);
   }
   for (const item of storedItems(sheet).slice(0, capacity)) {
     if (item?.slot === 'passive' && (item.qty ?? 1) > 0) active.add(item);

@@ -181,9 +181,8 @@
         <span class="level-badge" id="dash-level">Lv 1</span>
       </div>
       <div class="level-control">
-        <button class="stepper-btn" id="lvl-down" title="降级">-</button>
         <span>等级</span>
-        <span id="xp-progress" aria-live="polite"></span><button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button> <button type="button" class="dw-btn" id="allocate-points" hidden>分配升级点</button>
+        <button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button> <button type="button" class="dw-btn" id="allocate-points" hidden>分配升级点</button>
       </div>
     </div>
 
@@ -639,7 +638,6 @@
       <div class="levelup-bottom-bar">
         <div class="levelup-title">
           <h3>升级</h3>
-          <span class="levelup-tier-tag" id="cur-tier-tag">位阶 1 · 1 级</span>
         </div>
         <div id="advancements-container"></div>
 
@@ -1215,6 +1213,8 @@
     <p>选择两项升级。</p>
     <p id="level-budget"></p>
       <div id="level-options"></div>
+      <div id="level-rewards"></div>
+      <p id="level-stat-preview" aria-live="polite"></p>
     <fieldset id="level-trait-options" hidden aria-label="提升属性"></fieldset>
     <fieldset id="level-multiclass-options" hidden>
       <legend>兼职</legend>

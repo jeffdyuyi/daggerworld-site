@@ -1,4 +1,4 @@
-import { slotMatches, totalGearEffects } from './gear-effects.js';
+import { slotMatches, totalGearEffects, suitCoversSlot } from './gear-effects.js';
 import { traits, tierForLevel, rulesLevel } from './sheet-rules.js';
 
 const integer = value => Number.isSafeInteger(Number(value)) ? Number(value) : 0;
@@ -18,7 +18,7 @@ export function sheetStats(character, job, capacity) {
   const seen = new Set();
   let suitItem = null;
   for (const [slot,item] of Object.entries(s.equipment ?? {})) {
-    if (!item || ['weapon_spare','costume'].includes(slot)) continue;
+    if (!item || suitCoversSlot(s,slot) || ['weapon_spare','costume'].includes(slot)) continue;
     if (item.ownedGearId) {
       if (seen.has(item.ownedGearId) || !s.inventoryItems?.some(i => i?.ownedGearId === item.ownedGearId && slotMatches(i,slot) && (i.qty ?? 1)>0)) continue;
       seen.add(item.ownedGearId);

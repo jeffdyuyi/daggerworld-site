@@ -1,5 +1,5 @@
 import { sheetStats, adjustment } from './stats.js';
-import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula } from './gear-effects.js';
+import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
 import { readGmNote, writeGmNote, loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
 import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken, appearanceDefaults } from './paperdoll.js';
@@ -879,8 +879,6 @@ function renderAll() {
   for (const [id, key] of Object.entries(quickAdjustments)) el(id).value = adjustment(s, key);
   renderAdjustments(c, stats);
   el('stat-proficiency').textContent = stats.totalProf;
-  const tier = tierForLevel(c.level);
-  el('cur-tier-tag').textContent = `位阶 ${tier} · ${['1–2', '3–8', '9–14', '15–20'][tier - 1]} 级`;
   renderAdvancements(c);
 
   // 3. Equipment Loadout Slots
@@ -938,9 +936,13 @@ function renderEquipmentSlots(stats) {
     const itemEl = el(`slot-name-${k}`);
     if (itemEl) {
       const item = eq[k];
-      itemEl.textContent = item ? item.名称 : '空置';
+      const locked = suitCoversSlot(c.sheet,k);
+      const control = itemEl.closest('[data-slot]');
+      control?.classList.toggle('suit-locked',locked);
+      if (control) control.setAttribute('aria-disabled',String(locked));
+      itemEl.textContent = locked ? '套装占用' : item ? item.名称 : '空置';
       itemEl.style.color = item ? 'var(--text-main)' : 'var(--text-muted)';
-      renderSlotArt(k, item);
+      renderSlotArt(k, locked ? null : item);
     }
   }
 
@@ -1372,6 +1374,7 @@ const advancementOptions = {
   traits: ['两项未标记属性各 +1', 3, 1],
   hp: ['生命上限 +1', 2, 1],
   stress: ['压力上限 +1', 2, 1],
+  gear: ['领取当前位阶制式装备', 1, 1],
   domain: ['额外选择一张领域卡', 1, 1],
   evasion: ['闪避 +1', 1, 1],
   subclass: ['取得下一张子职业卡', 1, 3],
@@ -1429,9 +1432,6 @@ function renderAdvancements(character) {
   el('lvl-up').hidden = !canLevelUp(character);
   el('allocate-points').hidden = !(character.level >= 3 && (character.sheet.advancementPoints ?? 0) > 0);
   el('allocate-points').textContent = '分配升级点 · '+(character.sheet.advancementPoints ?? 0);
-  const {points,required} = experience(character);
-  el('xp-progress').textContent = character.level >= lastLevel ? '已满级' : required ? '经验 '+points+' / '+required : '经验 '+points;
-  el('lvl-down').hidden = currentUser?.role !== 'gm';
   const log = el('advancements-container');
   log.replaceChildren();
   for (const [level, choices] of Object.entries(character.sheet.levelAdvancements ?? {})) {
@@ -1439,6 +1439,29 @@ function renderAdvancements(character) {
     line.textContent = `${level} 级 · ${choices.map(key => advancementOptions[key]?.[0] ?? key).join('、')}`;
     log.append(line);
   }
+}
+
+function standardRewards(tier) {
+  const prefix = ['', '', '改良', '高级', '传奇'];
+  const records = [...db.armor, ...db.weapons];
+  return records.filter(item => {
+    const family = item.名称.replace(/^(改良|高级|传奇)/,'');
+    return Number(item.位阶) === tier && item.名称 === prefix[tier]+family &&
+      [1,2,3,4].every(rank => records.some(record =>
+        record.类型 === item.类型 && Number(record.位阶) === rank && record.名称 === prefix[rank]+family));
+  });
+}
+
+function rewardSelectors(container, label, count, options) {
+  return Array.from({length:count},(_,index) => {
+    const row = document.createElement('label');
+    const select = document.createElement('select');
+    select.className = 'dw-select';
+    select.append(new Option('请选择',''), ...options(index));
+    row.append(label,select);
+    container.append(row);
+    return select;
+  });
 }
 
 function advanceCharacter(levelUp = true) {
@@ -1502,10 +1525,60 @@ function advanceCharacter(levelUp = true) {
   };
   secondClass.onchange();
   multiclassFields.hidden = true;
+  const rewards = el('level-rewards');
+  const baseCardReward = Number(levelUp && rulesLevel(level) > rulesLevel(startingLevel));
+  const gearPool = standardRewards(tier);
+  let cardSelects, gearSelects;
+  function renderRewards() {
+    const priorCards = cardSelects?.map(select => select.value) ?? [];
+    const priorGear = gearSelects?.map(select => select.value) ?? [];
+    rewards.replaceChildren();
+    const selected = chosenSlots();
+    const domainCaps = selected.filter(slot => slot.endsWith(':domain'))
+      .map(slot => Math.min(rulesLevel(level),[0,1,4,7,10][Number(slot.split(':')[0])]));
+    if (baseCardReward) domainCaps.unshift(rulesLevel(level));
+    const job = db.classes.find(item => item.ID === sheet.classId || item.名称 === sheet.classId);
+    const domains = (job?.领域 ?? '').split(/[+、,，]/).map(domain => domain.trim());
+    const extraDomain = selected.some(slot => slot.endsWith(':multiclass')) ? secondDomain.value : sheet.multiclass?.domain;
+    const owned = new Set([...sheet.equippedDomainCards,...sheet.vaultDomainCards,...sheet.customDomainCards].map(cardKey));
+    cardSelects = rewardSelectors(rewards,'领域卡 ',domainCaps.length,index =>
+      uniqueCards(db.domain_cards).filter(card => !owned.has(cardKey(card)) && cardLevel(card) <=
+        (domains.includes(card.领域) ? domainCaps[index] : extraDomain === card.领域
+          ? Math.min(domainCaps[index],Math.ceil(rulesLevel(level)/2)) : 0))
+        .map(card => new Option(card.名称+' · '+cardLevel(card)+' 级',cardKey(card))));
+    gearSelects = rewardSelectors(rewards,'制式装备 ',selected.filter(slot => slot.endsWith(':gear')).length,
+      () => gearPool.map(item => new Option(item.名称,item.ID)));
+    cardSelects.forEach((select,index) => { if (priorCards[index]) select.value = priorCards[index]; });
+    gearSelects.forEach((select,index) => { if (priorGear[index]) select.value = priorGear[index]; });
+  }
+  function renderLevelStats() {
+    const draft = structuredClone(character);
+    draft.level = level;
+    const choices = chosenSlots().map(slot => slot.split(':')[1]);
+    const recorded = draft.sheet.levelAdvancements ??= {};
+    recorded[level] = [...(recorded[level] ?? []),...choices];
+    if (choices.includes('traits')) {
+      for (const input of traitChoices.querySelectorAll('input:checked')) draft.sheet.attributes[input.value]++;
+    }
+    const before = calculateStats(character).innate;
+    const after = calculateStats(draft).innate;
+    const labels = {...traits,hp:'生命上限',stress:'压力上限',evasion:'闪避',proficiency:'熟练值',major:'重度阈值',severe:'严重阈值',lethal:'致死阈值'};
+    const differences = Object.entries(labels).filter(([key]) => before[key] !== after[key])
+      .map(([key,label]) => label+' '+before[key]+' → '+after[key]);
+    el('level-stat-preview').textContent = differences.join(' · ');
+  }
+  traitChoices.onchange = renderLevelStats;
   form.onchange = () => {
     traitChoices.hidden = !chosenSlots().some(slot => slot.endsWith(':traits'));
     multiclassFields.hidden = !chosenSlots().some(slot => slot.endsWith(':multiclass'));
+    renderRewards();
+    renderLevelStats();
   };
+  const updateSecondClass = secondClass.onchange;
+  secondClass.onchange = () => { updateSecondClass(); renderRewards(); };
+  secondDomain.onchange = renderRewards;
+  renderRewards();
+  renderLevelStats();
   traitChoices.hidden = true;
   el('level-budget').textContent = '可用 '+budget+' 点。未使用的点数可保留。';
   el('level-dialog-title').textContent = (levelUp ? `升至 ${level} 级` : '分配升级点') + ' · T'+tier;
@@ -1529,6 +1602,11 @@ function advanceCharacter(levelUp = true) {
     const stats = calculateStats(character);
     if (stats.innate.hp + choices.filter(key => key === 'hp').length > 12 ||
         stats.innate.stress + choices.filter(key => key === 'stress').length > 12) return alert('生命和压力上限为 12。');
+    const cards = cardSelects.map(select => db.domain_cards.find(card => cardKey(card) === select.value));
+    const items = gearSelects.map(select => gearPool.find(item => item.ID === select.value));
+    if (cards.some(card => !card) || new Set(cards.map(cardKey)).size !== cards.length)
+      return alert('请选择不同的领域卡。');
+    if (items.some(item => !item)) return alert('请选择制式装备。');
     proposed.sheet = structuredClone(character.sheet);
     const sheet = proposed.sheet;
     if (choices.includes('traits')) {
@@ -1544,6 +1622,14 @@ function advanceCharacter(levelUp = true) {
     }
     sheet.levelAdvancements = { ...sheet.levelAdvancements, [level]: [...(sheet.levelAdvancements?.[level] ?? []),...choices] };
     sheet.levelAdvancementSlots = { ...sheet.levelAdvancementSlots, [level]: [...(sheet.levelAdvancementSlots?.[level] ?? []),...slots] };
+    sheet.vaultDomainCards.push(...cards);
+    for (const item of items) {
+      sheet.inventoryItems.push({
+        resourceId:item.ID,name:item.名称,desc:item.描述,type:item.类型,tier:item.位阶,
+        slot: {'护甲':'suit','主武器':'weapon_main','副武器':'weapon_off'}[item.类型],
+        qty:1,ownedGearId:crypto.randomUUID()
+      });
+    }
     sheet.advancementPoints = budget-cost;
     proposed.level = level;
     const button = el('level-dialog-save');
@@ -1608,12 +1694,7 @@ function setupEventListeners() {
   el('lvl-up').addEventListener('click', () => {
     advanceCharacter();
   });
-  el('lvl-down').addEventListener('click', () => {
-    const c = curChar();
-    if (currentUser?.role !== 'gm' || c.level <= 1) return;
-    if (c.sheet.levelAdvancements?.[c.level]) return alert('该等级已登记升级选项。');
-    c.level--; saveLocal(); renderAll();
-  });
+
 
   for (const [key, cap] of Object.entries({hp:'maxHp', stress:'maxStress', hope:'maxHope', armor:'armorMax'})) {
     for (const [action, delta] of [['plus',1], ['minus',-1]]) {
@@ -2014,6 +2095,7 @@ let currentPickerCandidates = [];
 
 // Item Picker Modal Logic
 function openItemPicker(slotKey) {
+  if (suitCoversSlot(curChar()?.sheet,slotKey)) return;
   currentPickerSlot = slotKey;
   el('item-picker-modal').hidden = false;
   const isLoot = slotKey === 'loot';
@@ -2126,7 +2208,11 @@ function grantSourceItem(record) {
 
 function equipItemToSlot(slotKey, item) {
   const c = curChar();
-  if (getEquipmentIssue(slotKey, item, c)) return;
+  if (suitCoversSlot(c.sheet,slotKey) || getEquipmentIssue(slotKey, item, c)) return;
+  if (slotKey === 'suit') for (const slot of suitSlots) {
+    preserveOldEquipment(c,slot);
+    c.sheet.equipment[slot] = null;
+  }
   preserveOldEquipment(c,slotKey);
   if (slotKey.startsWith('weapon_')) {
     c.sheet.equipment[slotKey] = item;

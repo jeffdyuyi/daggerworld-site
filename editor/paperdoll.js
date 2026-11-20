@@ -295,7 +295,8 @@ function drawSkin(ctx, image, color, replaceHead) {
 const hairVariants = { brown: 'hair', black: 'hairDark', gold: 'hairGold', gray: 'hairGray' };
 
 export function outfitLayers(sheet, suitActive) {
-  const gear = sheet.equipment ?? {};
+  const gear = {...sheet.equipment};
+  if (suitActive) for (const slot of ['head','chest','legs','feet']) delete gear[slot];
   const look = appearanceDefaults(sheet);
   const kind = speciesOf(sheet);
   const gender = sheet.gender === '女' ? 'female' : 'male';
