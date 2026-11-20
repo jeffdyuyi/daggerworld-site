@@ -1029,6 +1029,8 @@ function itemImage(item) {
 }
 
 function renderPaperdoll(character, suitActive) {
+  el('fantasy-paperdoll-link').href = '../fantasy-paperdoll/' +
+    (character.updated_at && character.owner_id === currentUser?.owner ? '?character=' + encodeURIComponent(character.id) : '');
   el('gm-appearance').hidden = currentUser?.role !== 'gm';
   fillAppearance('gm-', character.sheet);
   const exportButton = el('paperdoll-export');
@@ -1388,12 +1390,46 @@ function markedTraits(character, targetLevel) {
   return marks;
 }
 
+function experience(character) {
+  const entry = character.sheet.experience;
+  return { points: entry?.points ?? 0, required: entry?.level === character.level ? entry.required : null };
+}
+
+function canLevelUp(character) {
+  const {points,required} = experience(character);
+  return character.level < 10 && required > 0 && points >= required;
+}
+
+async function grantExperience() {
+  const target = characters[workshopState.targetCharIndex];
+  if (currentUser?.role !== 'gm' || !target?.updated_at || target.level >= 10) return;
+  const button = el('ws-grant-xp');
+  const amount = el('ws-xp-amount').valueAsNumber;
+  const required = el('ws-xp-required').valueAsNumber;
+  const points = experience(target).points + amount;
+  if (![amount,required,points].every(Number.isSafeInteger) || amount < 0 || required < 1)
+    return alert('经验须为非负整数，升级需求须为正整数。');
+  const proposed = structuredClone(target);
+  proposed.sheet.experience = {points,required,level:target.level};
+  button.disabled = true;
+  try {
+    await persist(target,payload(proposed));
+    target.sheet.experience = proposed.sheet.experience;
+    saveLocal();
+    el('ws-xp-amount').value = '';
+    alert(amount ? '已发放给 '+target.avatar_name : '已更新升级需求。');
+  } catch (error) { alert('发放失败：'+error.message); }
+  finally { updateWorkshopTargetSelect(); }
+}
+
 function renderAdvancements(character) {
   const marked = markedTraits(character, character.level);
   document.querySelectorAll('[data-trait-mark]').forEach(input => {
     input.checked = marked.has(input.dataset.traitMark);
   });
-  el('lvl-up').disabled = character.level >= 10;
+  el('lvl-up').hidden = !canLevelUp(character);
+  const {points,required} = experience(character);
+  el('xp-progress').textContent = character.level >= 10 ? '已满级' : required ? '经验 '+points+' / '+required : '经验 '+points;
   el('lvl-down').hidden = currentUser?.role !== 'gm';
   const log = el('advancements-container');
   log.replaceChildren();
@@ -1406,8 +1442,9 @@ function renderAdvancements(character) {
 
 function advanceCharacter() {
   const character = curChar();
-  const sheet = character.sheet;
-  if (character.level >= 10) return;
+  if (!character || !canLevelUp(character)) return;
+  const proposed = structuredClone(character);
+  const sheet = proposed.sheet;
   const level = character.level + 1;
   const tier = tierForLevel(level);
   const usedSlots = Object.values(sheet.levelAdvancementSlots ?? {}).flat();
@@ -1467,8 +1504,9 @@ function advanceCharacter() {
     multiclassFields.hidden = !chosenSlots().some(slot => slot.endsWith(':multiclass'));
   };
   traitChoices.hidden = true;
-  el('level-dialog-title').textContent = `升至 ${level} 级`;
-  el('level-dialog-save').onclick = () => {
+  el('level-dialog-title').textContent = `升至 ${level} 级 · T${tier}`;
+  el('level-dialog-save').onclick = async () => {
+    if (curChar() !== character || !canLevelUp(character) || character.level + 1 !== level || pendingWrites.has(character)) return;
     const slots = chosenSlots();
     const choices = slots.map(slot => slot.split(':')[1]);
     const cost = choices.reduce((total, key) => total + (key === 'prof' || key === 'multiclass' ? 2 : 1), 0);
@@ -1484,6 +1522,8 @@ function advanceCharacter() {
     const stats = calculateStats(character);
     if (stats.innate.hp + choices.filter(key => key === 'hp').length > 12 ||
         stats.innate.stress + choices.filter(key => key === 'stress').length > 12) return alert('生命和压力上限为 12。');
+    proposed.sheet = structuredClone(character.sheet);
+    const sheet = proposed.sheet;
     if (choices.includes('traits')) {
       for (const key of selectedTraits) sheet.attributes[key]++;
       sheet.levelTraitMarks = { ...sheet.levelTraitMarks, [level]: selectedTraits };
@@ -1497,10 +1537,20 @@ function advanceCharacter() {
     }
     sheet.levelAdvancements = { ...sheet.levelAdvancements, [level]: choices };
     sheet.levelAdvancementSlots = { ...sheet.levelAdvancementSlots, [level]: slots };
-    character.level = level;
-    dialog.close();
-    saveLocal();
-    renderAll();
+    const xp = experience(character);
+    proposed.level = level;
+    sheet.experience = {points:xp.points-xp.required};
+    const button = el('level-dialog-save');
+    button.disabled = true;
+    try {
+      await persist(character,payload(proposed));
+      character.level = level;
+      character.sheet = sheet;
+      saveLocal();
+      dialog.close();
+      renderAll();
+    } catch (error) { alert('升级未保存：'+error.message); }
+    finally { button.disabled = false; }
   };
   dialog.showModal();
 }
@@ -1547,6 +1597,7 @@ function renderAdjustments(character, stats) {
 }
 function setupEventListeners() {
   // Steppers: Level
+  el('ws-grant-xp').onclick = grantExperience;
   el('lvl-up').addEventListener('click', () => {
     advanceCharacter();
   });
@@ -2217,6 +2268,9 @@ function updateWorkshopTargetSelect() {
   if (!sel) return;
 
   const target = characters[workshopState.targetCharIndex] ?? characters[0];
+  el('ws-grant-xp').disabled = !target?.updated_at || target.level >= 10;
+  el('ws-xp-required').value = target ? experience(target).required ?? '' : '';
+
   for (const button of document.querySelectorAll('[data-action="dispatch"]')) {
     button.disabled = !target?.updated_at;
     button.textContent = target ? '发放给 ' + target.avatar_name : '发放';
@@ -3078,6 +3132,7 @@ function importCharacterJson(e) {
       const imported = JSON.parse(ev.target.result);
       if (!imported.sheet) throw new Error('无效的角色卡格式');
       delete imported.updated_at; delete imported.owner_id; delete imported.notes;
+      delete imported.sheet.experience;
       imported.id = 'imported_' + Date.now();
       characters.push(normalizeCharacter(imported));
       activeCharIndex = characters.length - 1;

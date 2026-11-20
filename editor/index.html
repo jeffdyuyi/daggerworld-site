@@ -183,7 +183,7 @@
       <div class="level-control">
         <button class="stepper-btn" id="lvl-down" title="降级">-</button>
         <span>等级</span>
-        <button class="stepper-btn" id="lvl-up" title="升级">+</button>
+        <span id="xp-progress" aria-live="polite"></span><button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button>
       </div>
     </div>
 
@@ -379,6 +379,7 @@
               </div>
               </details>
               <button type="button" class="dw-btn dw-btn-outline" id="paperdoll-export" disabled>下载角色头像</button>
+              <a class="dw-btn dw-btn-outline" id="fantasy-paperdoll-link" href="../fantasy-paperdoll/">新版外观</a>
               <small id="paperdoll-status" role="status" hidden></small>
             </div>
 
@@ -868,6 +869,9 @@
         <select id="ws-target-char-select" class="dw-select ws-target-select" title="选择受赐角色">
           <!-- Populated with all characters -->
         </select>
+        <label>经验 <input id="ws-xp-amount" class="dw-input" type="number" min="0" step="1" value="0"></label>
+        <label>本级升级需求 <input id="ws-xp-required" class="dw-input" type="number" min="1" step="1"></label>
+        <button type="button" class="dw-btn" id="ws-grant-xp">发放经验</button>
         <div class="ws-target-char-meta" id="ws-target-char-meta">
           <!-- Slot count & badge -->
         </div>
