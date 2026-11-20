@@ -2,7 +2,7 @@
 
 2026-11-20 · Codex → Antigravity IDE · 主持人基德
 
-工作目录 E:/DND/深水城2026/匕首世界站点。先读资料库根目录 AGENTS.md 及其指定文件。GitHub 仓库 jeffdyuyi/daggerworld-site 的 main 分支，交接时已验证部署的提交为 fb3d4f2。站点源码目录可能与发布检出不同步，改动前逐项核对，保留并行工作。
+工作目录 E:/DND/深水城2026/匕首世界站点。先读资料库根目录 AGENTS.md 及其指定文件。本地工作区已统一对齐 GitHub 仓库 jeffdyuyi/daggerworld-site 的 main 分支并配置直接追踪（tracking origin/main）。日常开发与发布统一采用单轨直推流程（本地开发测试 -> 本地 git commit -> 本地 git push origin main），废除任何临时中转目录，确保 GitHub 仓库纯洁性与本地操作 100% 同步透明。
 
 ## 已上线功能
 

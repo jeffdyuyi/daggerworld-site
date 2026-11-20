@@ -1,3 +1,12 @@
+# Dependencies & Build Outputs
+/node_modules/
+/dist/
+/test-results/
+/playwright-report/
+/.temp/
+/supabase/.temp/
+
+# Confidential & Raw Artifacts
 /邀请码-私下分发.txt
 /.invite-probe
 /.pages-release/
@@ -5,3 +14,7 @@
 /.pbdh-redundant-extract/
 /PbDH-source.tar.gz
 /SRD-reference.zip
+
+# Standalone Paperdoll Experiments (Temporarily Suspended)
+/fantasy-paperdoll/
+/pixel-paperdoll/
