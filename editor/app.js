@@ -1,7 +1,7 @@
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
-import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js';
+import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261120-sync2';
 import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
 // Global App State
@@ -330,7 +330,8 @@ async function init() {
 
   // 2. 异步加载规则数据库并填充下拉菜单与创角选项
   try {
-    const res = await fetch('./data/database.json');
+    const res = await fetch('./data/database.json',{signal:AbortSignal.timeout(10000)});
+    if (!res.ok) throw new Error('规则资料请求失败：'+res.status);
     db = await res.json();
     populateSelectOptions();
   } catch (err) {
@@ -440,6 +441,7 @@ function mergeIncomingGrants(character, remote) {
 }
 
 let refreshPending = false;
+const observedCloudVersions = new Map();
 async function refreshOpenSheet() {
   if (refreshPending || !currentUser || document.hidden || currentLayer !== 'sheet' || pendingWrites.size ||
       document.querySelector('dialog[open], .modal-backdrop:not([hidden]), .dw-modal-backdrop:not([hidden])') ||
@@ -450,7 +452,11 @@ async function refreshOpenSheet() {
     const account = await loadAccount();
     if (characters.some(c => versions.get(c.id) !== c.updated_at)) return;
     if (pendingWrites.size || currentLayer !== 'sheet' || document.activeElement?.matches('input,textarea,select,[contenteditable]')) return;
-    if (account.characters.some(row => !characters.some(c => c.id === row.id && c.updated_at === row.updated_at))) reconcileAccount(account);
+    const changed = account.characters.some(row => observedCloudVersions.get(row.id) !== row.updated_at &&
+      !characters.some(c => c.id === row.id && c.updated_at === row.updated_at));
+    if (!changed) return;
+    reconcileAccount(account);
+    for (const row of account.characters) observedCloudVersions.set(row.id,row.updated_at);
   } catch { /* Keep the local sheet available and retry at the next interval. */ }
   finally { refreshPending = false; }
 }
@@ -485,7 +491,10 @@ function reconcileAccount(account, interactive = false) {
   if (!characters.length && currentLayer === 'sheet') switchLayer('vault');
 }
 function saveLocal() {
-  if (owner && readSession()?.owner === owner) localStorage.setItem(cacheKey, JSON.stringify({characters,baselines}));
+  if (owner && readSession()?.owner === owner) {
+    try { localStorage.setItem(cacheKey, JSON.stringify({characters,baselines})); }
+    catch (error) { console.warn('角色缓存写入失败：',error); }
+  }
   renderSaveButton();
 }
 window.addEventListener('storage', () => {
@@ -1358,12 +1367,17 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
   return entry;
 }
 
+function containerCapacity(bag) {
+  const capacity = Number(bag?.capacity ?? bag?.容量);
+  return Number.isSafeInteger(capacity) && capacity > 0 ? capacity : 0;
+}
+
 function bagCapacity(bags) {
-  const mainCap = Number(bags.main_bag?.capacity ?? bags.main_bag?.容量) || 0;
-  const p1Cap = Number(bags.pouch_1?.capacity ?? bags.pouch_1?.容量) || 0;
-  const p2Cap = Number(bags.pouch_2?.capacity ?? bags.pouch_2?.容量) || 0;
-  const s1Cap = Number(bags.satchel_1?.capacity ?? bags.satchel_1?.容量) || 0;
-  const s2Cap = Number(bags.satchel_2?.capacity ?? bags.satchel_2?.容量) || 0;
+  const mainCap = containerCapacity(bags.main_bag);
+  const p1Cap = containerCapacity(bags.pouch_1);
+  const p2Cap = containerCapacity(bags.pouch_2);
+  const s1Cap = containerCapacity(bags.satchel_1);
+  const s2Cap = containerCapacity(bags.satchel_2);
   const extraCap = p1Cap + p2Cap + s1Cap + s2Cap;
   return { mainCap, p1Cap, p2Cap, s1Cap, s2Cap, extraCap, totalSlots: mainCap + extraCap };
 }
@@ -1393,7 +1407,8 @@ function renderInventory(stats) {
   const note = el('inventory-space-note');
   note.hidden = totalSlots > 0 && overflow.hidden;
   note.textContent = overflow.hidden ? '尚无容器。' : '容量不足，溢出物品可取用。';
-  for (let i = 0; i < Math.max(totalSlots, items.length); i++) {
+  const shownSlots = Math.max(items.length,Math.min(totalSlots,items.length+24));
+  for (let i = 0; i < shownSlots; i++) {
     const item = items[i];
     const cell = document.createElement('div');
     cell.className = `grid-cell ${item ? 'occupied' : ''}`;
@@ -1417,6 +1432,12 @@ function renderInventory(stats) {
       });
     }
     (i < totalSlots ? grid : overflow).appendChild(cell);
+  }
+  if (shownSlots < totalSlots) {
+    const summary = document.createElement('p');
+    summary.className = 'bag-empty-summary';
+    summary.textContent = '另有 '+(totalSlots-shownSlots)+' 个空格';
+    grid.append(summary);
   }
 
   // Currency

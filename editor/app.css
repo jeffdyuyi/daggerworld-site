@@ -3098,3 +3098,5 @@ body.dw-theme {
 #level-rewards label { display:grid; gap:.25rem; }
 
 .levelup-bottom-bar[hidden] { display:none; }
+
+.bag-empty-summary { grid-column:1/-1; margin:.25rem 0; color:var(--text-muted); }
