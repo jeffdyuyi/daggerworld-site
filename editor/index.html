@@ -354,6 +354,13 @@
             </div>
             <div class="paperdoll-stage">
               <div id="paperdoll" class="appearance-frame appearance-frame-sheet"></div>
+              <div class="portrait-mode-bar">
+                <div class="portrait-switch-group">
+                  <button type="button" class="portrait-switch-btn active" id="btn-mode-silhouette" title="使用人体轮廓（纸娃娃占位）">👤 轮廓</button>
+                  <button type="button" class="portrait-switch-btn" id="btn-mode-custom" title="使用自定义上传立绘">🖼️ 立绘</button>
+                </div>
+                <button type="button" class="portrait-setting-btn" id="btn-open-portrait-setting" title="上传或裁剪调整">⚙️ 设置</button>
+              </div>
               <div class="gear-slot costume-slot-highlight" data-slot="costume" title="时装：独立视觉外观">
                 <div class="slot-icon-box" id="slot-icon-costume"></div>
                 <div class="slot-info">
@@ -1283,6 +1290,56 @@
 
 
   <!-- MODAL: Equipment / Item Picker -->
+  <div class="dw-modal-backdrop" id="portrait-editor-modal" hidden>
+    <div class="dw-modal-window narrow-modal">
+      <div class="modal-header">
+        <h2>🎨 自定义角色立绘</h2>
+        <button class="modal-close-btn" id="portrait-modal-close">✕</button>
+      </div>
+      <div class="modal-body" style="padding:0;">
+        <div class="portrait-modal-body">
+          <div class="portrait-crop-workspace">
+            <div class="portrait-crop-viewport" id="portrait-crop-viewport" title="按住鼠标左键可拖拽平移图片">
+              <img id="portrait-crop-img" alt="立绘预览" src="" hidden>
+              <div class="portrait-crop-empty" id="portrait-crop-empty">
+                <span>📷 请选择本地图片上传</span>
+              </div>
+            </div>
+            <p class="portrait-crop-tip">💡 在预览框内按住鼠标左键可拖拽平移位置</p>
+          </div>
+
+          <div class="portrait-adjust-controls">
+            <div class="portrait-upload-row">
+              <input type="file" id="portrait-file-input" accept="image/*" hidden>
+              <button type="button" class="dw-btn dw-btn-gold" id="btn-select-portrait-file">📁 选择本地图片</button>
+              <button type="button" class="dw-btn dw-btn-outline" id="btn-reset-portrait-adjust">↺ 重置居中</button>
+            </div>
+
+            <div class="portrait-slider-group">
+              <label>缩放比例 (Zoom): <span id="val-portrait-zoom">100%</span></label>
+              <input type="range" id="slider-portrait-zoom" min="0.5" max="3.0" step="0.05" value="1.0" class="dw-range">
+            </div>
+
+            <div class="portrait-slider-group">
+              <label>水平偏移 (Offset X): <span id="val-portrait-x">0%</span></label>
+              <input type="range" id="slider-portrait-x" min="-100" max="100" step="1" value="0" class="dw-range">
+            </div>
+
+            <div class="portrait-slider-group">
+              <label>垂直偏移 (Offset Y): <span id="val-portrait-y">0%</span></label>
+              <input type="range" id="slider-portrait-y" min="-100" max="100" step="1" value="0" class="dw-range">
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:auto;padding-top:12px;">
+              <button type="button" class="dw-btn dw-btn-outline" id="btn-cancel-portrait" style="flex:1;">取消</button>
+              <button type="button" class="dw-btn dw-btn-gold" id="btn-save-portrait" style="flex:1;">保存立绘</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="dw-modal-backdrop" id="item-picker-modal" hidden>
     <div class="dw-modal-window wide-modal">
       <div class="modal-header">

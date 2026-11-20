@@ -3413,3 +3413,178 @@ body.dw-theme {
   margin-left: 4px;
 }
 
+/* Character Portrait Customization & Mode Switching */
+.appearance-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: radial-gradient(circle at center, rgba(30, 25, 28, 0.6) 0%, rgba(10, 8, 12, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+.appearance-frame.has-custom-portrait {
+  border-color: rgba(212, 175, 55, 0.4);
+}
+.custom-portrait-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: center center;
+  transition: transform 0.04s ease-out;
+  pointer-events: none;
+  user-select: none;
+}
+.silhouette-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.2s ease-out;
+}
+
+.portrait-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100%, 200px);
+  gap: 6px;
+  margin-top: -4px;
+}
+.portrait-switch-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 2px;
+  flex: 1;
+}
+.portrait-switch-btn {
+  flex: 1;
+  font-size: 11px;
+  padding: 3px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  text-align: center;
+}
+.portrait-switch-btn:hover {
+  color: var(--text-main);
+}
+.portrait-switch-btn.active {
+  background: var(--bo3-gold);
+  color: #1a120b;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.portrait-setting-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: var(--text-gold);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.portrait-setting-btn:hover {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: var(--border-gold);
+}
+
+/* Portrait Crop / Adjust Modal */
+.portrait-modal-body {
+  padding: 16px 20px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.portrait-crop-workspace {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+}
+.portrait-crop-viewport {
+  width: 200px;
+  height: 270px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #0d0e12;
+  border: 2px dashed rgba(212, 175, 55, 0.5);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.9);
+  cursor: grab;
+  user-select: none;
+}
+.portrait-crop-viewport:active {
+  cursor: grabbing;
+}
+.portrait-crop-viewport img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: center center;
+  pointer-events: none;
+}
+.portrait-crop-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 16px;
+}
+.portrait-crop-tip {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  max-width: 220px;
+  margin: 0;
+}
+.portrait-adjust-controls {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.portrait-upload-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.portrait-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.portrait-slider-group label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-main);
+}
+.portrait-slider-group label span {
+  color: var(--text-gold);
+  font-family: monospace;
+}
+.dw-range {
+  width: 100%;
+  accent-color: var(--bo3-gold);
+  cursor: pointer;
+}
+
+

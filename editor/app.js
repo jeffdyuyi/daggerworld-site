@@ -1,5 +1,5 @@
 import {setupAdventureBoard} from './adventure-board.js?v=20261121-layout2';
-import {livePaperdollEnabled, showCharacterOutline} from './appearance-preview.js?v=20261121-body1';
+import {livePaperdollEnabled, showCharacterOutline, showCustomPortrait} from './appearance-preview.js?v=20261121-body2';
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
@@ -781,8 +781,14 @@ function appearanceUrl(character) {
 
 function setAppearanceFrame(id, character, download = false) {
   const target = el(id);
+  if (!target) return;
   if (!livePaperdollEnabled) {
-    showCharacterOutline(target, character.sheet?.ancestryId, character.sheet?.bodyShape);
+    const s = character?.sheet || {};
+    if (s.portraitMode === 'custom' && s.customPortrait?.dataUrl) {
+      showCustomPortrait(target, s.customPortrait);
+    } else {
+      showCharacterOutline(target, s.ancestryId, s.bodyShape);
+    }
     return;
   }
   let frame = target.querySelector('iframe');
@@ -1315,9 +1321,12 @@ function itemImage(item) {
 
 function renderAppearance(character) {
   const link = el('fantasy-paperdoll-link');
-  link.hidden = !livePaperdollEnabled;
-  if (livePaperdollEnabled) link.href = appearanceUrl(character).href;
+  if (link) {
+    link.hidden = !livePaperdollEnabled;
+    if (livePaperdollEnabled) link.href = appearanceUrl(character).href;
+  }
   setAppearanceFrame('paperdoll', character, true);
+  updatePortraitModeButtons(character);
 }
 
 function renderFoundations(clsObj) {
@@ -2328,6 +2337,7 @@ function setupEventListeners() {
 
 
   // Add Item to Bag
+  initPortraitListeners();
   el('ws-catalog').onclick = () => openItemPicker('loot');
   el('btn-loot-catalog').addEventListener('click', () => openItemPicker('loot'));
   el('btn-clean-bag').addEventListener('click', () => {
@@ -4045,3 +4055,241 @@ function importCharacterJson(e) {
 
 // Boot application
 await init();
+
+// ==========================================
+// 角色立绘自定义与轮廓切换控制模块
+// ==========================================
+
+let tempPortrait = {
+  dataUrl: '',
+  zoom: 1.0,
+  offsetX: 0,
+  offsetY: 0
+};
+let isDraggingPortrait = false;
+let portraitDragStart = { x: 0, y: 0 };
+let portraitDragInitial = { x: 0, y: 0 };
+
+function updatePortraitModeButtons(character = curChar()) {
+  const mode = character?.sheet?.portraitMode || 'silhouette';
+  const hasCustom = Boolean(character?.sheet?.customPortrait?.dataUrl);
+  
+  const btnSil = el('btn-mode-silhouette');
+  const btnCus = el('btn-mode-custom');
+  if (btnSil) btnSil.classList.toggle('active', mode === 'silhouette');
+  if (btnCus) {
+    btnCus.classList.toggle('active', mode === 'custom');
+    btnCus.title = hasCustom ? '已配置自定义立绘' : '点击上传自定义立绘';
+  }
+}
+
+function switchPortraitMode(targetMode) {
+  const c = curChar();
+  if (!c || !c.sheet) return;
+
+  if (targetMode === 'custom') {
+    if (!c.sheet.customPortrait?.dataUrl) {
+      openPortraitEditorModal();
+      return;
+    }
+    c.sheet.portraitMode = 'custom';
+  } else {
+    c.sheet.portraitMode = 'silhouette';
+  }
+
+  saveLocal();
+  renderAppearance(c);
+}
+
+function openPortraitEditorModal() {
+  const c = curChar();
+  const existing = c?.sheet?.customPortrait || {};
+  tempPortrait = {
+    dataUrl: existing.dataUrl || '',
+    zoom: Number(existing.zoom) || 1.0,
+    offsetX: Number(existing.offsetX) || 0,
+    offsetY: Number(existing.offsetY) || 0
+  };
+
+  const modal = el('portrait-editor-modal');
+  if (!modal) return;
+  modal.hidden = false;
+
+  // 回显滑块与预览
+  if (el('slider-portrait-zoom')) el('slider-portrait-zoom').value = tempPortrait.zoom;
+  if (el('slider-portrait-x')) el('slider-portrait-x').value = tempPortrait.offsetX;
+  if (el('slider-portrait-y')) el('slider-portrait-y').value = tempPortrait.offsetY;
+
+  applyPortraitCropPreview();
+}
+
+function closePortraitEditorModal() {
+  const modal = el('portrait-editor-modal');
+  if (modal) modal.hidden = true;
+}
+
+function applyPortraitCropPreview() {
+  const img = el('portrait-crop-img');
+  const empty = el('portrait-crop-empty');
+  const valZoom = el('val-portrait-zoom');
+  const valX = el('val-portrait-x');
+  const valY = el('val-portrait-y');
+
+  if (valZoom) valZoom.textContent = Math.round(tempPortrait.zoom * 100) + '%';
+  if (valX) valX.textContent = (tempPortrait.offsetX > 0 ? '+' : '') + tempPortrait.offsetX + '%';
+  if (valY) valY.textContent = (tempPortrait.offsetY > 0 ? '+' : '') + tempPortrait.offsetY + '%';
+
+  if (!tempPortrait.dataUrl) {
+    if (img) img.hidden = true;
+    if (empty) empty.hidden = false;
+    return;
+  }
+
+  if (empty) empty.hidden = true;
+  if (img) {
+    img.hidden = false;
+    if (img.src !== tempPortrait.dataUrl) img.src = tempPortrait.dataUrl;
+    img.style.transform = `scale(${tempPortrait.zoom}) translate(${tempPortrait.offsetX}%, ${tempPortrait.offsetY}%)`;
+  }
+}
+
+function handlePortraitFileSelect(event) {
+  const file = event.target?.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    alert('请选择有效的图片文件（JPG、PNG、WebP 等）。');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rawDataUrl = e.target.result;
+    compressAndScaleImage(rawDataUrl, 850, 1100, 0.88, optimizedDataUrl => {
+      tempPortrait.dataUrl = optimizedDataUrl;
+      tempPortrait.zoom = 1.0;
+      tempPortrait.offsetX = 0;
+      tempPortrait.offsetY = 0;
+      if (el('slider-portrait-zoom')) el('slider-portrait-zoom').value = 1.0;
+      if (el('slider-portrait-x')) el('slider-portrait-x').value = 0;
+      if (el('slider-portrait-y')) el('slider-portrait-y').value = 0;
+      applyPortraitCropPreview();
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function compressAndScaleImage(dataUrl, maxWidth, maxHeight, quality, callback) {
+  const img = new Image();
+  img.onload = () => {
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxWidth || height > maxHeight) {
+      const ratio = Math.min(maxWidth / width, maxHeight / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    let output = canvas.toDataURL('image/webp', quality);
+    if (!output || output.length > dataUrl.length || output.startsWith('data:image/png')) {
+      output = canvas.toDataURL('image/jpeg', quality);
+    }
+    callback(output);
+  };
+  img.src = dataUrl;
+}
+
+function savePortraitCustomization() {
+  if (!tempPortrait.dataUrl) {
+    alert('请先选择并上传一张本地图片！');
+    return;
+  }
+
+  const c = curChar();
+  if (!c || !c.sheet) return;
+
+  c.sheet.customPortrait = {
+    dataUrl: tempPortrait.dataUrl,
+    zoom: tempPortrait.zoom,
+    offsetX: tempPortrait.offsetX,
+    offsetY: tempPortrait.offsetY
+  };
+  c.sheet.portraitMode = 'custom';
+
+  saveLocal();
+  renderAppearance(c);
+  closePortraitEditorModal();
+}
+
+function initPortraitListeners() {
+  el('btn-mode-silhouette')?.addEventListener('click', () => switchPortraitMode('silhouette'));
+  el('btn-mode-custom')?.addEventListener('click', () => switchPortraitMode('custom'));
+  el('btn-open-portrait-setting')?.addEventListener('click', openPortraitEditorModal);
+  el('portrait-modal-close')?.addEventListener('click', closePortraitEditorModal);
+  el('btn-cancel-portrait')?.addEventListener('click', closePortraitEditorModal);
+  el('btn-save-portrait')?.addEventListener('click', savePortraitCustomization);
+
+  el('btn-select-portrait-file')?.addEventListener('click', () => el('portrait-file-input')?.click());
+  el('portrait-file-input')?.addEventListener('change', handlePortraitFileSelect);
+
+  el('btn-reset-portrait-adjust')?.addEventListener('click', () => {
+    tempPortrait.zoom = 1.0;
+    tempPortrait.offsetX = 0;
+    tempPortrait.offsetY = 0;
+    if (el('slider-portrait-zoom')) el('slider-portrait-zoom').value = 1.0;
+    if (el('slider-portrait-x')) el('slider-portrait-x').value = 0;
+    if (el('slider-portrait-y')) el('slider-portrait-y').value = 0;
+    applyPortraitCropPreview();
+  });
+
+  el('slider-portrait-zoom')?.addEventListener('input', e => {
+    tempPortrait.zoom = parseFloat(e.target.value) || 1.0;
+    applyPortraitCropPreview();
+  });
+
+  el('slider-portrait-x')?.addEventListener('input', e => {
+    tempPortrait.offsetX = parseInt(e.target.value, 10) || 0;
+    applyPortraitCropPreview();
+  });
+
+  el('slider-portrait-y')?.addEventListener('input', e => {
+    tempPortrait.offsetY = parseInt(e.target.value, 10) || 0;
+    applyPortraitCropPreview();
+  });
+
+  // 鼠标拖拽平移视口
+  const viewport = el('portrait-crop-viewport');
+  if (viewport) {
+    viewport.addEventListener('mousedown', e => {
+      if (!tempPortrait.dataUrl) return;
+      isDraggingPortrait = true;
+      portraitDragStart = { x: e.clientX, y: e.clientY };
+      portraitDragInitial = { x: tempPortrait.offsetX, y: tempPortrait.offsetY };
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!isDraggingPortrait) return;
+      const dx = e.clientX - portraitDragStart.x;
+      const dy = e.clientY - portraitDragStart.y;
+      // 灵敏度换算：视口宽约200px，dx/2 差不多对应百分比
+      const sensitivity = 0.5;
+      tempPortrait.offsetX = Math.max(-100, Math.min(100, Math.round(portraitDragInitial.x + dx * sensitivity)));
+      tempPortrait.offsetY = Math.max(-100, Math.min(100, Math.round(portraitDragInitial.y + dy * sensitivity)));
+
+      if (el('slider-portrait-x')) el('slider-portrait-x').value = tempPortrait.offsetX;
+      if (el('slider-portrait-y')) el('slider-portrait-y').value = tempPortrait.offsetY;
+      applyPortraitCropPreview();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDraggingPortrait = false;
+    });
+  }
+}
