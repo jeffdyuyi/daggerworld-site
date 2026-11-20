@@ -948,33 +948,113 @@
             <div class="f-select-group">
               <label>子类别 / 标签</label>
               <input type="text" id="ws-item-subcat" class="dw-input" placeholder="例如：药剂 / 奇物 / 单手刃 / 卷轴">
-              <label for="ws-item-slot">部位</label>
-              <select id="ws-item-slot" class="dw-select"><option value="">无</option></select>
+              <input type="hidden" id="ws-item-slot" value="">
               <label for="ws-item-quality">品质</label>
               <select id="ws-item-quality" class="dw-select"></select>
-              <label id="ws-container-label" hidden>容量（格）<input type="number" min="1" max="999" id="ws-container-cap" class="dw-input"></label>
-              <label for="ws-item-appearance">外观</label>
+              <label for="ws-item-appearance">外观图标</label>
               <select id="ws-item-appearance" class="dw-select"><option value="">自动匹配</option></select>
             </div>
-            <div class="f-select-group">
-              <label>简略属性预览</label>
-              <details id="ws-item-effects">
-                <summary>数值修正</summary>
-                <div class="gear-effect-fields" id="ws-gear-fields"></div>
-              </details>
-              <div class="gear-effect-fields" id="ws-weapon-fields" hidden>
-                <label>攻击属性<select id="ws-weapon-trait" class="dw-select"></select></label>
-                <label>伤害骰<input id="ws-weapon-damage" class="dw-input" placeholder="d8+2" pattern="(?:[0-9]*d[0-9]+)(?:[+-](?:[0-9]*d[0-9]+|[0-9]+))*"></label>
-                <label>范围<select id="ws-weapon-range" class="dw-select"><option>近战</option><option>邻近</option><option>近距离</option><option>远距离</option><option>极远距离</option></select></label>
-                <label>伤害类型<select id="ws-weapon-kind" class="dw-select"><option>物理</option><option>魔法</option></select></label>
-                <label>负荷<select id="ws-weapon-burden" class="dw-select"><option>单手</option><option>双手</option></select></label>
+
+            <!-- 可装备位置多选开关区 -->
+            <div class="f-select-group ws-col-span-2">
+              <div class="ws-slot-select-section">
+                <div class="ws-slot-header">
+                  <label><strong>🪑 可装备位置 (复选开关)</strong> <span class="ws-calc-subhint">从现有角色槽位中选择，允许复选；未勾选任何部位则为纯背包物品</span></label>
+                  <div class="ws-slot-presets">
+                    <button type="button" class="ws-slot-preset-btn" data-preset="weapon_dual">单手武器(主/副)</button>
+                    <button type="button" class="ws-slot-preset-btn" data-preset="weapon_twohand">双手武器(主手)</button>
+                    <button type="button" class="ws-slot-preset-btn" data-preset="rings">双戒指</button>
+                    <button type="button" class="ws-slot-preset-btn" data-preset="trinkets">双饰品</button>
+                    <button type="button" class="ws-slot-preset-btn" data-preset="armor_body">胸部护甲</button>
+                    <button type="button" class="ws-slot-preset-btn" data-preset="clear">清空位置</button>
+                  </div>
+                </div>
+                <div class="ws-slot-checkbox-grid" id="ws-slot-checkboxes">
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="weapon_main"> 主手武器</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="weapon_off"> 副手武器/盾</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="weapon_spare"> 备用武器</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="head"> 头部</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="chest"> 躯干</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="waist"> 腰部</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="legs"> 腿部</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="feet"> 足部</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="back"> 背部/披风</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="ring1"> 戒指 1</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="ring2"> 戒指 2</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="trinket1"> 饰品 1</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="trinket2"> 饰品 2</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="main_bag"> 主背包</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="pouch_1"> 腰包 1</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="pouch_2"> 腰包 2</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="satchel_1"> 挎包 1</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="satchel_2"> 挎包 2</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="suit"> 全身体套装</label>
+                  <label class="ws-slot-chip"><input type="checkbox" name="ws-allowed-slot" value="costume"> 外观时装</label>
+                </div>
+                <label id="ws-container-label" hidden>容器容量（格）<input type="number" min="1" max="999" id="ws-container-cap" class="dw-input" placeholder="例如：4"></label>
               </div>
-              <div class="gear-effect-fields" id="ws-armor-fields" hidden>
-                <label>基础护甲值<input id="ws-armor-value" class="dw-input" type="number" min="0" max="99" value="3" placeholder="3"></label>
-                <label>重度伤害阈值<input id="ws-armor-major" class="dw-input" type="number" min="0" max="99" value="7" placeholder="7"></label>
-                <label>严重伤害阈值<input id="ws-armor-severe" class="dw-input" type="number" min="0" max="99" value="15" placeholder="15"></label>
+            </div>
+
+            <!-- 特殊装备开关：背包被动生效 -->
+            <div class="f-select-group ws-col-span-2">
+              <div class="ws-passive-card">
+                <label>
+                  <input type="checkbox" id="ws-toggle-passive-bag">
+                  🎒 <strong>背包被动生效 (无需佩戴)</strong>
+                  <span>放入背包有效容量内即自动生效全部数值加成</span>
+                </label>
               </div>
-              <input type="text" id="ws-item-stats" class="dw-input" placeholder="例如：近战 · 物理 · 1d8+力量 或 恢复 1d6 生命">
+            </div>
+
+            <!-- 通用计算块开关区 -->
+            <div class="f-select-group ws-col-span-2" style="display:flex;flex-direction:column;gap:12px;">
+              <!-- 计算块 1: 武器数值块 -->
+              <div class="ws-calc-block" id="ws-block-weapon">
+                <div class="ws-calc-header">
+                  <label>
+                    <input type="checkbox" id="ws-toggle-weapon-block" class="ws-block-toggle">
+                    ⚔️ <strong>武器攻击数值块</strong>
+                    <span class="ws-calc-subhint">为物品赋予攻击属性、射程、伤害骰与负荷，可供佩戴或作战调用</span>
+                  </label>
+                </div>
+                <div class="gear-effect-fields" id="ws-weapon-fields" hidden>
+                  <label>攻击属性<select id="ws-weapon-trait" class="dw-select"></select></label>
+                  <label>伤害骰<input id="ws-weapon-damage" class="dw-input" placeholder="例如 d8+2 或 1d10" pattern="(?:[0-9]*d[0-9]+)(?:[+-](?:[0-9]*d[0-9]+|[0-9]+))*"></label>
+                  <label>范围<select id="ws-weapon-range" class="dw-select"><option>近战</option><option>邻近</option><option>近距离</option><option>远距离</option><option>极远距离</option></select></label>
+                  <label>伤害类型<select id="ws-weapon-kind" class="dw-select"><option>物理</option><option>魔法</option></select></label>
+                  <label>负荷<select id="ws-weapon-burden" class="dw-select"><option>单手</option><option>双手</option></select></label>
+                </div>
+              </div>
+
+              <!-- 计算块 2: 护甲与伤害阈值数值块 -->
+              <div class="ws-calc-block" id="ws-block-armor">
+                <div class="ws-calc-header">
+                  <label>
+                    <input type="checkbox" id="ws-toggle-armor-block" class="ws-block-toggle">
+                    🛡️ <strong>护甲与伤害阈值数值块</strong>
+                    <span class="ws-calc-subhint">为物品赋予基础护甲值与重度/严重伤害阈值加成，不论单一部位或多部位均可叠加</span>
+                  </label>
+                </div>
+                <div class="gear-effect-fields" id="ws-armor-fields" hidden>
+                  <label>基础护甲值<input id="ws-armor-value" class="dw-input" type="number" min="0" max="99" value="0" placeholder="0"></label>
+                  <label>重度伤害阈值 (+Major)<input id="ws-armor-major" class="dw-input" type="number" min="0" max="99" value="0" placeholder="0"></label>
+                  <label>严重伤害阈值 (+Severe)<input id="ws-armor-severe" class="dw-input" type="number" min="0" max="99" value="0" placeholder="0"></label>
+                </div>
+              </div>
+
+              <!-- 计算块 3: 属性与状态上限修正块 -->
+              <div class="ws-calc-block" id="ws-block-modifiers">
+                <div class="ws-calc-header">
+                  <label>
+                    <input type="checkbox" id="ws-toggle-modifiers-block" class="ws-block-toggle">
+                    📊 <strong>属性与状态上限修正块</strong>
+                    <span class="ws-calc-subhint">对六维属性（敏捷/力量等）、生命上限、压力上限、闪避、护甲上限与熟练进行数值微调</span>
+                  </label>
+                </div>
+                <div class="gear-effect-fields" id="ws-gear-fields" hidden></div>
+              </div>
+
+              <input type="text" id="ws-item-stats" class="dw-input" placeholder="属性简要描述（若为空将根据上述生效计算块自动生成）">
             </div>
             <div class="f-select-group ws-col-span-2">
               <label>机制与效果说明 (支持 Markdown 粗体 **效果**)</label>

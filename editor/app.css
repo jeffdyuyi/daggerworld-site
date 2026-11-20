@@ -3273,3 +3273,143 @@ body.dw-theme {
   color: #94a3b8;
   white-space: nowrap;
 }
+
+/* Workshop Universal Calc Blocks & Slot Multiselect */
+.ws-slot-select-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.ws-slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ws-slot-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ws-slot-preset-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: rgba(20, 15, 18, 0.8);
+  color: var(--text-gold);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ws-slot-preset-btn:hover {
+  background: var(--bo3-gold);
+  color: #1a120b;
+}
+.ws-slot-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  gap: 6px;
+}
+.ws-slot-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+}
+.ws-slot-chip:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.05);
+}
+.ws-slot-chip:has(input:checked) {
+  border-color: var(--border-gold);
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--text-gold);
+}
+.ws-slot-chip input[type="checkbox"] {
+  accent-color: var(--border-gold);
+  cursor: pointer;
+}
+
+.ws-passive-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.12) 0%, rgba(30, 25, 20, 0.5) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ws-passive-card:hover {
+  border-color: var(--border-gold);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
+}
+.ws-passive-card label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.ws-passive-card input[type="checkbox"] {
+  accent-color: var(--border-gold);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.ws-passive-card span {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.ws-calc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  transition: all 0.2s;
+}
+.ws-calc-block:has(input.ws-block-toggle:checked) {
+  border-color: rgba(212, 175, 55, 0.4);
+}
+.ws-calc-header label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-gold);
+  cursor: pointer;
+}
+.ws-calc-header input[type="checkbox"] {
+  accent-color: var(--border-gold);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+.ws-calc-header .ws-calc-subhint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: normal;
+  margin-left: 4px;
+}
+

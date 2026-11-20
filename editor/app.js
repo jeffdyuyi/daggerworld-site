@@ -2230,8 +2230,49 @@ function setupEventListeners() {
 
   // Live Previews for Forms
   const appearanceSelect = el('ws-item-appearance');
-  for (const [value, label] of Object.entries(gearSlots).filter(([key]) => key !== 'wrists')) el('ws-item-slot').add(new Option(label, value));
+  if (el('ws-item-slot') && el('ws-item-slot').tagName === 'SELECT') {
+    for (const [value, label] of Object.entries(gearSlots).filter(([key]) => key !== 'wrists')) el('ws-item-slot').add(new Option(label, value));
+  }
   for (const [value, label] of Object.entries(qualities)) el('ws-item-quality').add(new Option(label, value));
+
+  // 绑定计算块折叠开关
+  [
+    ['ws-toggle-weapon-block', 'ws-weapon-fields'],
+    ['ws-toggle-armor-block', 'ws-armor-fields'],
+    ['ws-toggle-modifiers-block', 'ws-gear-fields']
+  ].forEach(([toggleId, fieldsId]) => {
+    const toggle = el(toggleId);
+    const fields = el(fieldsId);
+    if (toggle && fields) {
+      toggle.addEventListener('change', () => {
+        fields.hidden = !toggle.checked;
+        updateItemPreview();
+      });
+    }
+  });
+
+  // 绑定背包被动生效开关
+  el('ws-toggle-passive-bag')?.addEventListener('change', updateItemPreview);
+
+  // 绑定可装备槽位复选框变化
+  document.querySelectorAll('input[name="ws-allowed-slot"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const selected = getSelectedAllowedSlots();
+      const hasContainer = selected.some(s => ['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(s));
+      if (el('ws-container-label')) el('ws-container-label').hidden = !hasContainer;
+      if (el('ws-item-slot')) el('ws-item-slot').value = selected[0] || '';
+      updateItemPreview();
+    });
+  });
+
+  // 绑定槽位预设按钮
+  document.querySelectorAll('.ws-slot-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const preset = btn.dataset.preset;
+      applySlotPreset(preset);
+      updateItemPreview();
+    });
+  });
   for (const [key, title] of Object.entries(gearEffects)) {
     const label = document.createElement('label');
     const input = document.createElement('input');
@@ -2407,11 +2448,26 @@ function openItemPicker(slotKey) {
     const assigned = new Set(Object.entries({...sheet.equipment,...sheet.bags})
       .filter(([key]) => key !== slotKey && !(slotKey === 'chest' && key === 'suit')).map(([,item]) => item?.ownedGearId));
     candidates = sheet.inventoryItems.filter(item => item?.ownedGearId && !assigned.has(item.ownedGearId) && (slotMatches(item,slotKey) || (slotKey === 'chest' && slotMatches(item,'suit'))))
-      .map(item => item.resourceId ? {...sourceItem(item.resourceId), ownedGearId:item.ownedGearId,slot:item.slot} : ({
-        名称:item.name, 描述:item.desc, 位阶:item.tier, 品类:item.type, 容量:item.capacity,
-        属性:item.weapon?.trait, 伤害:item.weapon?.damage, 距离:item.weapon?.range,
-        伤害类型:item.weapon?.kind, 负荷:item.weapon?.burden, ownedGearId:item.ownedGearId,
-        appearance:item.appearance,...readGear(item)
+      .map(item => item.resourceId ? {...sourceItem(item.resourceId), ownedGearId:item.ownedGearId, slot:item.slot} : ({
+        名称: item.name || item.名称,
+        描述: item.desc || item.描述,
+        位阶: item.tier || item.位阶,
+        品类: item.type || item.品类,
+        容量: item.capacity || item.容量,
+        属性: item.weapon?.trait || item.属性,
+        伤害: item.weapon?.damage || item.伤害,
+        距离: item.weapon?.range || item.距离,
+        伤害类型: item.weapon?.kind || item.伤害类型,
+        负荷: item.weapon?.burden || item.负荷,
+        护甲值: item.护甲值,
+        基础护甲: item.基础护甲 || item.护甲值,
+        重度阈值: item.重度阈值,
+        严重阈值: item.严重阈值,
+        allowedSlots: item.allowedSlots,
+        passiveInBag: item.passiveInBag,
+        ownedGearId: item.ownedGearId,
+        appearance: item.appearance,
+        ...readGear(item)
       }));
   }
   currentPickerCandidates = candidates;
@@ -2749,65 +2805,185 @@ function switchWorkshopWorkbenchTab(tab) {
   }
 }
 
+// 辅助：获取所有选中的允许槽位
+function getSelectedAllowedSlots() {
+  return Array.from(document.querySelectorAll('input[name="ws-allowed-slot"]:checked')).map(cb => cb.value);
+}
+
+// 辅助：应用槽位预设
+function applySlotPreset(preset) {
+  const cbs = document.querySelectorAll('input[name="ws-allowed-slot"]');
+  if (preset === 'clear') {
+    cbs.forEach(cb => cb.checked = false);
+  } else {
+    cbs.forEach(cb => cb.checked = false);
+    const map = {
+      weapon_dual: ['weapon_main', 'weapon_off'],
+      weapon_twohand: ['weapon_main'],
+      rings: ['ring1', 'ring2'],
+      trinkets: ['trinket1', 'trinket2'],
+      armor_body: ['chest']
+    };
+    const targets = map[preset] || [];
+    cbs.forEach(cb => {
+      if (targets.includes(cb.value)) cb.checked = true;
+    });
+    if (preset === 'weapon_twohand' && el('ws-weapon-burden')) {
+      el('ws-weapon-burden').value = '双手';
+      if (el('ws-toggle-weapon-block')) {
+        el('ws-toggle-weapon-block').checked = true;
+        if (el('ws-weapon-fields')) el('ws-weapon-fields').hidden = false;
+      }
+    }
+  }
+  const selected = getSelectedAllowedSlots();
+  const hasContainer = selected.some(s => ['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(s));
+  if (el('ws-container-label')) el('ws-container-label').hidden = !hasContainer;
+  if (el('ws-item-slot')) el('ws-item-slot').value = selected[0] || '';
+}
+
 // 实时更新物品表单预览
 function updateItemPreview() {
   const name = el('ws-item-name')?.value?.trim() || '未命名物品';
   const type = el('ws-item-type')?.value || '战利品';
-  const tier = el('ws-item-tier')?.value || '1';
   const subcat = el('ws-item-subcat')?.value?.trim() || '';
-  const stats = el('ws-item-stats')?.value?.trim() || '暂无属性';
-  const desc = el('ws-item-desc')?.value?.trim() || '暂无效果说明';
+  const tier = Number(el('ws-item-tier')?.value) || 1;
+  const userStats = el('ws-item-stats')?.value?.trim() || '';
+  const desc = el('ws-item-desc')?.value?.trim() || '无特殊机制说明。';
+
+  const allowedSlots = getSelectedAllowedSlots();
+  const passiveInBag = el('ws-toggle-passive-bag')?.checked ?? false;
+  const weaponActive = el('ws-toggle-weapon-block')?.checked ?? false;
+  const armorActive = el('ws-toggle-armor-block')?.checked ?? false;
+  const modActive = el('ws-toggle-modifiers-block')?.checked ?? false;
+
+  // 动态拼装属性概览
+  const statParts = [];
+  if (weaponActive) {
+    const trait = el('ws-weapon-trait')?.value || '力量';
+    const dice = el('ws-weapon-damage')?.value?.trim() || 'd6';
+    const range = el('ws-weapon-range')?.value || '近战';
+    const kind = el('ws-weapon-kind')?.value || '物理';
+    const burden = el('ws-weapon-burden')?.value || '单手';
+    statParts.push(`${range} · ${trait} · ${dice} ${kind} · ${burden}`);
+  }
+  if (armorActive) {
+    const val = Number(el('ws-armor-value')?.value) || 0;
+    const maj = Number(el('ws-armor-major')?.value) || 0;
+    const sev = Number(el('ws-armor-severe')?.value) || 0;
+    const armorTerms = [];
+    if (val) armorTerms.push(`+${val} 护甲`);
+    if (maj || sev) armorTerms.push(`阈值 +${maj}/+${sev}`);
+    if (armorTerms.length) statParts.push(armorTerms.join(' · '));
+  }
+  if (modActive) {
+    const gear = workshopGear();
+    const formula = gearFormula(gear);
+    if (formula) statParts.push(formula);
+  }
+  if (passiveInBag) {
+    statParts.push('🎒 背包生效');
+  }
+  if (allowedSlots.length) {
+    const slotNames = allowedSlots.map(s => gearSlots[s] || s).join('/');
+    statParts.push(`部位: ${slotNames}`);
+  }
+
+  const effectiveStats = userStats || (statParts.join(' | ') || '无数值调整');
 
   if (el('ws-prev-name')) el('ws-prev-name').textContent = name;
-  if (el('ws-prev-tag')) el('ws-prev-tag').textContent = `${type} ${subcat ? '· ' + subcat : ''} · T${tier}`;
-  if (el('ws-prev-stats')) el('ws-prev-stats').textContent = stats;
+  if (el('ws-prev-tag')) el('ws-prev-tag').textContent = `${type} ${subcat ? '· ' + subcat : ''} · T${tier}${passiveInBag ? ' [被动]' : ''}`;
+  if (el('ws-prev-stats')) el('ws-prev-stats').textContent = effectiveStats;
   if (el('ws-prev-desc')) el('ws-prev-desc').innerHTML = renderMarkdown(desc);
+
   const gear = workshopGear();
-  const weaponSlot = ['weapon_main', 'weapon_off'].includes(gear.slot);
-  el('ws-weapon-fields').hidden = !weaponSlot;
-  el('ws-item-effects').hidden = !gear.slot;
   decorateGear(el('ws-item-preview'), { ...gear, tier });
-  if (gearFormula(gear)) el('ws-prev-stats').textContent = gearFormula(gear);
-  el('ws-container-label').hidden = !['main_bag','pouch','satchel'].includes(gear.slot);
   el('ws-prev-icon')?.replaceChildren(itemImage({ name, type, subcat, appearance: el('ws-item-appearance')?.value }));
-}
-
-// 实时更新领域卡表单预览
-function updateCardPreview() {
-  const name = el('ws-card-name')?.value?.trim() || '未命名领域卡';
-  const domain = el('ws-card-domain')?.value || '利刃';
-  const type = el('ws-card-type')?.value || '法术';
-  const level = el('ws-card-level')?.value || '1';
-  const recall = el('ws-card-recall')?.value || '1';
-  const desc = el('ws-card-desc')?.value?.trim() || '卡牌机制规则描述…';
-
-  if (el('ws-prev-card-title')) el('ws-prev-card-title').textContent = name;
-  if (el('ws-prev-card-type')) el('ws-prev-card-type').textContent = type;
-  if (el('ws-prev-card-recall')) el('ws-prev-card-recall').textContent = `⚡ ${recall}⚡`;
-  if (el('ws-prev-card-desc')) el('ws-prev-card-desc').innerHTML = renderMarkdown(desc);
-
-  const tagEl = el('ws-prev-card-tag');
-  if (tagEl) {
-    tagEl.textContent = `${domain} · ${level}级`;
-    tagEl.style.background = getDomainColor(domain);
-  }
 }
 
 // 提交物品创制 / 编辑 (保存或发放)
 function workshopGear() {
-  const modifiers = Object.fromEntries(Object.keys(gearEffects).map(key => [key, el('gear-effect-' + key).value]));
-  return readGear({ capacity:Number(el('ws-container-cap').value), slot: el('ws-item-slot').value, quality: el('ws-item-quality').value, modifiers });
+  const modActive = el('ws-toggle-modifiers-block')?.checked ?? true;
+  const modifiers = {};
+  if (modActive) {
+    for (const key of Object.keys(gearEffects)) {
+      const val = Number(el('gear-effect-' + key)?.value);
+      if (Number.isInteger(val) && val !== 0) modifiers[key] = val;
+    }
+  }
+  const allowedSlots = getSelectedAllowedSlots();
+  const passiveInBag = el('ws-toggle-passive-bag')?.checked ?? false;
+  return readGear({
+    capacity: Number(el('ws-container-cap')?.value),
+    slot: allowedSlots[0] || (passiveInBag ? 'passive' : ''),
+    allowedSlots,
+    passiveInBag,
+    quality: el('ws-item-quality')?.value || 'white',
+    modifiers
+  });
 }
 
 function fillWorkshopGear(item = {}) {
-  const gear = readGear(item);
-  el('ws-container-cap').value = gear.capacity ?? '';
-  el('ws-item-slot').value = gear.slot;
-  el('ws-item-quality').value = gear.quality;
-  for (const key of Object.keys(gearEffects)) el('gear-effect-' + key).value = gear.modifiers[key] ?? '';
+  const allowed = Array.isArray(item.allowedSlots) && item.allowedSlots.length > 0
+    ? item.allowedSlots
+    : (item.slot ? [item.slot] : []);
+
+  // 1. 回显槽位复选框
+  document.querySelectorAll('input[name="ws-allowed-slot"]').forEach(cb => {
+    cb.checked = allowed.includes(cb.value);
+  });
+  if (el('ws-item-slot')) el('ws-item-slot').value = allowed[0] || '';
+
+  // 2. 回显背包被动开关
+  const isPassive = Boolean(item.passiveInBag || item.slot === 'passive');
+  if (el('ws-toggle-passive-bag')) el('ws-toggle-passive-bag').checked = isPassive;
+
+  // 3. 回显品质与容量
+  if (el('ws-item-quality')) el('ws-item-quality').value = item.quality || 'white';
+  if (el('ws-container-cap')) el('ws-container-cap').value = item.capacity ?? item.容量 ?? '';
+  const hasContainer = allowed.some(s => ['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(s));
+  if (el('ws-container-label')) el('ws-container-label').hidden = !hasContainer;
+
+  // 4. 回显武器计算块
+  const hasWeapon = Boolean(item.weapon || item.伤害 || item.damage || item.weaponSlot);
+  if (el('ws-toggle-weapon-block')) {
+    el('ws-toggle-weapon-block').checked = hasWeapon;
+    if (el('ws-weapon-fields')) el('ws-weapon-fields').hidden = !hasWeapon;
+  }
   for (const key of ['trait', 'damage', 'range', 'kind', 'burden']) {
     const field = el('ws-weapon-' + key);
-    field.value = item.weapon?.[key] ?? (field.options?.[0]?.value || '');
+    if (!field) continue;
+    const cnMap = { trait: '属性', damage: '伤害', range: '距离', kind: '伤害类型', burden: '负荷' };
+    field.value = item.weapon?.[key] ?? item[cnMap[key]] ?? (field.options?.[0]?.value || '');
+  }
+
+  // 5. 回显护甲计算块
+  const armorVal = item.护甲值 ?? item.基础护甲 ?? item.armor ?? '';
+  const majorVal = item.重度阈值 ?? item.majorThreshold ?? item.major ?? '';
+  const severeVal = item.严重阈值 ?? item.severeThreshold ?? item.severe ?? '';
+  const hasArmor = Boolean(armorVal || majorVal || severeVal);
+  if (el('ws-toggle-armor-block')) {
+    el('ws-toggle-armor-block').checked = hasArmor;
+    if (el('ws-armor-fields')) el('ws-armor-fields').hidden = !hasArmor;
+  }
+  if (el('ws-armor-value')) el('ws-armor-value').value = armorVal || 0;
+  if (el('ws-armor-major')) el('ws-armor-major').value = majorVal || 0;
+  if (el('ws-armor-severe')) el('ws-armor-severe').value = severeVal || 0;
+
+  // 6. 回显属性修正块
+  const gear = readGear(item);
+  let hasModifiers = false;
+  for (const key of Object.keys(gearEffects)) {
+    const input = el('gear-effect-' + key);
+    if (input) {
+      const val = gear.modifiers[key] ?? '';
+      input.value = val;
+      if (val) hasModifiers = true;
+    }
+  }
+  if (el('ws-toggle-modifiers-block')) {
+    el('ws-toggle-modifiers-block').checked = hasModifiers;
+    if (el('ws-gear-fields')) el('ws-gear-fields').hidden = !hasModifiers;
   }
 }
 
@@ -2818,41 +2994,93 @@ function handleWorkshopItemSubmit(isDispatch) {
   const type = el('ws-item-type')?.value || '战利品';
   const subcat = el('ws-item-subcat')?.value?.trim() || '';
   const tier = Number(el('ws-item-tier')?.value) || 1;
-  const stats = el('ws-item-stats')?.value?.trim() || '';
+  const userStats = el('ws-item-stats')?.value?.trim() || '';
   const desc = el('ws-item-desc')?.value?.trim() || '';
   const icon = resolveItemIcon(name, type, subcat);
 
+  const allowedSlots = getSelectedAllowedSlots();
+  const passiveInBag = el('ws-toggle-passive-bag')?.checked ?? false;
+  const weaponActive = el('ws-toggle-weapon-block')?.checked ?? false;
+  const armorActive = el('ws-toggle-armor-block')?.checked ?? false;
+  const modActive = el('ws-toggle-modifiers-block')?.checked ?? false;
+
   const gear = workshopGear();
-  if (['main_bag','pouch','satchel'].includes(gear.slot) && !gear.capacity) return alert('请填写容器容量（1–999格）。');
-  if (type === '消耗品' && gear.slot) return alert('消耗品请将部位设为「无」。');
-  if (['武器', '护甲'].includes(type) && !gear.slot) return alert('请选择装备部位。');
-  if (gear.slot && [...el('ws-gear-fields').querySelectorAll('input')].some(input => !input.checkValidity())) {
-    return alert('数值修正请输入 −99 至 99 的整数。');
+  const hasContainer = allowedSlots.some(s => ['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(s));
+  if (hasContainer && !gear.capacity) return alert('检测到容器槽位，请填写容器容量（1–999格）。');
+
+  // 武器块校验与收集
+  let weapon = undefined;
+  if (weaponActive) {
+    weapon = Object.fromEntries(
+      ['trait', 'damage', 'range', 'kind', 'burden'].map(key => [key, el('ws-weapon-' + key)?.value?.trim() || ''])
+    );
+    const damagePattern = /^\d*d[1-9]\d*(?:[+-](?:\d*d[1-9]\d*|\d+))*$/;
+    if (weapon.damage && !damagePattern.test(weapon.damage)) {
+      return alert('武器伤害骰格式错误，请输入如 d8+2、1d10 等表达式。');
+    }
   }
-  const weaponSlot = ['weapon_main', 'weapon_off'].includes(gear.slot);
-  const weapon = weaponSlot ? Object.fromEntries(
-    ['trait', 'damage', 'range', 'kind', 'burden'].map(key => [key, el('ws-weapon-' + key).value.trim()])
-  ) : undefined;
-  const damagePattern = /^\d*d[1-9]\d*(?:[+-](?:\d*d[1-9]\d*|\d+))*$/;
-  if (weaponSlot && (gear.slot === 'weapon_main' && !weapon.damage || weapon.damage && !damagePattern.test(weapon.damage))) {
-    return alert('请输入伤害骰，例如 d8+2。');
+
+  // 护甲块收集
+  const armorVal = armorActive ? (Number(el('ws-armor-value')?.value) || 0) : 0;
+  const majorVal = armorActive ? (Number(el('ws-armor-major')?.value) || 0) : 0;
+  const severeVal = armorActive ? (Number(el('ws-armor-severe')?.value) || 0) : 0;
+
+  // 自动属性概要
+  const statParts = [];
+  if (weaponActive && weapon) statParts.push(`${weapon.range} · ${weapon.trait} · ${weapon.damage || '—'} ${weapon.kind} · ${weapon.burden}`);
+  if (armorActive && (armorVal || majorVal || severeVal)) {
+    const terms = [];
+    if (armorVal) terms.push(`+${armorVal} 护甲`);
+    if (majorVal || severeVal) terms.push(`阈值 +${majorVal}/+${severeVal}`);
+    statParts.push(terms.join(' · '));
   }
-  if (gear.slot === 'weapon_off' && weapon.burden === '双手') return alert('副手负荷只能为单手。');
+  if (modActive && gearFormula(gear)) statParts.push(gearFormula(gear));
+  if (passiveInBag) statParts.push('🎒 背包生效');
+  if (allowedSlots.length) statParts.push(`部位: ${allowedSlots.map(s => gearSlots[s] || s).join('/')}`);
+  const effectiveStats = userStats || (statParts.join(' | ') || '');
 
   const editId = el('ws-item-edit-id')?.value;
+  const isEquipment = allowedSlots.length > 0 || passiveInBag;
+
   const item = {
     id: editId || `vari_${Date.now()}`,
     name,
+    名称: name,
     type,
+    品类: type,
     subcat,
     tier,
-    stats,
+    位阶: tier,
+    stats: effectiveStats,
     desc,
+    描述: desc,
     icon,
     appearance: validAppearance(el('ws-item-appearance')?.value),
-    ...gear,
+    slot: allowedSlots[0] || (passiveInBag ? 'passive' : ''),
+    allowedSlots,
+    passiveInBag,
+    quality: gear.quality,
+    modifiers: gear.modifiers,
+    capacity: gear.capacity,
+    容量: gear.capacity,
     weapon,
-    qty: 1
+    // 武器字段直接展平映射
+    ...(weaponActive && weapon ? {
+      属性: weapon.trait,
+      距离: weapon.range,
+      伤害: weapon.damage,
+      伤害类型: weapon.kind,
+      负荷: weapon.burden
+    } : {}),
+    // 护甲字段直接展平映射
+    ...(armorActive && (armorVal || majorVal || severeVal) ? {
+      护甲值: armorVal,
+      基础护甲: armorVal,
+      重度阈值: majorVal,
+      严重阈值: severeVal
+    } : {}),
+    qty: 1,
+    ownedGearId: isEquipment ? (editId || crypto.randomUUID()) : undefined
   };
 
   // 1. 保存/更新至战役军械库
@@ -2961,20 +3189,44 @@ function dispatchItemToCharacter(item, charIndex) {
   if (!target) return alert('未找到目标角色！');
   if (!target.sheet.inventoryItems) target.sheet.inventoryItems = [];
 
-  const formattedDesc = item.stats ? `**【${item.type} · ${item.subcat || '标准'}】** ${item.stats}\n\n${item.desc}` : item.desc;
-  return deliver(charIndex,'inventoryItems',{
-    name: item.name,
+  const formattedDesc = item.stats ? `**【${item.type} · ${item.subcat || '标准'}】** ${item.stats}\n\n${item.desc || item.描述 || ''}` : (item.desc || item.描述 || '');
+  const isEquipment = (item.allowedSlots && item.allowedSlots.length > 0) || item.slot || item.passiveInBag;
+  const gear = readGear(item);
+
+  return deliver(charIndex, 'inventoryItems', {
+    name: item.name || item.名称,
+    名称: item.name || item.名称,
     desc: formattedDesc,
+    描述: formattedDesc,
     qty: 1,
-    icon: item.icon || resolveItemIcon(item.name, item.type, item.subcat),
+    icon: item.icon || resolveItemIcon(item.name || item.名称, item.type, item.subcat),
     appearance: validAppearance(item.appearance),
-    type: item.type,
+    type: item.type || item.品类 || '战利品',
+    品类: item.type || item.品类 || '战利品',
     subcat: item.subcat,
-    ...readGear(item),
+    tier: item.tier || item.位阶 || 1,
+    位阶: item.tier || item.位阶 || 1,
+    stats: item.stats,
+    slot: item.slot || gear.slot || (item.passiveInBag ? 'passive' : ''),
+    allowedSlots: gear.allowedSlots,
+    passiveInBag: gear.passiveInBag,
+    quality: gear.quality,
+    modifiers: gear.modifiers,
+    capacity: gear.capacity,
+    容量: gear.capacity,
     weapon: item.weapon,
-    ownedGearId: item.slot ? crypto.randomUUID() : undefined,
-    tier: item.tier
+    属性: item.属性 ?? item.weapon?.trait,
+    距离: item.距离 ?? item.weapon?.range,
+    伤害: item.伤害 ?? item.weapon?.damage,
+    伤害类型: item.伤害类型 ?? item.weapon?.kind,
+    负荷: item.负荷 ?? item.weapon?.burden,
+    护甲值: item.护甲值 ?? gear.modifiers?.armor ?? 0,
+    基础护甲: item.基础护甲 ?? item.护甲值 ?? 0,
+    重度阈值: item.重度阈值 ?? gear.modifiers?.major ?? 0,
+    严重阈值: item.严重阈值 ?? gear.modifiers?.severe ?? 0,
+    ownedGearId: isEquipment ? crypto.randomUUID() : undefined
   });
+
 
 }
 

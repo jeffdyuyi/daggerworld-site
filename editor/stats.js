@@ -1,4 +1,4 @@
-import { slotMatches, totalGearEffects, suitCoversSlot } from './gear-effects.js';
+import { slotMatches, totalGearEffects, suitCoversSlot, storedItems } from './gear-effects.js';
 import { traits, tierForLevel, rulesLevel } from './sheet-rules.js';
 
 const integer = value => Number.isSafeInteger(Number(value)) ? Number(value) : 0;
@@ -17,6 +17,8 @@ export function sheetStats(character, job, capacity) {
     armor:0, major:rulesLevel(level), severe:rulesLevel(level)*2};
   const seen = new Set();
   let suitItem = null;
+
+  // 1. 佩戴在装备槽的物品
   for (const [slot,item] of Object.entries(s.equipment ?? {})) {
     if (!item || suitCoversSlot(s,slot) || ['weapon_spare','costume'].includes(slot)) continue;
     if (item.ownedGearId) {
@@ -37,6 +39,20 @@ export function sheetStats(character, job, capacity) {
     }
     if (feature.includes('所有属性以及闪避值-1')) for (const key of Object.keys(traits)) gear[key] = (gear[key] || 0)-1;
   }
+
+  // 2. 存放于背包且开启被动生效的物品
+  for (const item of storedItems(s).slice(0, capacity)) {
+    if (!item || (!item.passiveInBag && item.slot !== 'passive') || (item.qty ?? 1) <= 0) continue;
+    if (item.ownedGearId) {
+      if (seen.has(item.ownedGearId)) continue;
+      seen.add(item.ownedGearId);
+    }
+    for (const [key,field] of [['armor','护甲值'],['major','重度阈值'],['severe','严重阈值']]) {
+      const val = integer(item[field] ?? (key === 'armor' ? item.基础护甲 : 0));
+      if (val) gear[key] = (gear[key] || 0) + val;
+    }
+  }
+
   const automatic = {}, values = {};
   for (const [key,base] of Object.entries(innate)) {
     automatic[key] = base + (gear[key] || 0);
