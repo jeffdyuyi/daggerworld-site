@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css">
+  <link rel="stylesheet" href="./app.css?v=20261121-create1">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -102,7 +102,7 @@
           </div>
 
 
-          <form id="form-create-character" class="creator-form" onsubmit="return false;">
+          <form id="form-create-character" class="creator-form">
             <!-- Name -->
             <div class="form-group">
               <label for="new-char-name">角色名</label>
@@ -152,9 +152,16 @@
               <select id="new-char-subclass" class="creator-select"></select>
             </div>
 
+            <fieldset class="creator-attributes">
+              <legend>初始属性</legend>
+              <p>分配 +2、+1、+1、0、0、−1。</p>
+              <div id="creator-attribute-grid"></div>
+            </fieldset>
+            <p id="creator-error" role="alert"></p>
+
             <!-- Submit -->
             <div class="creator-actions">
-              <button type="button" class="btn-create-submit" id="btn-submit-create-char">
+              <button type="submit" class="btn-create-submit" id="btn-submit-create-char">
                 <span>⚔️</span> 创建角色
               </button>
             </div>
@@ -1187,7 +1194,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-body1').catch(error => {
+    import('./app.js?v=20261121-create1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;

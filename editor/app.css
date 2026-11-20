@@ -3097,3 +3097,10 @@ body.dw-theme {
   .dw-theme .paperdoll-container .gear-slot { flex-wrap:wrap; }
   .dw-theme .appearance-frame-sheet { height:180px; }
 }
+
+.creator-attributes { min-width:0; border:1px solid var(--border-bo3); padding:.65rem; }
+.creator-attributes p { margin:0 0 .5rem; }
+#creator-attribute-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(5rem,1fr)); gap:.5rem; }
+#creator-attribute-grid label { display:grid; gap:.25rem; }
+#creator-error { color:#8f241d; margin:0; }
+#creator-error:empty { display:none; }

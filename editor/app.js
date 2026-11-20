@@ -1,7 +1,7 @@
 import {livePaperdollEnabled, showCharacterOutline} from './appearance-preview.js?v=20261121-body1';
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
-import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
+import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
 import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-boot1';
 import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
@@ -194,7 +194,7 @@ function cleanTitle(str, fallback = '特性') {
 // Default Character Template
 function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancestryId = '种族:人类', classId = '职业:战士', subclassId = null) {
   return {
-    id: 'local_' + Date.now(),
+    id: 'local_' + crypto.randomUUID(),
     avatar_name: name || '新晋冒险者',
     level: 1,
     sheet: {
@@ -219,6 +219,7 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
       equipment: {
         head: null,
         chest: null,
+        waist: null,
         legs: null,
         feet: null,
         back: null,
@@ -563,6 +564,7 @@ function setupTabs() {
       const pageId = `page-${btn.dataset.page}`;
       const page = el(pageId);
       if (page) page.classList.add('active');
+      if (btn.dataset.page === 'skills') renderDomainCards();
     });
   });
 }
@@ -634,6 +636,7 @@ function switchLayer(layer, targetIndex) {
   el('btn-save-cloud').hidden = layer !== 'sheet';
   el('current-character').hidden = layer !== 'sheet';
   if (layer === 'workshop' && currentUser?.role !== 'gm') return;
+  isGmOverrideActive = false;
   currentLayer = layer;
   const vaultLayer = el('layer-vault');
   const sheetLayer = el('layer-sheet');
@@ -820,42 +823,54 @@ function setupCreationWizard() {
     });
   }
 
-  // 确立契约并创建角色
-  const submitBtn = el('btn-submit-create-char');
-  if (submitBtn) {
-    submitBtn.addEventListener('click', () => {
-      const nameInput = el('new-char-name');
-      const name = nameInput?.value?.trim() || '深水城探险者';
-      const gender = genderHidden?.value || '男';
-      const ancestryId = selAnc?.value || '种族:人类';
-      const classId = selCls?.value || '职业:战士';
-      const subclassId = selSub?.value || null;
+  const form = el('form-create-character');
+  const starting = createDefaultCharacter().sheet.attributes;
+  const allocation = Object.entries(traits).map(([key,label]) => {
+    const row = document.createElement('label');
+    const select = document.createElement('select');
+    select.className = 'creator-select';
+    for (const value of new Set(startingModifiers))
+      select.add(new Option(value > 0 ? '+'+value : String(value),String(value)));
+    select.value = String(starting[key]);
+    row.append(label,select);
+    el('creator-attribute-grid').append(row);
+    return [key,select];
+  });
+  const error = el('creator-error');
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const nameInput = el('new-char-name');
+    const name = nameInput.value.trim();
+    if (!name || name.length > 30) {
+      error.textContent = '请输入 1–30 字的角色名。';
+      nameInput.focus();
+      return;
+    }
+    const ancestry = db?.ancestries?.find(item => item.ID === selAnc.value);
+    const job = db?.classes?.find(item => item.ID === selCls.value);
+    const subclass = db?.subclasses?.find(item => item.ID === selSub.value && item.等级 === '基础' && item.主职 === job?.名称);
+    if (!ancestry || !job || !subclass) { error.textContent = '请选择有效的种族、职业和子职业。'; return; }
+    const attributes = Object.fromEntries(allocation.map(([key,input]) => [key,Number(input.value)]));
+    if (Object.values(attributes).sort((a,b) => a-b).join(',') !== startingModifiers.join(',')) {
+      error.textContent = '请各用一次 +2、−1，各用两次 +1、0。';
+      return;
+    }
+    const character = createDefaultCharacter(name,genderHidden.value,ancestry.ID,job.ID,subclass.ID);
+    const bodyShape = el('new-char-body-shape').value;
+    if (bodyShape) character.sheet.bodyShape = bodyShape;
+    character.sheet.attributes = attributes;
+    character.sheet.hp.cur = character.sheet.hp.max = Number(job.生命点) || 6;
 
-      // 确立新角色
-      const newChar = createDefaultCharacter(name, gender, ancestryId, classId, subclassId);
-      const bodyShape = el('new-char-body-shape').value;
-      if (bodyShape) newChar.sheet.bodyShape = bodyShape;
-      
-      // 根据所选职业同步初始生命与闪避
-      const clsObj = db?.classes?.find(c => c.ID === classId || c.名称 === classId);
-      if (clsObj) {
-        newChar.sheet.hp.cur = Number(clsObj.生命点 || 6);
-        newChar.sheet.hp.max = Number(clsObj.生命点 || 6);
-      }
-
-      characters.push(newChar);
-      activeCharIndex = characters.length - 1;
-      saveLocal();
-
-      // 清空表单
-      if (nameInput) nameInput.value = '';
-      el('vault-creator-section').hidden = true;
-      
-      // 平滑切入第二层跑团工作台！
-      switchLayer('sheet', activeCharIndex);
-      alert(`已创建角色「${name}」。`);
-    });
-  }
+    characters.push(character);
+    activeCharIndex = characters.length-1;
+    saveLocal();
+    nameInput.value = '';
+    el('new-char-body-shape').value = '';
+    for (const [key,input] of allocation) input.value = String(starting[key]);
+    error.textContent = '';
+    el('vault-creator-section').hidden = true;
+    switchLayer('sheet',activeCharIndex);
+  });
 
   el('btn-close-creator').addEventListener('click', () => {
     el('vault-creator-section').hidden = true;
@@ -908,7 +923,7 @@ function updateCreatorSubclassOptions() {
   if (!selCls || !selSub || !db) return;
   const clsObj = db.classes?.find(cls => cls.ID === selCls.value);
   const className = clsObj ? clsObj.名称 : '战士';
-  const subs = (db.subclasses || []).filter(s => s.主职 === className || s.ID.includes(className));
+  const subs = (db.subclasses || []).filter(s => s.主职 === className && s.等级 === '基础');
   selSub.innerHTML = subs.map(s => `<option value="${s.ID}">${s.名称} (${s.等级 || '基础'})</option>`).join('');
 }
 
@@ -922,7 +937,7 @@ function renderAll() {
 
   const current = {
     hp: Math.min(Math.max(0,s.hp.cur), stats.maxHp), stress: Math.min(Math.max(0,s.stress.cur), stats.maxStress),
-    hope: Math.min(s.hope.cur, stats.maxHope), armor: Math.min(Math.max(0,s.armorPips.cur), stats.armorMax)
+    hope: Math.min(Math.max(0,s.hope.cur), stats.maxHope), armor: Math.min(Math.max(0,s.armorPips.cur), stats.armorMax)
   };
   // 1. Top Header Info
   el('cur-char-name').textContent = c.avatar_name || '无名角色';
@@ -1253,7 +1268,7 @@ function renderFoundations(clsObj) {
 }
 
 function renderDomainCards() {
-  if (!curChar()) return;
+  if (!curChar() || currentLayer !== 'sheet' || !el('page-skills').classList.contains('active')) return;
   const character = curChar();
   const sheet = character.sheet;
   const equipped = uniqueCards(sheet.equippedDomainCards);
@@ -1273,6 +1288,10 @@ function renderDomainCards() {
   el('equipped-cards-container').replaceChildren(...equipped.map(card => domainCard(card, 'equipped', character)));
   el('domain-vault-cards-container').replaceChildren(...vault.map(card => domainCard(card, 'vault', character)));
   const filterBar = el('domain-filters-bar');
+  const sameCharacter = filterBar.dataset.character === character.id;
+  const previousDomain = sameCharacter ? filterBar.querySelector('select')?.value : '';
+  const previousQuery = sameCharacter ? filterBar.querySelector('input')?.value : '';
+  filterBar.dataset.character = character.id;
   const choices = [{ value: '', label: '全部领域' }, ...[...new Set([...domains, sheet.multiclass?.domain].filter(Boolean))]
     .map(name => ({ value: name, label: name }))];
   const filter = document.createElement('select');
@@ -1284,6 +1303,8 @@ function renderDomainCards() {
   query.className = 'dw-input';
   query.placeholder = '搜索领域卡';
   query.setAttribute('aria-label', '搜索领域卡');
+  if (choices.some(option => option.value === previousDomain)) filter.value = previousDomain;
+  query.value = previousQuery ?? '';
   filterBar.replaceChildren(filter, query);
   function renderCatalog() {
     const keyword = query.value.trim().toLowerCase();
