@@ -1,21 +1,40 @@
 <!doctype html>
 <html lang="zh-CN">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>冒险者中心｜匕首世界</title>
-<style>
-[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0;background:#241b19;color:#392620;font:16px/1.6 Georgia,"Microsoft YaHei",serif;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:clamp(12px,3vw,32px)}
-main{width:100%;max-width:min(94vw,560px);margin:auto;padding:clamp(20px,5vw,36px);background:#f9f0da;border:2px solid #9d7651;border-top:6px solid #774332;box-shadow:0 8px 32px rgba(0,0,0,0.5);border-radius:4px}h1{margin:8px 0 16px;font-size:clamp(1.45rem,4vw,1.95rem);color:#4a271e}a{color:#763726}form{display:grid;gap:16px}label{display:grid;gap:6px;font-weight:bold;font-size:0.95rem}input,button{font:inherit;padding:10px 12px;border:1px solid #a48365;border-radius:4px;min-height:44px}input:focus{outline:2px solid #9d7651;outline-offset:1px}button,.action{background:#743b2c;color:#fff3dc;padding:10px 16px;border:none;border-radius:4px;text-decoration:none;cursor:pointer;font-weight:bold;min-height:44px;display:inline-flex;align-items:center;justify-content:center;transition:background .2s}.action{display:inline-flex}button:hover,.action:hover{background:#8c4534}small{color:#705246}#status{min-height:1.6rem;margin-top:8px}button:disabled{opacity:.65;cursor:not-allowed}@media(max-width:480px){body{padding:8px}main{padding:18px 14px}}
-</style>
-<link rel="stylesheet" href="./pixel-theme.css">
-<main><a href="./index.html#top">← 官网首页</a><h1>冒险者中心</h1>
-<form id="login">
-<label>用户名或邮箱<input name="login" autocomplete="username" maxlength="100" required></label>
-<label>内测邀请码<input name="code" type="password" autocomplete="current-password" required></label>
-<button>进入匕首世界</button>
-</form>
-<div id="signed" hidden><p id="greeting"></p><a class="action" id="editor" href="./editor/#vault">录入角色卡</a> <button id="sign-out">退出</button></div>
-<p id="status" role="status"></p>
-</main>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>游戏入口｜匕首世界</title>
+  <link rel="stylesheet" href="./pixel-theme.css">
+</head>
+<body class="game-entry">
+  <header class="entry-header">
+    <a class="entry-brand" href="./index.html#top">匕首世界</a>
+    <a class="entry-back" href="./index.html#top">官网首页</a>
+  </header>
+  <main class="entry-stage">
+    <div class="entry-title">
+      <p>重启内测</p>
+      <h1>匕首世界</h1>
+    </div>
+    <section class="entry-panel" aria-labelledby="entry-title">
+      <h2 id="entry-title">进入游戏</h2>
+      <form id="login">
+        <label>玩家名称或邮箱
+          <input name="login" autocomplete="username" maxlength="100" required>
+        </label>
+        <label>内测激活码
+          <input name="code" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="entry-primary">激活并登录</button>
+      </form>
+      <div id="signed" hidden>
+        <p id="greeting"></p>
+        <a class="entry-primary" id="editor" href="./editor/#vault">进入角色库</a>
+        <button class="entry-back" type="button" id="sign-out">退出登录</button>
+      </div>
+      <p id="status" role="status"></p>
+    </section>
+  </main>
 <script type="module">
 import { login, readSession, loadAccount, signOut } from './session.js';
 const form = document.getElementById('login');
@@ -28,13 +47,13 @@ async function showAccount() {
   form.hidden = true;
   signed.hidden = false;
   document.getElementById('greeting').textContent = '欢迎，' + account.login;
-  document.getElementById('editor').textContent = '进入角色库';
+  document.getElementById('entry-title').textContent = '选择角色';
 }
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const data = new FormData(form);
   button.disabled = true;
-  status.textContent = '正在验证邀请码…';
+  status.textContent = '正在验证激活码…';
   try {
     await login(data.get('login'), data.get('code'));
     form.reset();
@@ -48,4 +67,6 @@ document.getElementById('sign-out').addEventListener('click', async () => {
   location.reload();
 });
 showAccount().catch(error => { status.textContent = error.message; });
-</script></html>
+</script>
+</body>
+</html>
