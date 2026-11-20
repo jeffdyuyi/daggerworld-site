@@ -82,7 +82,7 @@
       </div>
 
       <section class="vault-preview" id="vault-preview" aria-labelledby="vault-preview-name" hidden>
-        <canvas id="vault-preview-canvas" width="128" height="128" role="img" aria-label="所选角色立绘"></canvas>
+        <div id="vault-preview-canvas" class="appearance-frame" hidden></div>
         <div class="vault-preview-footer">
           <div><h2 id="vault-preview-name"></h2><p id="vault-preview-details"></p></div>
           <button type="button" class="dw-btn dw-btn-gold" id="vault-preview-open">打开角色卡</button>
@@ -113,9 +113,9 @@
             <div class="form-group">
               <label>性别</label>
               <div class="gender-pill-group" id="gender-selector">
-                <button type="button" class="gender-pill active" data-gender="男"><span class="gender-sym">♂</span> 男</button>
-                <button type="button" class="gender-pill" data-gender="女"><span class="gender-sym">♀</span> 女</button>
-                <button type="button" class="gender-pill" data-gender="无"><span class="gender-sym">⚪</span> 无</button>
+                <button type="button" class="gender-pill active" data-gender="男">男</button>
+                <button type="button" class="gender-pill" data-gender="女">女</button>
+                <button type="button" class="gender-pill" data-gender="无">无</button>
               </div>
               <input type="hidden" id="new-char-gender" value="男">
             </div>
@@ -127,15 +127,8 @@
               <div class="preview-card-mini" id="preview-ancestry-card"></div>
             </div>
 
-            <fieldset class="creator-appearance"><legend>外观</legend>
-              <canvas id="creator-paperdoll" width="128" height="128" role="img" aria-label="外观预览"></canvas>
-              <div class="paperdoll-options">
-                <label>肤色 <input type="color" id="paperdoll-skin"><button type="button" id="paperdoll-reset">默认</button></label>
-                <label>头发 <select id="paperdoll-hair"><option value="brown">棕发</option><option value="black">黑发</option><option value="gold">金发</option><option value="gray">灰发</option><option value="none">无发</option></select></label>
-                <label><input type="checkbox" id="paperdoll-beard"> 胡须</label>
-                <label id="paperdoll-horn-option">角 <select id="paperdoll-horns"><option value="point">尖角</option><option value="curl">弯角</option></select></label>
-                <label id="paperdoll-wing-option">翅膀 <select id="paperdoll-wings"><option value="petal">蝶翼</option><option value="vein">薄翼</option></select></label>
-              </div>
+            <fieldset class="creator-appearance"><legend>种族外观</legend>
+              <div id="creator-paperdoll" class="appearance-frame"></div>
             </fieldset>
 
             <!-- Class -->
@@ -175,7 +168,7 @@
     <div class="char-summary-strip">
       <div class="avatar-tag">
         <span class="name-badge" id="dash-name">无名角色</span>
-        <span class="gender-badge" id="dash-gender">♂ 男</span>
+        <span class="gender-badge" id="dash-gender">男</span>
         <span class="ancestry-badge" id="dash-ancestry">—</span>
         <span class="class-badge" id="dash-class">—</span>
         <span class="level-badge" id="dash-level">Lv 1</span>
@@ -367,24 +360,13 @@
             </div>
 
             <div class="paperdoll-stage">
-              <canvas id="paperdoll" width="128" height="128" role="img" aria-label="角色像素立绘">角色立绘</canvas>
-              <details id="gm-appearance" hidden><summary>编辑外观</summary>
-              <div class="paperdoll-options">
-                <label>肤色 <input type="color" id="gm-paperdoll-skin"><button type="button" id="gm-paperdoll-reset">默认</button></label>
-                <label>头发 <select id="gm-paperdoll-hair"><option value="brown">棕发</option><option value="black">黑发</option><option value="gold">金发</option><option value="gray">灰发</option><option value="none">无发</option></select></label>
-                <label><input type="checkbox" id="gm-paperdoll-beard"> 胡须</label>
-                <label id="gm-paperdoll-horn-option">角 <select id="gm-paperdoll-horns"><option value="point">尖角</option><option value="curl">弯角</option></select></label>
-                <label id="gm-paperdoll-wing-option">翅膀 <select id="gm-paperdoll-wings"><option value="petal">蝶翼</option><option value="vein">薄翼</option></select></label>
-              </div>
-              </details>
-              <button type="button" class="dw-btn dw-btn-outline" id="paperdoll-export" disabled>下载角色头像</button>
-              <a class="dw-btn dw-btn-outline" id="fantasy-paperdoll-link" href="../fantasy-paperdoll/">新版外观</a>
-              <small id="paperdoll-status" role="status" hidden></small>
+              <div id="paperdoll" class="appearance-frame appearance-frame-sheet"></div>
+              <a class="dw-btn dw-btn-outline" id="fantasy-paperdoll-link" hidden>编辑外观</a>
             </div>
 
             <!-- Right Column: Rings, Trinkets, Suit, Costume -->
             <div class="gear-slot-col right-col">
-              <div class="gear-slot suit-slot-highlight" data-slot="suit" title="套装护甲：穿戴后将顶掉散件护甲计算">
+              <div class="gear-slot suit-slot-highlight" data-slot="suit" title="套装占用头部、躯干、腿部和足部">
                 <div class="slot-icon-box" id="slot-icon-suit"></div>
                 <div class="slot-info">
                   <span class="slot-name">套装护甲</span>
@@ -679,9 +661,9 @@
             <div class="f-select-group">
               <label>性别</label>
               <div class="fn-gender-group" id="fn-gender-selector">
-                <button type="button" class="gender-pill-mini active" data-gender="男" disabled>♂ 男</button>
-                <button type="button" class="gender-pill-mini" data-gender="女" disabled>♀ 女</button>
-                <button type="button" class="gender-pill-mini" data-gender="无" disabled>⚪ 无</button>
+                <button type="button" class="gender-pill-mini active" data-gender="男" disabled>男</button>
+                <button type="button" class="gender-pill-mini" data-gender="女" disabled>女</button>
+                <button type="button" class="gender-pill-mini" data-gender="无" disabled>无</button>
               </div>
             </div>
             <div class="f-select-group">
@@ -1226,7 +1208,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-boot1').catch(error => {
+    import('./app.js?v=20261121-outline1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
