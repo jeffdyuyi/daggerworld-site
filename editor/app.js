@@ -109,7 +109,6 @@ const el = id => document.getElementById(id);
 const slotIconMap = {
   head: './assets/icons/slot-head.svg',
   chest: './assets/icons/slot-armor.svg',
-  wrists: './assets/icons/slot-wrists.svg',
   legs: './assets/icons/slot-legs.svg',
   feet: './assets/icons/slot-feet.svg',
   back: './assets/icons/slot-back.svg',
@@ -220,7 +219,6 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
       equipment: {
         head: null,
         chest: null,
-        wrists: null,
         legs: null,
         feet: null,
         back: null,
@@ -304,6 +302,14 @@ function normalizeCharacter(char) {
   s.equipment = s.equipment && typeof s.equipment === 'object' ? s.equipment : { ...defaultSheet.equipment };
   s.bags = s.bags && typeof s.bags === 'object' ? s.bags : { ...defaultSheet.bags };
   s.inventoryItems = Array.isArray(s.inventoryItems) ? s.inventoryItems : [...defaultSheet.inventoryItems];
+  const wrist = s.equipment.wrists;
+  if (wrist && !s.inventoryItems.some(item => item?.ownedGearId && item.ownedGearId === wrist.ownedGearId)) {
+    s.inventoryItems.push({
+      ...wrist, name:wrist.名称 ?? wrist.name ?? '旧版装备',
+      desc:wrist.描述 ?? wrist.desc ?? '', qty:1, slot:'wrists'
+    });
+  }
+  delete s.equipment.wrists;
   s.currency = s.currency && typeof s.currency === 'object' ? s.currency : { ...defaultSheet.currency };
   s.equippedDomainCards = Array.isArray(s.equippedDomainCards) ? s.equippedDomainCards : [];
   s.vaultDomainCards = Array.isArray(s.vaultDomainCards) ? s.vaultDomainCards : [];
@@ -1014,7 +1020,7 @@ function renderEquipmentSlots(stats) {
   const eq = c.sheet.equipment || {};
 
 
-  const slotKeys = ['head', 'chest', 'wrists', 'waist', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'costume'];
+  const slotKeys = ['head', 'chest', 'waist', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'costume'];
   for (const k of slotKeys) {
     const itemEl = el(`slot-name-${k}`);
     if (itemEl) {
@@ -2013,7 +2019,7 @@ function setupEventListeners() {
 
   // Live Previews for Forms
   const appearanceSelect = el('ws-item-appearance');
-  for (const [value, label] of Object.entries(gearSlots)) el('ws-item-slot').add(new Option(label, value));
+  for (const [value, label] of Object.entries(gearSlots).filter(([key]) => key !== 'wrists')) el('ws-item-slot').add(new Option(label, value));
   for (const [value, label] of Object.entries(qualities)) el('ws-item-quality').add(new Option(label, value));
   for (const [key, title] of Object.entries(gearEffects)) {
     const label = document.createElement('label');
@@ -2256,7 +2262,7 @@ function sourceItem(id) {
 }
 function grantSourceItem(record) {
   const relics = {神行遗宝:'agility',强力遗宝:'strength',控制遗宝:'finesse',调和遗宝:'instinct',魅力遗宝:'presence',启迪遗宝:'knowledge'};
-  const wearable = {奥术斗篷:'back',壁虎手套:'wrists',湖行者长靴:'feet',寂静戒指:'ring',抵抗戒指:'ring',
+  const wearable = {奥术斗篷:'back',湖行者长靴:'feet',寂静戒指:'ring',抵抗戒指:'ring',
     镇静吊坠:'trinket',空刃护符:'trinket',匿踪护身符:'trinket',闪烁飞虫吊坠:'trinket'};
   const target = characters[workshopState.targetCharIndex];
   if (record.描述?.includes('不能同时持有其他遗宝') && target?.sheet.inventoryItems.some(i => sourceItem(i.resourceId)?.描述?.includes('不能同时持有其他遗宝'))) {
@@ -2314,7 +2320,7 @@ function unequipCurrentSlot() {
 
 function getSlotTitle(k) {
   const titles = {
-    head: '头部', chest: '身躯', wrists: '腕部', legs: '腿部', feet: '足部', back: '背部',
+    head: '头部', chest: '身躯', legs: '腿部', feet: '足部', back: '背部',
     ring1: '戒指1', ring2: '戒指2', trinket1: '饰品1', trinket2: '饰品2',
     suit: '套装护甲', costume: '外观时装',
     weapon_main: '主手武器', weapon_off: '副手装备', weapon_spare: '备用武器',

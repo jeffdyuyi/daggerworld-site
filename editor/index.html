@@ -318,12 +318,9 @@
                   <span class="slot-item" id="slot-name-chest">空置</span>
                 </div>
               </div>
-              <div class="gear-slot" data-slot="wrists">
-                <div class="slot-icon-box" id="slot-icon-wrists"></div>
-                <div class="slot-info">
-                  <span class="slot-name">腕部</span>
-                  <span class="slot-item" id="slot-name-wrists">空置</span>
-                </div>
+              <div class="gear-slot" data-slot="waist">
+                <div class="slot-icon-box" id="slot-icon-waist"></div>
+                <div class="slot-info"><strong>腰部</strong><span id="slot-name-waist">空置</span></div>
               </div>
               <div class="gear-slot" data-slot="legs">
                 <div class="slot-icon-box" id="slot-icon-legs"></div>
@@ -358,10 +355,6 @@
                   <span class="slot-name">背部</span>
                   <span class="slot-item" id="slot-name-back">空置</span>
                 </div>
-              </div>
-              <div class="gear-slot" data-slot="waist">
-                <div class="slot-icon-box" id="slot-icon-waist"></div>
-                <div class="slot-info"><strong>腰部</strong><span id="slot-name-waist">空置</span></div>
               </div>
               <div class="gear-slot" data-slot="ring1">
                 <div class="slot-icon-box" id="slot-icon-ring1"></div>
@@ -1186,7 +1179,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-gear1').catch(error => {
+    import('./app.js?v=20261121-gear2').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
