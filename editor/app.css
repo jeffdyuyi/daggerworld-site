@@ -3129,3 +3129,30 @@ body.dw-theme {
 #creator-domain-grid article:has([aria-pressed="true"]) { border-color:#855122; background:#f8dfad; }
 #creator-domain-grid summary { cursor:pointer; overflow-wrap:anywhere; }
 #creator-domain-grid article button { justify-self:start; }
+
+.attribute-toolbar { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; }
+.attribute-toolbar button { margin-inline-start:auto; }
+#creator-attribute-bank { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); }
+#creator-attribute-bank button { width:100%; min-width:0; }
+#creator-attribute-bank button:disabled { opacity:.35; }
+#creator-attribute-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.creator-attribute-slot { position:relative; min-width:0; }
+.creator-attribute-slot > button:first-child { display:grid; width:100%; justify-items:center; gap:.2rem; padding:.5rem .25rem; }
+.creator-attribute-slot strong { font-size:.95rem; }
+.creator-attribute-slot .attribute-return { display:block; margin:.2rem auto 0; font:inherit; color:inherit; border:none; background:transparent; cursor:pointer; text-decoration:underline; }
+#creator-attribute-grid.placing-token .creator-attribute-slot > button:first-child,
+#creator-attribute-grid.dragging .creator-attribute-slot > button:first-child { border-style:dashed; border-color:#9c6737; }
+.creator-attribute-slot.drop-target > button:first-child,
+.creator-attribute-slot > button[aria-pressed="true"] { background:#f6cb85; outline:2px solid #855122; outline-offset:-2px; }
+#creator-attribute-status { min-height:1.4rem; }
+.adventure-toolbar,.adventure-board { width:min(100%,72rem); margin-inline:auto; }
+.adventure-board section > h3 { margin:0 0 .85rem; }
+#adventure-dialog { box-sizing:border-box; width:min(92vw,42rem); max-height:88vh; margin:auto; padding:clamp(1rem,3vw,1.75rem); border:2px solid var(--pixel-edge); background:var(--pixel-surface); color:var(--pixel-ink); }
+#adventure-dialog::backdrop { background:#33231980; }
+#adventure-form { display:grid; gap:.65rem; width:100%; }
+#adventure-form label { margin:0; }
+#adventure-form :is(input,select,textarea) { width:100%; box-sizing:border-box; min-width:0; }
+#adventure-form textarea { resize:vertical; }
+#adventure-edit-status:empty { display:none; }
+
+.adventure-form-actions { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:flex-end; }

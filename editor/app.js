@@ -1,4 +1,4 @@
-import {setupAdventureBoard} from './adventure-board.js?v=20261121-board1';
+import {setupAdventureBoard} from './adventure-board.js?v=20261121-layout2';
 import {livePaperdollEnabled, showCharacterOutline} from './appearance-preview.js?v=20261121-body1';
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
@@ -814,7 +814,9 @@ function setupStartingAllocation() {
   const tokens = [...startingModifiers].reverse();
   const assignments = new Map();
   let selected = null;
-  const button = (label, action) => {
+  const signed = value => value > 0 ? '+'+value : String(value).replace('-','−');
+  const sourceOf = token => [...assignments].find(([,id]) => id === token)?.[0];
+  const button = (label,action) => {
     const control = document.createElement('button');
     control.type = 'button';
     control.className = 'dw-btn dw-btn-outline';
@@ -822,53 +824,114 @@ function setupStartingAllocation() {
     control.onclick = action;
     return control;
   };
-  const signed = value => value > 0 ? '+'+value : String(value);
-  function place(key, token) {
+  function place(key,token) {
     if (!Number.isInteger(token) || token < 0 || token >= tokens.length) return;
-    const source = [...assignments].find(([,id]) => id === token)?.[0];
+    const source = sourceOf(token);
     const old = assignments.get(key);
-    if (source) {
+    if (source && source !== key) {
       if (old === undefined) assignments.delete(source);
       else assignments.set(source,old);
     }
     assignments.set(key,token);
     selected = null;
     render();
+    grid.querySelector('[data-trait-key="'+key+'"]')?.focus();
   }
-  function draggable(control, token) {
+  function toggle(token) {
+    selected = selected === token ? null : token;
+    render();
+    (grid.querySelector('[data-token="'+token+'"]') ?? bank.querySelector('[data-token="'+token+'"]'))?.focus();
+  }
+  function draggable(control,token) {
+    control.dataset.token = token;
     control.draggable = true;
-    control.ondragstart = event => event.dataTransfer.setData('application/x-attribute-token',String(token));
+    control.ondragstart = event => {
+      event.dataTransfer.setData('application/x-attribute-token',String(token));
+      event.dataTransfer.effectAllowed = 'move';
+      grid.classList.add('dragging');
+    };
+    control.ondragend = () => grid.classList.remove('dragging');
   }
   function render() {
-    bank.replaceChildren(...tokens.flatMap((value,token) => {
-      if ([...assignments.values()].includes(token)) return [];
-      const control = button(signed(value),() => { selected = selected === token ? null : token; render(); bank.querySelector('[aria-pressed="true"]')?.focus(); });
-      control.setAttribute('aria-pressed',String(selected === token));
-      draggable(control,token);
-      return [control];
+    bank.replaceChildren(...tokens.map((value,token) => {
+      const source = sourceOf(token);
+      const control = button(signed(value),() => toggle(token));
+      control.disabled = Boolean(source);
+      control.setAttribute('aria-label',signed(value)+(source ? ' 已分给'+traits[source] : ' 待分配'));
+      control.setAttribute('aria-pressed',String(selected === token && !source));
+      if (!source) draggable(control,token);
+      return control;
     }));
+    grid.classList.toggle('placing-token',selected !== null);
     grid.replaceChildren(...Object.entries(traits).map(([key,label]) => {
       const token = assignments.get(key);
-      const control = button(label+'  '+(token === undefined ? '—' : signed(tokens[token])),() => {
-        if (selected !== null) place(key,selected);
-        else if (token !== undefined) { assignments.delete(key); render(); }
+      const slot = document.createElement('div');
+      slot.className = 'creator-attribute-slot';
+      const control = button(label,() => {
+        if (selected !== null && selected !== token) place(key,selected);
+        else if (token !== undefined) toggle(token);
+        else el('creator-attribute-status').textContent = '请先从上方选一个点数。';
       });
-      if (token !== undefined) draggable(control,token);
-      control.ondragover = event => event.preventDefault();
-      control.ondrop = event => {
+      control.dataset.traitKey = key;
+      control.setAttribute('aria-pressed',String(token !== undefined && token === selected));
+      const value = document.createElement('strong');
+      value.textContent = token === undefined ? '待分配' : signed(tokens[token]);
+      control.append(value);
+      slot.append(control);
+      if (token !== undefined) {
+        draggable(control,token);
+        const remove = button('退回',() => {
+          assignments.delete(key);
+          selected = token;
+          render();
+          bank.querySelector('[data-token="'+token+'"]')?.focus();
+        });
+        remove.className = 'attribute-return';
+        remove.setAttribute('aria-label','退回'+label+'点数');
+        slot.append(remove);
+      }
+      slot.ondragover = event => {
+        if (!event.dataTransfer.types.includes('application/x-attribute-token')) return;
         event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        slot.classList.add('drop-target');
+      };
+      slot.ondragleave = event => { if (!slot.contains(event.relatedTarget)) slot.classList.remove('drop-target'); };
+      slot.ondrop = event => {
+        event.preventDefault();
+        slot.classList.remove('drop-target');
+        grid.classList.remove('dragging');
         const data = event.dataTransfer.getData('application/x-attribute-token');
         if (data !== '') place(key,Number(data));
       };
-      return control;
+      return slot;
     }));
     el('creator-attribute-count').textContent = assignments.size+' / 6';
+    el('creator-attribute-status').textContent = selected !== null
+      ? '已选 '+signed(tokens[selected])+'，点目标属性放置或交换。'
+      : assignments.size === 6 ? '六项属性已分配。可选中已有点数再交换。' : '选一个点数，再点属性。也可以直接拖放。';
+    el('creator-attribute-reset').disabled = !assignments.size;
   }
-  render();
-  return {
-    values: () => Object.fromEntries([...assignments].map(([key,id]) => [key,tokens[id]])),
-    reset() { assignments.clear(); selected = null; render(); },
+  bank.ondragover = event => {
+    if (event.dataTransfer.types.includes('application/x-attribute-token')) event.preventDefault();
   };
+  bank.ondrop = event => {
+    event.preventDefault();
+    grid.classList.remove('dragging');
+    const data = event.dataTransfer.getData('application/x-attribute-token');
+    if (data === '') return;
+    const token = Number(data);
+    const source = sourceOf(token);
+    if (!source) return;
+    assignments.delete(source);
+    selected = token;
+    render();
+    bank.querySelector('[data-token="'+token+'"]')?.focus();
+  };
+  function reset() { assignments.clear(); selected = null; render(); }
+  el('creator-attribute-reset').onclick = reset;
+  render();
+  return { values: () => Object.fromEntries([...assignments].map(([key,id]) => [key,tokens[id]])), reset };
 }
 
 function setupCreationWizard() {

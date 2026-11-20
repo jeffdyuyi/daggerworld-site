@@ -4,7 +4,7 @@ export function setupAdventureBoard() {
   const byId = id => document.getElementById(id);
   const form = byId('adventure-form'), dialog = byId('adventure-dialog');
   const status = byId('adventure-status');
-  const categories = {journal:'冒险笔记',npc:'NPC 记录',clue:'线索墙'};
+  const categories = ['journal','npc','clue'];
   let selected = null;
   let loading = false;
   function edit(card) {
@@ -21,11 +21,9 @@ export function setupAdventureBoard() {
     loading = true;
     try {
       const rows = await loadAdventureCards();
-      for (const [kind,label] of Object.entries(categories)) {
+      for (const kind of categories) {
         const column = byId('adventure-'+kind);
-        const heading = document.createElement('h3');
-        heading.textContent = label;
-        column.replaceChildren(heading);
+        column.replaceChildren();
         for (const card of rows.filter(row => row.category === kind)) {
           const entry = document.createElement('article');
           const title = document.createElement('h4');

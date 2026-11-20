@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-canvas1">
+  <link rel="stylesheet" href="./app.css?v=20261121-layout2">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -159,8 +159,9 @@
             </fieldset>
             <fieldset class="creator-attributes">
               <legend>初始属性</legend>
-              <p>点击点数后选择属性，也可直接拖放。<span id="creator-attribute-count" aria-live="polite"></span></p>
+              <div class="attribute-toolbar"><span>待分配</span><b id="creator-attribute-count"></b><button type="button" class="dw-btn dw-btn-outline" id="creator-attribute-reset">重置</button></div>
               <div id="creator-attribute-bank" aria-label="待分配点数"></div>
+              <p id="creator-attribute-status" aria-live="polite"></p>
               <div id="creator-attribute-grid"></div>
             </fieldset>
             <p id="creator-error" role="alert"></p>
@@ -773,24 +774,30 @@
     <section class="tab-page" id="page-adventure">
       <div class="adventure-toolbar">
         <h2>冒险记录</h2>
-        <a class="dw-btn dw-btn-gold" href="../adventure-canvas/">打开线索画布</a>
         <button type="button" class="dw-btn dw-btn-gold" id="adventure-new">新建记录</button>
         <button type="button" class="dw-btn dw-btn-outline" id="adventure-refresh">刷新</button>
         <p id="adventure-status" role="status"></p>
       </div>
       <div class="adventure-board">
-        <section id="adventure-journal"></section><section id="adventure-npc"></section><section id="adventure-clue"></section>
+        <section><h3>冒险笔记</h3><div id="adventure-journal"></div></section>
+        <section><h3>NPC 记录</h3><div id="adventure-npc"></div></section>
+        <section>
+          <h3><a class="dw-btn dw-btn-gold" href="../adventure-canvas/">线索墙 <span aria-hidden="true">›</span></a></h3>
+          <div id="adventure-clue"></div>
+        </section>
       </div>
       <dialog id="adventure-dialog">
         <form id="adventure-form">
           <h3>编辑记录</h3>
-          <label>分类 <select name="category"><option value="journal">冒险笔记</option><option value="npc">NPC 记录</option><option value="clue">线索墙</option></select></label>
-          <label>标题 <input name="title" required maxlength="120"></label>
-          <label>内容 <textarea name="body" rows="12" maxlength="20000"></textarea></label>
+          <label>分类 <select name="category" class="dw-select"><option value="journal">冒险笔记</option><option value="npc">NPC 记录</option><option value="clue">线索墙</option></select></label>
+          <label>标题 <input name="title" class="dw-input" required maxlength="120"></label>
+          <label>内容 <textarea name="body" class="dw-textarea" rows="12" maxlength="20000"></textarea></label>
           <p id="adventure-edit-status" role="status"></p>
+          <div class="adventure-form-actions">
           <button type="submit" class="dw-btn dw-btn-gold" id="adventure-save">保存</button>
           <button type="button" class="dw-btn" id="adventure-cancel">取消</button>
           <button type="button" class="dw-btn" id="adventure-remove">删除</button>
+          </div>
         </form>
       </dialog>
     </section>
@@ -1207,7 +1214,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-canvas1').catch(error => {
+    import('./app.js?v=20261121-layout2').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
