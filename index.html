@@ -160,7 +160,7 @@ nav { width: 100%; }
   flex-direction: column;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   overflow: hidden;
-  font-family: Georgia, "Microsoft YaHei", serif;
+  font-family: var(--pixel-font);
   animation: modalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes modalScale {
@@ -575,7 +575,13 @@ nav { width: 100%; }
 const routes=[...document.querySelectorAll('.route')], nav=[...document.querySelectorAll('[data-route]')], filters=[...document.querySelectorAll('[data-category]')];
 const originalCount=news.length;
 if(typeof daggerworldArchive!=='undefined')news.push(...daggerworldArchive);
-const archiveOrder=[0,1,2,...news.slice(originalCount).map((_,i)=>i+originalCount),...news.slice(3,originalCount).map((_,i)=>i+3)];
+const newArticles=news.slice(originalCount).map((row,i)=>({row,index:i+originalCount}));
+const archiveOrder=[
+  0,1,2,
+  ...newArticles.filter(({row})=>row.length>5).map(({index})=>index),
+  ...newArticles.filter(({row})=>row.length<=5).map(({index})=>index),
+  ...news.slice(3,originalCount).map((_,i)=>i+3)
+];
 const entries=document.getElementById('news-entries'), prev=document.getElementById('news-prev'), next=document.getElementById('news-next'), status=document.getElementById('news-page');
 const perPage=7;
 let category='全部', page=0, lastArticle=null;
@@ -621,7 +627,12 @@ function render(){
  const bylines={媒体:'媒体剪报',社区:'社区编辑部',治理:'安全与账号支持组',维护:'服务器值班组'};
  const byline=articleEra(date)==='重启测试'?'三局两胜 · 达罗出版社数字部':(bylines[news[index][0]]||'达罗出版社数字部');
  document.getElementById('news-byline').textContent=byline+' · '+date;
- document.getElementById('news-copy').replaceChildren(...copy.map(value=>{const p=document.createElement('p');p.textContent=value;return p;}));
+ document.getElementById('news-copy').replaceChildren(...copy.map(value=>{
+  const heading=value.startsWith('## ');
+  const block=document.createElement(heading?'h3':'p');
+  block.textContent=heading?value.slice(3):value;
+  return block;
+ }));
  if(lastArticle!==index)page=Math.floor(matching().findIndex(item=>item.index===index)/perPage);
  lastArticle=index;
  updateList(index);

@@ -8,7 +8,7 @@
 
 :root {
   --pixel-font: "Fusion Pixel", "Microsoft YaHei", sans-serif;
-  --pixel-text: "Microsoft YaHei", system-ui, sans-serif;
+
   --pixel-ink: #382b22;
   --pixel-paper: #f5e7c9;
   --pixel-surface: #fff3d5;
@@ -19,7 +19,7 @@
   --pixel-timber: #efd5a5;
 }
 
-body { font-family: var(--pixel-text); }
+html body { font-family: var(--pixel-font); font-synthesis: none; }
 h1, h2, h3, h4, nav a, .tab-btn, .dw-btn, .button, .main-title, .level-badge {
   font-family: var(--pixel-font);
   font-weight: 400;
@@ -187,7 +187,9 @@ body.game-entry {
 
 .dw-theme {
   --font-serif: var(--pixel-font);
-  --font-sans: var(--pixel-text);
+  --font-sans: var(--pixel-font);
+  --font-mono: var(--pixel-font);
+  --font-header: var(--pixel-font);
   color-scheme: light;
   --bo3-primary: #9b3f32;
   --bo3-primary-hover: #ad503a;
