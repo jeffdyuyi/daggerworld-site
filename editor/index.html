@@ -336,6 +336,10 @@
                 </div>
               </div>
 
+              <div class="gear-slot" data-slot="waist">
+                <div class="slot-icon-box" id="slot-icon-waist"></div>
+                <div class="slot-info"><strong>腰部</strong><span id="slot-name-waist">空置</span></div>
+              </div>
               <div class="gear-slot" data-slot="legs">
                 <div class="slot-icon-box" id="slot-icon-legs"></div>
                 <div class="slot-info">
@@ -961,12 +965,12 @@
               </select>
             </div>
             <div class="f-select-group">
-              <label>阶位品质</label>
+              <label>位阶</label>
               <select id="ws-item-tier" class="dw-select">
-                <option value="1">T1 (基础阶位 1级)</option>
-                <option value="2">T2 (进阶阶位 2-4级)</option>
-                <option value="3">T3 (大师阶位 5-7级)</option>
-                <option value="4">T4 (传奇阶位 8-10级)</option>
+                <option value="1">T1 · 1级</option>
+                <option value="2">T2 · 2–4级</option>
+                <option value="3">T3 · 5–7级</option>
+                <option value="4">T4 · 8–10级</option>
               </select>
             </div>
             <div class="f-select-group ws-col-span-2">
@@ -976,11 +980,26 @@
             <div class="f-select-group">
               <label>子类别 / 标签</label>
               <input type="text" id="ws-item-subcat" class="dw-input" placeholder="例如：药剂 / 奇物 / 单手刃 / 卷轴">
+              <label for="ws-item-slot">部位</label>
+              <select id="ws-item-slot" class="dw-select"><option value="">无</option></select>
+              <label for="ws-item-quality">品质</label>
+              <select id="ws-item-quality" class="dw-select"></select>
               <label for="ws-item-appearance">外观</label>
               <select id="ws-item-appearance" class="dw-select"><option value="">自动匹配</option></select>
             </div>
             <div class="f-select-group">
               <label>简略属性预览</label>
+              <details id="ws-item-effects">
+                <summary>数值修正</summary>
+                <div class="gear-effect-fields" id="ws-gear-fields"></div>
+              </details>
+              <div class="gear-effect-fields" id="ws-weapon-fields" hidden>
+                <label>攻击属性<select id="ws-weapon-trait" class="dw-select"></select></label>
+                <label>伤害骰<input id="ws-weapon-damage" class="dw-input" placeholder="d8+2" pattern="(?:[0-9]*d[0-9]+)(?:[+-](?:[0-9]*d[0-9]+|[0-9]+))*"></label>
+                <label>范围<select id="ws-weapon-range" class="dw-select"><option>近战</option><option>邻近</option><option>近距离</option><option>远距离</option><option>极远距离</option></select></label>
+                <label>伤害类型<select id="ws-weapon-kind" class="dw-select"><option>物理</option><option>魔法</option></select></label>
+                <label>负荷<select id="ws-weapon-burden" class="dw-select"><option>单手</option><option>双手</option></select></label>
+              </div>
               <input type="text" id="ws-item-stats" class="dw-input" placeholder="例如：近战 · 物理 · 1d8+力量 或 恢复 1d6 生命">
             </div>
             <div class="f-select-group ws-col-span-2">

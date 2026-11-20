@@ -393,3 +393,32 @@ body.game-entry {
   .dw-theme .wallet-section .currency-card { padding: .35rem; gap: .25rem; }
   .dw-theme .wallet-section .coin-input { width: 100%; min-width: 0; }
 }
+.gear-effect-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: .65rem;
+  margin-block: .65rem;
+}
+.gear-effect-fields label { display: grid; gap: .25rem; }
+
+.dw-theme [data-quality="white"] { --gear-edge: #a89677; --gear-fill: #fff8e7; }
+.dw-theme [data-quality="green"] { --gear-edge: #648051; --gear-fill: #e8f0d4; }
+.dw-theme [data-quality="blue"] { --gear-edge: #4e7c9e; --gear-fill: #dfedf5; }
+.dw-theme [data-quality="purple"] { --gear-edge: #8b5a9e; --gear-fill: #efe2f4; }
+.dw-theme [data-quality="orange"] { --gear-edge: #b96a32; --gear-fill: #ffe8c7; }
+.dw-theme [data-quality="red"] { --gear-edge: #aa4e4a; --gear-fill: #f8ddda; }
+.dw-theme [data-quality] {
+  border-color: var(--gear-edge);
+  background: linear-gradient(145deg, #fff8e7, var(--gear-fill));
+  box-shadow: inset 0 0 0 1px var(--gear-edge);
+}
+.dw-theme [data-suit-tier="1"] { --suit-metal: #4f5159; --suit-glow: #50576655; }
+.dw-theme [data-suit-tier="2"] { --suit-metal: #a56843; --suit-glow: #c97f4c77; }
+.dw-theme [data-suit-tier="3"] { --suit-metal: #778c9e; --suit-glow: #95aecf88; }
+.dw-theme [data-suit-tier="4"] { --suit-metal: #b28131; --suit-glow: #e7b450aa; }
+.dw-theme [data-suit-tier] {
+  outline: 1px solid var(--suit-metal);
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px var(--gear-edge), inset 0 0 12px var(--suit-glow), 0 0 8px var(--suit-glow);
+}
+.dw-theme [data-suit-tier]:focus-visible { outline: 2px solid var(--pixel-focus); }

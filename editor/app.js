@@ -1,3 +1,4 @@
+import { gearSlots, gearEffects, qualities, readGear, slotMatches, totalGearEffects, gearFormula } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels } from './sheet-rules.js';
 import { loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
 import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
@@ -490,16 +491,17 @@ function calculateStats(char) {
   const s = char.sheet || {};
   const eq = s.equipment || {};
   const advs = s.advancements || [];
+  const gear = totalGearEffects(s, bagCapacity(s.bags ?? {}).totalSlots);
 
   // Base Max HP and Stress from Class & Advancements
   const clsObj = db?.classes?.find(x => x.ID === s.classId || x.名称 === s.classId);
   const baseHp = Number(clsObj?.生命点 || 6);
   const upgrades = Object.entries(s.levelAdvancements ?? {}).filter(([level]) => Number(level) <= lvl).flatMap(([, choices]) => choices);
   const hpBonus = advs.filter(a => a.startsWith('hp')).length + upgrades.filter(a => a === 'hp').length;
-  const maxHp = baseHp + hpBonus;
+  const maxHp = Math.max(1, baseHp + hpBonus + (gear.hp ?? 0));
 
   const stressBonus = advs.filter(a => a.startsWith('stress')).length + upgrades.filter(a => a === 'stress').length;
-  const maxStress = 6 + stressBonus;
+  const maxStress = Math.max(1, 6 + stressBonus + (gear.stress ?? 0));
 
   const hopeBonus = advs.filter(a => a === 'hope').length;
   const maxHope = 6 + hopeBonus;
@@ -507,7 +509,7 @@ function calculateStats(char) {
   // Base Proficiency
   const baseProf = tierForLevel(lvl);
   const profBonus = advs.filter(a => a === 'prof').length + upgrades.filter(a => a === 'prof').length;
-  const earnedProficiency = baseProf + profBonus;
+  const earnedProficiency = baseProf + profBonus + (gear.proficiency ?? 0);
   const totalProf = Math.max(0, earnedProficiency + (Number(s.proficiencyAdjustment) || 0));
 
   // Armor & Thresholds Calculation
@@ -518,12 +520,12 @@ function calculateStats(char) {
   let suitItem = null;
 
   // Check if a full suit is equipped (e.g. 皮甲套装, 锁甲套装, 板甲套装)
-  if (eq.suit && eq.suit.名称 && eq.suit.名称 !== '无套装 (无甲)') {
+  if (eq.suit && (!eq.suit.ownedGearId || s.inventoryItems?.some(item => item?.ownedGearId === eq.suit.ownedGearId)) && eq.suit.名称 && eq.suit.名称 !== '无套装 (无甲)') {
     isSuitActive = true;
     suitItem = eq.suit;
-    baseArmor = Number(suitItem.护甲值 || suitItem.基础护甲 || 1);
-    majorBonus = Number(suitItem.重度阈值 || 1);
-    severeBonus = Number(suitItem.严重阈值 || 2);
+    baseArmor = Number(suitItem.护甲值 ?? suitItem.基础护甲 ?? (suitItem.ownedGearId ? 0 : 1));
+    majorBonus = Number(suitItem.重度阈值 ?? (suitItem.ownedGearId ? 0 : 1));
+    severeBonus = Number(suitItem.严重阈值 ?? (suitItem.ownedGearId ? 0 : 2));
   } else {
     // Modular pieces calculation
     const pieces = [eq.head, eq.chest, eq.wrists, eq.legs, eq.feet, eq.back, eq.ring1, eq.ring2, eq.trinket1, eq.trinket2];
@@ -542,8 +544,9 @@ function calculateStats(char) {
   }
 
   // Unarmored baseline thresholds: Major = Level, Severe = Level * 2
-  const majorThreshold = lvl + majorBonus;
-  const severeThreshold = (lvl * 2) + severeBonus;
+  const majorThreshold = Math.max(1, lvl + majorBonus + (gear.major ?? 0));
+  const severeThreshold = Math.max(majorThreshold, lvl * 2 + severeBonus + (gear.severe ?? 0));
+  const lethalThreshold = Math.max(severeThreshold, severeThreshold * 2 + (gear.lethal ?? 0));
 
   return {
     maxHp,
@@ -551,10 +554,12 @@ function calculateStats(char) {
     maxHope,
     totalProf,
     earnedProficiency,
-    armorMax: Math.max(0, baseArmor + (Number(s.armorLimitAdjustment) || 0)),
+    armorMax: Math.max(0, baseArmor + (gear.armor ?? 0) + (Number(s.armorLimitAdjustment) || 0)),
     baseArmor,
     majorThreshold,
     severeThreshold,
+    lethalThreshold,
+    gear,
     isSuitActive,
     suitItem,
     majorBonus,
@@ -876,7 +881,7 @@ function renderAll() {
 
   el('threshold-a').textContent = stats.majorThreshold;
   el('threshold-b').textContent = stats.severeThreshold;
-  el('threshold-c').textContent = stats.severeThreshold * 2;
+  el('threshold-c').textContent = stats.lethalThreshold;
   el('stress-condition').hidden = s.stress.cur < s.stress.max;
   el('death-condition').hidden = s.hp.cur > 0;
   for (const condition of ['vulnerable', 'restrained', 'hidden']) {
@@ -890,7 +895,7 @@ function renderAll() {
     .filter(([level]) => Number(level) <= c.level).flatMap(([, choices]) => choices)
     .filter(choice => choice === 'evasion').length;
   const armorFeature = stats.suitItem?.描述 ?? '';
-  const armorEvasion = Number(armorFeature.match(/(?:灵活|重型|极重|困难)\*\*\]：[^。]*?闪避值\s*([+-]\s*\d+)/)?.[1]?.replace(/\s/g, '')) || 0;
+  const armorEvasion = (stats.gear.evasion ?? 0) + (Number(armorFeature.match(/(?:灵活|重型|极重|困难)\*\*\]：[^。]*?闪避值\s*([+-]\s*\d+)/)?.[1]?.replace(/\s/g, '')) || 0);
   const evasion = el('stat-evasion');
   evasion.textContent = clsObj?.闪避值 != null ? Number(clsObj.闪避值) + armorEvasion + evasionAdjustment + evasionAdvances : '—';
   el('evasion-breakdown').textContent = clsObj?.闪避值 != null
@@ -911,7 +916,10 @@ function renderAll() {
   if (s.attributes) {
     for (const [attr, mod] of Object.entries(s.attributes)) {
       const modEl = el(`attr-mod-${attr}`);
-      if (modEl) modEl.value = mod;
+      if (modEl) {
+        modEl.value = Number(mod) + (stats.gear[attr] ?? 0);
+        modEl.title = stats.gear[attr] ? `基础 ${mod} · 装备 ${stats.gear[attr]}` : '基础属性';
+      }
     }
   }
 
@@ -953,7 +961,7 @@ function renderEquipmentSlots(stats) {
   el('suit-mode-tag').textContent = stats.isSuitActive ? `套装生效：${stats.suitItem.名称}` : '散件细分累加计算';
   el('suit-mode-tag').style.borderColor = stats.isSuitActive ? 'var(--accent-health)' : 'var(--border-bo3)';
 
-  const slotKeys = ['head', 'chest', 'wrists', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'suit', 'costume'];
+  const slotKeys = ['head', 'chest', 'wrists', 'waist', 'legs', 'feet', 'back', 'ring1', 'ring2', 'trinket1', 'trinket2', 'suit', 'costume'];
   for (const k of slotKeys) {
     const itemEl = el(`slot-name-${k}`);
     if (itemEl) {
@@ -1011,11 +1019,22 @@ function getEquipmentIssue(slot, item, character = curChar()) {
 
 function renderSlotArt(slot, item) {
   const icon = el(`slot-icon-${slot.replace('_', '-')}`);
-  const source = item ? spriteUrl(itemArt(item)) : slotIconMap[slot];
+  if (icon) decorateGear(icon.closest('[data-slot], [data-bag-slot]'), item, slot);
+  const source = item ? spriteUrl(itemArt(item)) : slotIconMap[slot] ?? './assets/icons/slot-pouch-1.svg';
   if (icon && source) {
     icon.style.backgroundImage = `url("${source}")`;
     icon.classList.toggle('pixel-item', Boolean(item));
   }
+}
+
+function decorateGear(node, item, slot = item?.slot) {
+  if (!node) return;
+  delete node.dataset.quality;
+  delete node.dataset.suitTier;
+  if (!item) return;
+  node.dataset.quality = readGear(item).quality;
+  const tier = Number(item.tier ?? item.位阶);
+  if ((slot === 'suit' || item.slot === 'suit') && [1, 2, 3, 4].includes(tier)) node.dataset.suitTier = tier;
 }
 
 function itemImage(item) {
@@ -1328,12 +1347,14 @@ function renderInventory(stats) {
     const cell = document.createElement('div');
     cell.className = `grid-cell ${item ? 'occupied' : ''}`;
     if (item) {
+      decorateGear(cell, item);
       cell.innerHTML = `
         <span class="cell-icon"></span>
-        <span class="cell-name">${item.name}</span>
+        <span class="cell-name"></span>
         ${item.qty > 1 ? `<span class="cell-qty">x${item.qty}</span>` : ''}
       `;
       cell.querySelector('.cell-icon').append(itemImage(item));
+      cell.querySelector('.cell-name').textContent = item.name;
       cell.title = `${item.name}: ${item.desc || '物品'}\n(点击操作)`;
       cell.addEventListener('click', () => {
         openItemActionModal(i);
@@ -1559,7 +1580,7 @@ function setupEventListeners() {
   const adjustments = {
     'evasion-adjustment': ['evasionAdjustment', () => Number(el('evasion-adjustment').dataset.base)],
     'proficiency-current': ['proficiencyAdjustment', character => calculateStats(character).earnedProficiency],
-    'armor-limit': ['armorLimitAdjustment', character => calculateStats(character).baseArmor],
+    'armor-limit': ['armorLimitAdjustment', character => { const stats = calculateStats(character); return stats.baseArmor + (stats.gear.armor ?? 0); }],
   };
   for (const [id, [field, base]] of Object.entries(adjustments)) {
     el(id).addEventListener('change', event => {
@@ -1579,7 +1600,8 @@ function setupEventListeners() {
   document.querySelectorAll('[data-trait]').forEach(input => {
     input.setAttribute('aria-label', traits[input.dataset.trait]);
     input.addEventListener('change', () => {
-      curChar().sheet.attributes[input.dataset.trait] = Math.trunc(Number(input.value)) || 0;
+      const character = curChar();
+      character.sheet.attributes[input.dataset.trait] = (Math.trunc(Number(input.value)) || 0) - (calculateStats(character).gear[input.dataset.trait] ?? 0);
       saveLocal();
       renderAll();
     });
@@ -1845,8 +1867,24 @@ function setupEventListeners() {
 
   // Live Previews for Forms
   const appearanceSelect = el('ws-item-appearance');
+  for (const [value, label] of Object.entries(gearSlots)) el('ws-item-slot').add(new Option(label, value));
+  for (const [value, label] of Object.entries(qualities)) el('ws-item-quality').add(new Option(label, value));
+  for (const [key, title] of Object.entries(gearEffects)) {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.id = 'gear-effect-' + key;
+    input.type = 'number';
+    input.step = '1';
+    input.min = '-99';
+    input.max = '99';
+    input.className = 'dw-input';
+    label.append(title, input);
+    el('ws-gear-fields').append(label);
+  }
+  for (const trait of Object.values(traits)) el('ws-weapon-trait').add(new Option(trait));
+  for (const field of el('ws-item-effects').querySelectorAll('input')) field.addEventListener('input', updateItemPreview);
   for (const [value, label] of Object.entries(itemAppearances)) appearanceSelect.add(new Option(label, value));
-  ['ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-stats', 'ws-item-desc', 'ws-item-appearance'].forEach(id => {
+  ['ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-stats', 'ws-item-desc', 'ws-item-appearance', 'ws-item-slot', 'ws-item-quality'].forEach(id => {
     el(id)?.addEventListener('input', updateItemPreview);
     el(id)?.addEventListener('change', updateItemPreview);
   });
@@ -1918,14 +1956,14 @@ function setupEventListeners() {
     if (activeBagItemIndex === null) return;
     const c = curChar();
     const item = c.sheet.inventoryItems[activeBagItemIndex];
-    if (item) {
+    if (item && !item.slot) {
       if (item.qty > 1) {
         item.qty -= 1;
       } else {
         c.sheet.inventoryItems.splice(activeBagItemIndex, 1);
       }
       saveLocal();
-      renderInventory(calculateStats(c));
+      renderAll();
       el('item-action-modal').hidden = true;
     }
   });
@@ -1935,8 +1973,11 @@ function setupEventListeners() {
     const item = c.sheet.inventoryItems[activeBagItemIndex];
     if (item && confirm(`确定要丢弃【${item.name}】吗？`)) {
       c.sheet.inventoryItems.splice(activeBagItemIndex, 1);
+      if (item.ownedGearId) for (const [slot, equipped] of Object.entries(c.sheet.equipment)) {
+        if (equipped?.ownedGearId === item.ownedGearId) c.sheet.equipment[slot] = null;
+      }
       saveLocal();
-      renderInventory(calculateStats(c));
+      renderAll();
       el('item-action-modal').hidden = true;
     }
   });
@@ -1949,9 +1990,20 @@ function openItemActionModal(index) {
   const item = c.sheet.inventoryItems[index];
   if (!item) return;
 
-  el('item-action-title').textContent = `物品：【${item.name}】`;
-  el('item-action-desc').innerHTML = renderMarkdown(item.desc || '行装杂物');
+  el('item-action-title').textContent = item.name;
+  const desc = el('item-action-desc');
+  desc.innerHTML = renderMarkdown(item.desc || '');
+  if (item.slot) {
+    const attributes = document.createElement('p');
+    const location = item.slot === 'passive' && index >= bagCapacity(c.sheet.bags).totalSlots
+      ? '背包奇物 · 当前在溢出区' : gearSlots[item.slot];
+    attributes.textContent = [location, gearFormula(item)].filter(Boolean).join(' · ');
+    desc.prepend(attributes);
+  }
   el('item-qty-val').textContent = item.qty || 1;
+  el('item-action-use').hidden = Boolean(item.slot);
+  el('item-qty-plus').hidden = Boolean(item.slot);
+  el('item-qty-minus').hidden = Boolean(item.slot);
   el('item-action-modal').hidden = false;
 }
 
@@ -1986,6 +2038,17 @@ function openItemPicker(slotKey) {
     candidates = (db?.modular_gear || []).filter(g => g.部位 === part || g.类型 === getSlotTitle(slotKey));
   }
 
+  if (!isLoot) {
+    const assigned = new Set(Object.entries(curChar().sheet.equipment)
+      .filter(([key]) => key !== slotKey).map(([, item]) => item?.ownedGearId).filter(Boolean));
+    const owned = curChar().sheet.inventoryItems.filter(item => item?.ownedGearId && !assigned.has(item.ownedGearId) && slotMatches(item, slotKey));
+    candidates = [...owned.map(item => ({
+      名称: item.name, 描述: item.desc, 位阶: item.tier, 品类: item.type,
+      属性: item.weapon?.trait, 伤害: item.weapon?.damage, 距离: item.weapon?.range,
+      伤害类型: item.weapon?.kind, 负荷: item.weapon?.burden,
+      ownedGearId: item.ownedGearId, appearance: item.appearance, ...readGear(item),
+    })), ...candidates];
+  }
   currentPickerCandidates = candidates;
   renderPickerList(candidates);
 }
@@ -2015,14 +2078,23 @@ function renderPickerList(items) {
   items.forEach(item => {
     const card = document.createElement('div');
     card.className = 'picker-item-card';
+    decorateGear(card, item, currentPickerSlot);
     const issue = currentPickerSlot === 'loot' ? '' : getEquipmentIssue(currentPickerSlot, item);
     card.innerHTML = `
-      <div class="picker-item-title">${item.名称}</div>
+      <div class="picker-item-title"></div>
       <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? weaponSummary(item, calculateStats(curChar()).totalProf) : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
       <div class="picker-item-desc">${renderMarkdown(item.描述 || '')}</div>
       <button type="button" class="picker-item-equip-btn" ${issue ? 'disabled' : ''}>${currentPickerSlot === 'loot' ? '放入背包' : '装备'}</button>
     `;
-    card.querySelector('.picker-item-title').prepend(itemImage(item));
+    const title = card.querySelector('.picker-item-title');
+    title.textContent = item.名称;
+    title.prepend(itemImage(item));
+    const formula = gearFormula(item);
+    if (formula) {
+      const summary = document.createElement('p');
+      summary.textContent = formula;
+      title.after(summary);
+    }
     if (issue) {
       const reason = document.createElement('p');
       reason.textContent = issue;
@@ -2139,7 +2211,7 @@ function openDiceRoll(attr) {
 
 function executeDualityRoll(attr) {
   const c = curChar();
-  const mod = Number(c.sheet.attributes[attr]) || 0;
+  const mod = (Number(c.sheet.attributes[attr]) || 0) + (calculateStats(c).gear[attr] ?? 0);
 
   const hopeDie = Math.floor(Math.random() * 12) + 1;
   const fearDie = Math.floor(Math.random() * 12) + 1;
@@ -2374,6 +2446,12 @@ function updateItemPreview() {
   if (el('ws-prev-tag')) el('ws-prev-tag').textContent = `${type} ${subcat ? '· ' + subcat : ''} · T${tier}`;
   if (el('ws-prev-stats')) el('ws-prev-stats').textContent = stats;
   if (el('ws-prev-desc')) el('ws-prev-desc').innerHTML = renderMarkdown(desc);
+  const gear = workshopGear();
+  const weaponSlot = ['weapon_main', 'weapon_off'].includes(gear.slot);
+  el('ws-weapon-fields').hidden = !weaponSlot;
+  el('ws-item-effects').hidden = !gear.slot;
+  decorateGear(el('ws-item-preview'), { ...gear, tier });
+  if (gearFormula(gear)) el('ws-prev-stats').textContent = gearFormula(gear);
   el('ws-prev-icon')?.replaceChildren(itemImage({ name, type, subcat, appearance: el('ws-item-appearance')?.value }));
 }
 
@@ -2399,6 +2477,22 @@ function updateCardPreview() {
 }
 
 // 提交物品创制 / 编辑 (保存或发放)
+function workshopGear() {
+  const modifiers = Object.fromEntries(Object.keys(gearEffects).map(key => [key, el('gear-effect-' + key).value]));
+  return readGear({ slot: el('ws-item-slot').value, quality: el('ws-item-quality').value, modifiers });
+}
+
+function fillWorkshopGear(item = {}) {
+  const gear = readGear(item);
+  el('ws-item-slot').value = gear.slot;
+  el('ws-item-quality').value = gear.quality;
+  for (const key of Object.keys(gearEffects)) el('gear-effect-' + key).value = gear.modifiers[key] ?? '';
+  for (const key of ['trait', 'damage', 'range', 'kind', 'burden']) {
+    const field = el('ws-weapon-' + key);
+    field.value = item.weapon?.[key] ?? (field.options?.[0]?.value || '');
+  }
+}
+
 function handleWorkshopItemSubmit(isDispatch) {
   const name = el('ws-item-name')?.value?.trim();
   if (!name) return alert('请输入物品名称！');
@@ -2409,6 +2503,22 @@ function handleWorkshopItemSubmit(isDispatch) {
   const stats = el('ws-item-stats')?.value?.trim() || '';
   const desc = el('ws-item-desc')?.value?.trim() || '';
   const icon = resolveItemIcon(name, type, subcat);
+
+  const gear = workshopGear();
+  if (type === '消耗品' && gear.slot) return alert('消耗品请将部位设为「无」。');
+  if (['武器', '护甲'].includes(type) && !gear.slot) return alert('请选择装备部位。');
+  if (gear.slot && [...el('ws-gear-fields').querySelectorAll('input')].some(input => !input.checkValidity())) {
+    return alert('数值修正请输入 −99 至 99 的整数。');
+  }
+  const weaponSlot = ['weapon_main', 'weapon_off'].includes(gear.slot);
+  const weapon = weaponSlot ? Object.fromEntries(
+    ['trait', 'damage', 'range', 'kind', 'burden'].map(key => [key, el('ws-weapon-' + key).value.trim()])
+  ) : undefined;
+  const damagePattern = /^\d*d[1-9]\d*(?:[+-](?:\d*d[1-9]\d*|\d+))*$/;
+  if (weaponSlot && (gear.slot === 'weapon_main' && !weapon.damage || weapon.damage && !damagePattern.test(weapon.damage))) {
+    return alert('请输入伤害骰，例如 d8+2。');
+  }
+  if (gear.slot === 'weapon_off' && weapon.burden === '双手') return alert('副手负荷只能为单手。');
 
   const editId = el('ws-item-edit-id')?.value;
   const item = {
@@ -2421,6 +2531,8 @@ function handleWorkshopItemSubmit(isDispatch) {
     desc,
     icon,
     appearance: validAppearance(el('ws-item-appearance')?.value),
+    ...gear,
+    weapon,
     qty: 1
   };
 
@@ -2539,12 +2651,15 @@ function dispatchItemToCharacter(item, charIndex) {
     appearance: validAppearance(item.appearance),
     type: item.type,
     subcat: item.subcat,
+    ...readGear(item),
+    weapon: item.weapon,
+    ownedGearId: item.slot ? crypto.randomUUID() : undefined,
     tier: item.tier
   });
 
   saveLocal();
   if (charIndex === activeCharIndex) {
-    renderInventory(calculateStats(target));
+    renderAll();
   }
   updateWorkshopTargetSelect();
   alert(`👑 已成功向角色【${target.avatar_name}】的背包发放【${item.name}】！`);
@@ -2576,6 +2691,7 @@ function loadItemToEdit(item) {
   if (el('ws-item-stats')) el('ws-item-stats').value = item.stats || '';
   if (el('ws-item-desc')) el('ws-item-desc').value = item.desc || '';
   el('ws-item-appearance').value = validAppearance(item.appearance);
+  fillWorkshopGear(item);
 
   workshopState.editingType = 'item';
   workshopState.editingId = item.id;
@@ -2634,6 +2750,7 @@ function cancelWorkshopEdit() {
   if (el('ws-item-stats')) el('ws-item-stats').value = '';
   if (el('ws-item-desc')) el('ws-item-desc').value = '';
   el('ws-item-appearance').value = '';
+  fillWorkshopGear();
 
   if (el('ws-card-edit-id')) el('ws-card-edit-id').value = '';
   if (el('ws-card-name')) el('ws-card-name').value = '';
@@ -2783,6 +2900,7 @@ function renderWorkshopLibrary() {
     const isEditing = (workshopState.editingType === 'item' && workshopState.editingId === item.id);
     const cardEl = document.createElement('div');
     cardEl.className = `ws-card-item ${isEditing ? 'editing' : ''}`;
+    decorateGear(cardEl, item);
     cardEl.innerHTML = `
       <div class="ws-card-header">
         <div class="item-left">
@@ -2921,6 +3039,8 @@ function exportPbDHPack() {
       等级: Number(item.tier) || 1,
       效果: item.desc || '',
       appearance: validAppearance(item.appearance),
+      ...readGear(item),
+      weapon: item.weapon,
       简略信息: item.stats ? { item1: item.stats } : {}
     })),
     customDomains: campaignResources.customDomains || []
@@ -3027,6 +3147,8 @@ function importPbDHPack(e) {
             desc: v.效果 || '',
             icon: resolveItemIcon(v.名称, v.类型, v.子类别),
             appearance: validAppearance(v.appearance),
+            ...readGear(v),
+            weapon: v.weapon,
             qty: 1
           };
           const exIdx = campaignResources.items.findIndex(it => it.name === item.name);
