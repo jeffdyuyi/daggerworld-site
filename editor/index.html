@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-inline-adj-v1">
+  <link rel="stylesheet" href="./app.css?v=20261121-portrait-v3">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -1494,44 +1494,6 @@
     </div>
   </div>
 
-  <!-- MODAL: Bug Report Modal (玩家向主持人报修) -->
-  <div class="dw-modal-backdrop" id="bug-report-modal" hidden>
-    <div class="dw-modal-window narrow-modal">
-      <div class="modal-header">
-        <h2>🐛 属性与机制报修</h2>
-        <button class="modal-close-btn" id="bug-report-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">发现属性数值计算不准或规则有误？向主持人提交申请，主持人将能在后台直接为你就地补正修订。</p>
-        <div style="margin-bottom:12px;">
-          <label for="bug-report-target" style="display:block;font-size:12px;color:var(--text-main);margin-bottom:4px;font-weight:bold;">申报项目 / 属性</label>
-          <select id="bug-report-target" class="dw-select" style="width:100%;">
-            <option value="敏捷">敏捷 (Agility)</option>
-            <option value="力量">力量 (Strength)</option>
-            <option value="灵巧">灵巧 (Finesse)</option>
-            <option value="本能">本能 (Instinct)</option>
-            <option value="风采">风采 (Presence)</option>
-            <option value="知识">知识 (Knowledge)</option>
-            <option value="生命上限">生命槽上限 (HP Max)</option>
-            <option value="压力上限">压力槽上限 (Stress Max)</option>
-            <option value="闪避">闪避 (Evasion)</option>
-            <option value="护甲">护甲上限 (Armor)</option>
-            <option value="熟练值">熟练值 (Proficiency)</option>
-            <option value="其他">其他机制 / 装备效果</option>
-          </select>
-        </div>
-        <div style="margin-bottom:12px;">
-          <label for="bug-report-reason" style="display:block;font-size:12px;color:var(--text-main);margin-bottom:4px;font-weight:bold;">说明（期望数值或问题详情）</label>
-          <textarea id="bug-report-reason" class="dw-input" rows="3" style="width:100%;resize:vertical;" placeholder="例如：我需要修改力量属性，装备了护腕但没算上+1；或基础属性应为2..."></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="dw-btn dw-btn-outline" id="bug-report-cancel">取消</button>
-        <button type="button" class="dw-btn dw-btn-gold" id="btn-submit-bug-report">📤 发送给主持人</button>
-      </div>
-    </div>
-  </div>
-
   <!-- App Main Entry Module -->
   <dialog id="level-dialog" class="level-dialog">
     <h2 id="level-dialog-title">升级</h2>
@@ -1551,7 +1513,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-inline-adj-v1').catch(error => {
+    import('./app.js?v=20261121-portrait-v3').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
