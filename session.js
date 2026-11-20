@@ -87,7 +87,7 @@ export async function loadAccount() {
   const session = await activeSession();
   const [members, characters] = await Promise.all([
     jsonRequest('/rest/v1/campaign_members?select=role', {}, session.access_token),
-    jsonRequest('/rest/v1/characters?select=id,owner_id,avatar_name,level,sheet,notes,updated_at&order=avatar_name', {}, session.access_token),
+    jsonRequest('/rest/v1/characters?select=id,owner_id,avatar_name,level,sheet,updated_at&order=avatar_name', {}, session.access_token),
   ]);
   if (!members.length) throw new Error('此账号尚无内测档案权限。');
   return { owner: session.owner, login: session.login, role: members[0].role, characters };
@@ -96,7 +96,7 @@ export async function loadAccount() {
 export async function saveCharacter(character, record) {
   const session = await activeSession();
   const suffix = record ? '?id=eq.' + encodeURIComponent(record.id) + '&updated_at=eq.' + encodeURIComponent(record.updated_at) : '';
-  const response = await jsonRequest('/rest/v1/characters' + suffix, {
+  const response = await jsonRequest('/rest/v1/characters' + suffix + (record ? '&' : '?') + 'select=id,owner_id,updated_at', {
     method: record ? 'PATCH' : 'POST',
     headers: { Prefer: 'return=representation' },
     body: JSON.stringify(record ? character : { ...character, owner_id: session.owner }),
@@ -105,10 +105,25 @@ export async function saveCharacter(character, record) {
   return response[0];
 }
 
-export async function deleteCharacter(id) {
+export async function deleteCharacter(record) {
   const session = await activeSession();
-  await jsonRequest('/rest/v1/characters?id=eq.' + encodeURIComponent(id), {
-    method: 'DELETE',
+  const rows = await jsonRequest('/rest/v1/characters?select=id&id=eq.'+encodeURIComponent(record.id)+'&updated_at=eq.'+encodeURIComponent(record.updated_at), {
+    method:'DELETE',headers:{Prefer:'return=representation'}
   }, session.access_token);
+  if (!rows.length) throw new Error('删除未生效，请刷新角色库。');
 }
 
+export async function readGmNote(id) {
+  const session = await activeSession();
+  const rows = await jsonRequest('/rest/v1/character_gm_notes?select=body,updated_at&character_id=eq.'+encodeURIComponent(id),{},session.access_token);
+  return rows[0];
+}
+export async function writeGmNote(id,body,prior) {
+  const session = await activeSession();
+  const filter = prior ? '?character_id=eq.'+encodeURIComponent(id)+'&updated_at=eq.'+encodeURIComponent(prior.updated_at) : '';
+  const rows = await jsonRequest('/rest/v1/character_gm_notes'+filter,{
+    method:prior?'PATCH':'POST',headers:{Prefer:'return=representation'},
+    body:JSON.stringify({character_id:id,body,updated_at:new Date().toISOString()})
+  },session.access_token);
+  if (!rows.length) throw new Error('私记已更新，请重新打开。');
+}

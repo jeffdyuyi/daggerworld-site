@@ -1,8 +1,9 @@
+import { resourceArt } from './resource-art.js';
 const art = new URL('./assets/paperdoll/', import.meta.url);
 const avatarArt = new URL('./assets/lpc/', import.meta.url);
 const sprites = new Map();
 export const itemAppearances = {
-  sword: '剑', dagger: '匕首', axe: '斧', hammer: '锤', spear: '长矛', staff: '法杖',
+  cape: '披风', sword: '剑', dagger: '匕首', axe: '斧', hammer: '锤', spear: '长矛', staff: '法杖',
   bow: '弓', crossbow: '弩', scythe: '镰刀', shield: '木盾', steelShield: '铁盾',
   leather: '皮甲', chain: '链甲', plate: '板甲', robe: '长袍', tunic: '短衣',
   helm: '头盔', hood: '兜帽', crown: '头冠', boots: '靴', gloves: '护手', legs: '护腿',
@@ -23,7 +24,7 @@ const iconRules = [
   [/耐力药水|精力药/, 'item-stress'],
   [/毒液|毒药/, 'item-poison'],
   [/药水|药剂|灵药|秘药|解药/, 'item-potion'],
-  [/斗篷|披风|风衣/, 'robe'],
+  [/斗篷|披风|风衣/, 'cape'],
   [/头盔|战盔|面具/, 'helm'],
   [/兜帽/, 'hood'],
   [/头冠|王冠|发带/, 'crown'],
@@ -69,20 +70,24 @@ const iconRules = [
 
 export function itemArt(item = {}) {
   const appearance = validAppearance(item.appearance);
+  if (/^(主武器|副武器|护甲):/.test(item.resourceId || '')) return resourceArt[item.resourceId] || 'item-box';
   if (appearance) return appearance;
+  if (item.ID?.startsWith('装备:') && !item.ownedGearId) return 'item-box';
   const name = item.名称 ?? item.name ?? '';
+  if (item.ID && /^(主武器|副武器|护甲):/.test(item.ID)) return resourceArt[item.ID] || 'item-box';
   const category = item.子类别 ?? item.subcat ?? '';
   const match = iconRules.find(([pattern]) => pattern.test(name))
     ?? iconRules.find(([pattern]) => pattern.test(category));
   const type = item.类型 ?? item.type;
   if (match) return match[1];
-  if (/武器/.test(type)) return 'sword';
-  if (/护甲/.test(type)) return 'leather';
+
+
   if (type === '消耗品') return 'item-potion';
   return item.ID?.startsWith('战利品:') || type === '战利品' ? 'item-charm' : 'item-box';
 }
 
 export function spriteUrl(sprite) {
+  if (sprite === 'cape') sprite = 'item-cloth';
   return new URL(`${sprite}.png`, art).href;
 }
 
@@ -118,7 +123,7 @@ export function outfitLayers(sheet, suitActive) {
   const chest = suitActive ? gear.suit : gear.chest;
   const armor = chest ? itemArt(chest) : null;
   const dress = itemArt(gear.costume ?? {});
-  const torso = torsoSprites.has(armor) ? armor : chest ? 'plate' : torsoSprites.has(dress) ? dress : 'shirt';
+  const torso = torsoSprites.has(armor) ? armor : chest ? 'shirt' : torsoSprites.has(dress) ? dress : 'shirt';
   const helmet = gear.head ? itemArt(gear.head) : null;
   const layers = [];
   function add(sprite, flip = false) { layers.push({ sprite, flip }); }
@@ -127,23 +132,24 @@ export function outfitLayers(sheet, suitActive) {
     const image = itemArt(item);
     const isShield = image === 'shield' || image === 'steelShield';
     const metalShield = image === 'steelShield' || (isShield && /铁|钢/.test(item.名称 ?? ''));
-    add(metalShield ? fitted('steelShield') : handSprites.has(image) ? image : 'staff', isShield ? !isOffHand : isOffHand);
+    if (!handSprites.has(image)) return;
+    add(metalShield ? fitted('steelShield') : image, isShield ? !isOffHand : isOffHand);
   }
 
-  if (gear.back || /披风|斗篷/.test(gear.costume?.名称 ?? '')) add('cape');
+  if ([gear.back, gear.costume, chest].some(item => item && itemArt(item) === 'cape')) add('cape');
   add(fitted(skin === 'pale' ? 'skin' : skin));
   add(fitted('pants'));
   add(fitted('boots'));
-  if (gear.legs) add(fitted('greaves'));
-  if (gear.feet) add(fitted('armoredBoots'));
+  if (itemArt(gear.legs ?? {}) === 'legs') add(fitted('greaves'));
+  if (itemArt(gear.feet ?? {}) === 'boots') add(fitted('armoredBoots'));
   add(fitted('shirt'));
   if (torso !== 'shirt') add(torso === 'robe' ? 'robe' : fitted(torso));
-  if (gear.wrists) add(fitted('gloves'));
+  if (itemArt(gear.wrists ?? {}) === 'gloves') add(fitted('gloves'));
   if (hair) add(hair);
   if (look.beard) add('beard');
   hand(gear.weapon_off, true);
   hand(gear.weapon_main, false);
-  if (helmet) add(headSprites.has(helmet) && helmet !== 'helm' ? helmet : fitted('helm'));
+  if (headSprites.has(helmet)) add(headSprites.has(helmet) && helmet !== 'helm' ? helmet : fitted('helm'));
   return layers;
 }
 

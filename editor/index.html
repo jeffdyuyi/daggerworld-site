@@ -241,9 +241,9 @@
         <div class="def-item">
           <span class="def-label">闪避</span>
           <strong class="def-val" id="stat-evasion">—</strong>
-          <label for="evasion-adjustment">当前值</label>
+          <label for="evasion-adjustment">手动补正</label>
           <small id="evasion-breakdown"></small>
-          <span class="quick-value"><button type="button" data-adjust="evasion-adjustment" data-delta="-1" aria-label="减少闪避">−</button><input id="evasion-adjustment" type="number" min="0" step="1" class="dw-input" value="0"><button type="button" data-adjust="evasion-adjustment" data-delta="1" aria-label="增加闪避">+</button></span>
+          <span class="quick-value"><button type="button" data-adjust="evasion-adjustment" data-delta="-1" aria-label="减少闪避">−</button><input id="evasion-adjustment" type="number" step="1" class="dw-input" value="0"><button type="button" data-adjust="evasion-adjustment" data-delta="1" aria-label="增加闪避">+</button></span>
         </div>
         <div class="def-item">
           <span class="def-label">基础护甲</span>
@@ -252,26 +252,27 @@
         <div class="def-item">
           <span class="def-label">熟练值</span>
           <strong class="def-val" id="stat-proficiency">1</strong>
-          <label class="limit-control">当前熟练 <span class="quick-value"><button type="button" data-adjust="proficiency-current" data-delta="-1" aria-label="减少熟练值">−</button><input id="proficiency-current" type="number" min="0" step="1" value="1" class="dw-input"><button type="button" data-adjust="proficiency-current" data-delta="1" aria-label="增加熟练值">+</button></span></label>
+          <label class="limit-control">手动补正 <span class="quick-value"><button type="button" data-adjust="proficiency-current" data-delta="-1" aria-label="减少熟练值">−</button><input id="proficiency-current" type="number" step="1" value="1" class="dw-input"><button type="button" data-adjust="proficiency-current" data-delta="1" aria-label="增加熟练值">+</button></span></label>
         </div>
       </div>
 
       <!-- Armor Track & Thresholds Dashboard -->
       <div class="resource-card armor-card">
         <div class="res-header">
-          <span class="res-title">护甲槽 · 已标记</span>
+          <span class="res-title">护甲槽 · 已标记</span> <small>可用 <b id="armor-remaining">0</b></small>
           <div class="res-counter">
             <span id="armor-cur">0</span> / <span id="armor-max">0</span>
           </div>
         </div>
         <div class="res-pips-bar" id="armor-pips"></div>
-        <label class="limit-control">当前上限 <span class="quick-value"><button type="button" data-adjust="armor-limit" data-delta="-1" aria-label="减少护甲上限">−</button><input id="armor-limit" type="number" min="0" step="1" value="0" class="dw-input"><button type="button" data-adjust="armor-limit" data-delta="1" aria-label="增加护甲上限">+</button></span></label>
+        <label class="limit-control">上限补正 <span class="quick-value"><button type="button" data-adjust="armor-limit" data-delta="-1" aria-label="减少护甲上限">−</button><input id="armor-limit" type="number" step="1" value="0" class="dw-input"><button type="button" data-adjust="armor-limit" data-delta="1" aria-label="增加护甲上限">+</button></span></label>
         <div class="res-stepper">
           <button class="res-btn" id="armor-minus">-1</button>
           <button class="res-btn" id="armor-plus">+1</button>
         </div>
       </div>
 
+      <details class="stat-details"><summary>数值明细与补正</summary><table><thead><tr><th>数值</th><th>基础</th><th>装备</th><th>补正</th><th>当前</th></tr></thead><tbody id="stat-calculations"></tbody></table><small>致死阈值以当前严重阈值的两倍为基础。三个阈值依次递增。</small></details>
       <div class="condition-strip" aria-live="polite">
         <strong id="stress-condition" hidden>脆弱 · 压力已满</strong>
         <strong id="death-condition" hidden>倒下 · 结算死亡行动</strong>
@@ -624,8 +625,8 @@
           <div class="grid-panel-header">
             <h3>物品栏</h3>
             <div class="grid-actions">
-              <button class="dw-btn dw-btn-outline" id="btn-loot-catalog">查战利品与消耗品</button>
-              <button class="dw-btn dw-btn-outline" id="btn-add-item">自填物品</button>
+              <button class="dw-btn dw-btn-outline" id="btn-loot-catalog">物品图鉴</button>
+
               <button class="dw-btn dw-btn-outline" id="btn-clean-bag">🧹 整理背包</button>
             </div>
           </div>
@@ -643,7 +644,7 @@
             <span class="formula-icon">🛡️</span>
             <div>
               <h3>防具与伤害阈值动态计算引擎</h3>
-              <p class="formula-subtitle">根据《匕首世界》SRD与细分装备规则实时运算</p>
+              <p class="formula-subtitle">已穿戴装备与生效奇物合计</p>
             </div>
           </div>
           <div class="formula-body" id="armor-formula-breakdown">
@@ -656,7 +657,7 @@
       <!-- Bottom Level-up / Upgrade Bar -->
       <div class="levelup-bottom-bar">
         <div class="levelup-title">
-          <h3>升级与历练强化</h3>
+          <h3>升级</h3>
           <span class="levelup-tier-tag" id="cur-tier-tag">位阶 1 · 1 级</span>
         </div>
         <div id="advancements-container"></div>
@@ -687,7 +688,7 @@
 
           <div class="gm-alert-box" id="gm-alert-notice" hidden>
             👑 <strong>主持人特权调整已激活：</strong>
-            当前为GM后台模式，可修改玩家角色姓名、性别（使用变性药水等道具时）、种族血统或职业子职业。修改将即时生效并同步至档案。
+            主持人可调整角色身份。修改后请保存。
           </div>
 
           <!-- Header Selection Row -->
@@ -789,16 +790,10 @@
             </div>
           </div>
 
-          <!-- GM Secret / Character Persona Notes -->
-          <div class="f-card gm-notes-card">
-            <div class="f-card-header">
-              <span class="f-badge gm-badge">深水城主持人备注</span>
-              <h3>人格与战役秘记</h3>
-            </div>
-            <div class="f-card-body">
-              <textarea id="fn-gm-notes" class="dw-textarea" rows="4" placeholder="在此记录角色的人格秘密、战役经历或主持人特许备注（对常规角色卡界面隐藏经历）…"></textarea>
-            </div>
-          </div>
+          <section class="f-card"><h3>冒险笔记</h3><textarea id="player-notes" class="dw-textarea" aria-label="冒险笔记" rows="4"></textarea>
+          <p id="gm-notes-panel" hidden><button type="button" id="gm-note-open" class="dw-btn">主持人私记</button></p></section>
+          <dialog id="gm-note-dialog"><h3>主持人私记</h3><textarea id="fn-gm-notes" aria-label="主持人私记" placeholder="人格社群、现实经历、个人身份、身份赠礼及裁定" rows="8"></textarea>
+          <form method="dialog"><button type="button" id="gm-note-save">保存</button><button>关闭</button></form></dialog>
         </div>
 
       </div>
@@ -889,6 +884,7 @@
     <section class="ws-dispatch-strip">
       <div class="ws-dispatch-strip-left">
         <span class="dispatch-crown-badge">👑 受赐角色</span>
+        <button type="button" id="ws-catalog" class="dw-btn">发放原版物品</button>
         <select id="ws-target-char-select" class="dw-select ws-target-select" title="选择受赐角色">
           <!-- Populated with all characters -->
         </select>
@@ -984,6 +980,7 @@
               <select id="ws-item-slot" class="dw-select"><option value="">无</option></select>
               <label for="ws-item-quality">品质</label>
               <select id="ws-item-quality" class="dw-select"></select>
+              <label id="ws-container-label" hidden>容量（格）<input type="number" min="1" max="999" id="ws-container-cap" class="dw-input"></label>
               <label for="ws-item-appearance">外观</label>
               <select id="ws-item-appearance" class="dw-select"><option value="">自动匹配</option></select>
             </div>
@@ -1150,26 +1147,6 @@
   </div>
 
 
-
-  <!-- MODAL: Character Vault (角色库管理) -->
-  <div class="dw-modal-backdrop" id="vault-modal" hidden>
-    <div class="dw-modal-window">
-      <div class="modal-header">
-        <h2>冒险者角色库</h2>
-        <button class="modal-close-btn" id="vault-modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="vault-intro">在此管理您的所有角色角色。点击任意角色即可切换载入，或创建新的冒险者。</p>
-        <div class="vault-character-list" id="vault-char-list">
-          <!-- Characters listed here -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="dw-btn dw-btn-gold" id="vault-create-btn">➕ 建立新角色</button>
-        <button class="dw-btn dw-btn-outline" id="vault-refresh-btn">🔄 刷新云端</button>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL: Equipment / Item Picker -->
   <div class="dw-modal-backdrop" id="item-picker-modal" hidden>

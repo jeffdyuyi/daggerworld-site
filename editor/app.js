@@ -1,6 +1,7 @@
-import { gearSlots, gearEffects, qualities, readGear, slotMatches, totalGearEffects, gearFormula } from './gear-effects.js';
+import { sheetStats, adjustment } from './stats.js';
+import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula } from './gear-effects.js';
 import { traits, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, unspentCardLevels } from './sheet-rules.js';
-import { loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
+import { readGmNote, writeGmNote, loadAccount, saveCharacter, deleteCharacter, readSession } from '../session.js';
 import { itemArt, itemAppearances, validAppearance, spriteUrl, paintPaperdoll, downloadToken } from './paperdoll.js';
 
 // Global App State
@@ -13,14 +14,6 @@ let activeRollAttr = 'agility';
 let activeBagItemIndex = null;
 const lastRollCache = new Map();
 const rollAttributeNames = { agility: '敏捷', strength: '力量', finesse: '灵巧', instinct: '本能', presence: '风采', knowledge: '知识' };
-
-// Class Icon Mapping for RPG Avatars
-const classIconMap = {
-  '战士': '⚔️', '守护者': '🛡️', '游荡者': '🗡️', '游侠': '🏹',
-  '法师': '🔮', '德鲁伊': '🌿', '吟游诗人': '🎭', '神使': '✝️',
-  '术士': '⚡', '邪术师': '👁️', '格斗家': '🥊', '审判官': '📜',
-  '噬罪者': '💀', '奇术师': '✨'
-};
 
 let currentLayer = 'vault';
 let isGmOverrideActive = false;
@@ -49,7 +42,8 @@ function loadCampaignResources() {
           author: parsed.author || '主持人基德',
           description: parsed.description || '',
           items: Array.isArray(parsed.items) ? parsed.items : [],
-          domainCards: Array.isArray(parsed.domainCards) ? parsed.domainCards : []
+          domainCards: Array.isArray(parsed.domainCards) ? parsed.domainCards : [],
+          customDomains: Array.isArray(parsed.customDomains) ? parsed.customDomains : []
         };
       }
     }
@@ -202,11 +196,10 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
     id: 'local_' + Date.now(),
     avatar_name: name || '新晋冒险者',
     level: 1,
-    notes: '',
     sheet: {
       gender: ['男', '女', '无'].includes(gender) ? gender : '男',
       ancestryId: ancestryId || '种族:人类',
-      communityId: '社群:巧手匠',
+      communityId: '',
       classId: classId || '职业:战士',
       subclassId: subclassId || '子职:战士:勇气呼唤:基础',
       hp: { cur: 6, max: 6 },
@@ -257,13 +250,12 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
 
 // Critical Schema Normalizer (Guarantees every field exists, preventing runtime exceptions!)
 function normalizeCharacter(char) {
-  if (!char || typeof char !== 'object') return createDefaultCharacter();
+  if (!char || typeof char !== 'object') throw new Error('无效的角色档案');
   const defaultChar = createDefaultCharacter();
   const defaultSheet = defaultChar.sheet;
 
   char.avatar_name = char.avatar_name || '深水城探索者';
   char.level = Number(char.level) || 1;
-  char.notes = char.notes || '';
   char.id = char.id || ('local_' + Date.now());
 
   if (!char.sheet || typeof char.sheet !== 'object') {
@@ -292,6 +284,10 @@ function normalizeCharacter(char) {
     cur: typeof s.armorPips?.cur === 'number' ? s.armorPips.cur : 0
   };
 
+  for (const [key, extra] of Object.entries(s.trackReserves ?? {})) {
+    if (['hp','stress','hope','armorPips'].includes(key) && Number.isSafeInteger(extra) && extra>0) s[key].cur += extra;
+  }
+  delete s.trackReserves;
   s.attributes = {
     agility: typeof s.attributes?.agility === 'number' ? s.attributes.agility : 0,
     strength: typeof s.attributes?.strength === 'number' ? s.attributes.strength : 2,
@@ -316,22 +312,19 @@ function normalizeCharacter(char) {
 
 // Active Character Helper
 function curChar() {
-  if (!characters.length) {
-    characters.push(createDefaultCharacter());
-    activeCharIndex = 0;
-  }
-  return normalizeCharacter(characters[activeCharIndex]);
+  return characters[activeCharIndex] ?? null;
 }
 
 // Application Initialization
 async function init() {
+  if (!readSession()?.owner) { location.replace("../account.html"); return; }
   setupTabs();
   setupSlotIcons();
   setupCreationWizard();
   setupEventListeners();
 
-  loadCampaignResources();
-  // 1. 优先本地秒开 (0ms 极速响应，消除白屏等待)
+
+  // 只加载当前账号的缓存。
   loadLocalFallback();
 
   // 2. 异步加载规则数据库并填充下拉菜单与创角选项
@@ -340,6 +333,7 @@ async function init() {
     db = await res.json();
     populateSelectOptions();
   } catch (err) {
+    updateSyncStatus(false,'规则资料加载失败');
     console.error('Failed to load database.json:', err);
   }
 
@@ -357,17 +351,11 @@ async function init() {
     updateSyncStatus(true, `正在同步云端 · ${session.login || '冒险者'}…`);
     loadAccount().then(account => {
       currentUser = account;
+      if (account.role === 'gm') loadCampaignResources();
       el('btn-open-workshop').hidden = account.role !== 'gm';
-      if (currentUser?.characters && currentUser.characters.length > 0) {
-        characters = currentUser.characters.map(normalizeCharacter);
-        activeCharIndex = 0;
-        saveLocal(); // 同步缓存至本地
-        renderVaultCharList();
-        renderVaultLobby();
-        renderAll();
-      }
+      reconcileAccount(account);
       if (currentHash === '#workshop' && account.role === 'gm') switchLayer('workshop');
-      updateSyncStatus(true, `云端已同步 · ${currentUser.login || '冒险者'}`);
+      updateSyncStatus(true, `云端已载入 · ${currentUser.login || '冒险者'}`);
     }).catch(err => {
       console.warn('Background sync deferred:', err.message);
       updateSyncStatus(false, `本地模式 · ${session.login || '冒险者'}`);
@@ -377,23 +365,79 @@ async function init() {
   }
 }
 
-function loadLocalFallback() {
-  const localData = localStorage.getItem('daggerworld.vault.v1');
-  if (localData) {
-    try {
-      const parsed = JSON.parse(localData);
-      characters = (Array.isArray(parsed) && parsed.length > 0) ? parsed.map(normalizeCharacter) : [createDefaultCharacter()];
-    } catch {
-      characters = [createDefaultCharacter()];
+const owner = readSession()?.owner;
+const cacheKey = 'daggerworld.vault.v2.' + owner;
+let baselines = {};
+function payload(c) {
+  const sheet = structuredClone(c.sheet);
+  if (db) {
+    const stats = calculateStats(c);
+    const reserves = {};
+    for (const [key,max] of Object.entries({hp:stats.maxHp,stress:stats.maxStress,hope:stats.maxHope,armorPips:stats.armorMax})) {
+      const recorded = Math.max(0, Math.trunc(sheet[key].cur) || 0);
+      if (recorded > max) reserves[key] = recorded-max;
+      sheet[key] = { ...sheet[key], cur:Math.min(recorded,max), max };
     }
-  } else {
-    characters = [createDefaultCharacter()];
+    if (Object.keys(reserves).length) sheet.trackReserves = reserves;
   }
-  updateSyncStatus(false, '本地离线档案');
+  return {avatar_name:c.avatar_name,level:c.level,sheet};
 }
-
+function loadLocalFallback() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey));
+    characters = (cached?.characters ?? []).map(normalizeCharacter);
+    baselines = cached?.baselines ?? {};
+    if (!cached) {
+      const legacy = JSON.parse(localStorage.getItem('daggerworld.vault.v1') || '[]');
+      characters = legacy.filter(c => c?.owner_id === owner).map(c => {
+        delete c.notes; return normalizeCharacter(c);
+      });
+    }
+  } catch { characters = []; }
+}
+function reconcileAccount(account, interactive = false) {
+  if (account.owner !== owner || readSession()?.owner !== owner) return location.reload();
+  const selected = curChar()?.id;
+  const remote = new Map(account.characters.map(c => [c.id, normalizeCharacter(c)]));
+  characters = characters.filter(c => {
+    const draft = !c.updated_at || !baselines[c.id] || baselines[c.id] !== JSON.stringify(payload(c));
+    if (draft) {
+      const candidate = remote.get(c.id);
+      if (!baselines[c.id] && candidate && c.updated_at === candidate.updated_at && JSON.stringify(payload(c)) === JSON.stringify(payload(candidate))) return false;
+      const newer = remote.get(c.id);
+      if (newer && newer.updated_at !== c.updated_at && interactive && confirm('「'+c.avatar_name+'」云端已有新版。导出本地草稿并载入云端版？')) {
+        exportCharacterJson(characters.indexOf(c)); return false;
+      }
+      remote.delete(c.id); return true;
+    }
+    return false;
+  });
+  for (const c of remote.values()) {
+    characters.push(c); baselines[c.id] = JSON.stringify(payload(c));
+  }
+  activeCharIndex = Math.max(0, characters.findIndex(c => c.id === selected));
+  saveLocal(); renderVaultLobby();
+  if (characters.length && currentLayer === 'sheet') renderAll();
+  if (!characters.length && currentLayer === 'sheet') switchLayer('vault');
+}
 function saveLocal() {
-  localStorage.setItem('daggerworld.vault.v1', JSON.stringify(characters));
+  if (owner && readSession()?.owner === owner) localStorage.setItem(cacheKey, JSON.stringify({characters,baselines}));
+}
+window.addEventListener('storage', () => {
+  if (readSession()?.owner !== owner) location.replace('../account.html');
+});
+const pendingWrites = new Set();
+async function persist(c, data = payload(c)) {
+  if (readSession()?.owner !== owner) throw new Error('账号已切换，请重新进入。');
+  if (pendingWrites.has(c)) throw new Error('正在保存这个角色。');
+  pendingWrites.add(c);
+  try {
+    const snapshot = structuredClone(data);
+    const row = await saveCharacter(snapshot, c.updated_at ? c : null);
+    c.id = row.id; c.updated_at = row.updated_at; c.owner_id = row.owner_id;
+    baselines[c.id] = JSON.stringify(snapshot);
+    saveLocal();
+  } finally { pendingWrites.delete(c); }
 }
 
 function updateSyncStatus(online, text) {
@@ -444,13 +488,13 @@ function populateSelectOptions() {
     selAncestry.innerHTML = db.ancestries.map(a => `<option value="${a.ID}">${a.名称}</option>`).join('');
   }
   if (selComm && db.communities) {
-    selComm.innerHTML = db.communities.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
+    selComm.innerHTML = '<option value="">未登记</option>' + db.communities.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
   }
   if (selClass && db.classes) {
     selClass.innerHTML = db.classes.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
   }
 
-  updateSubclassOptions();
+
 
   // Populate Layer 1 Creation Wizard dropdowns
   const newAnc = el('new-char-ancestry');
@@ -477,94 +521,15 @@ function updateSubclassOptions() {
   if (selSub) {
     selSub.innerHTML = subList.map(sc => `<option value="${sc.ID}">${sc.名称} (${sc.等级 || '基础'})</option>`).join('');
     if (subList.length > 0) {
-      if (!subList.some(o => o.ID === c.sheet.subclassId)) {
-        c.sheet.subclassId = subList[0].ID;
-      }
-      selSub.value = c.sheet.subclassId;
+      selSub.value = subList.some(o => o.ID === c.sheet.subclassId) ? c.sheet.subclassId : subList[0].ID;
     }
   }
 }
 
 // Dynamic Defense, Maximum Resources, and Damage Thresholds Engine
 function calculateStats(char) {
-  const lvl = char.level || 1;
-  const s = char.sheet || {};
-  const eq = s.equipment || {};
-  const advs = s.advancements || [];
-  const gear = totalGearEffects(s, bagCapacity(s.bags ?? {}).totalSlots);
-
-  // Base Max HP and Stress from Class & Advancements
-  const clsObj = db?.classes?.find(x => x.ID === s.classId || x.名称 === s.classId);
-  const baseHp = Number(clsObj?.生命点 || 6);
-  const upgrades = Object.entries(s.levelAdvancements ?? {}).filter(([level]) => Number(level) <= lvl).flatMap(([, choices]) => choices);
-  const hpBonus = advs.filter(a => a.startsWith('hp')).length + upgrades.filter(a => a === 'hp').length;
-  const maxHp = Math.max(1, baseHp + hpBonus + (gear.hp ?? 0));
-
-  const stressBonus = advs.filter(a => a.startsWith('stress')).length + upgrades.filter(a => a === 'stress').length;
-  const maxStress = Math.max(1, 6 + stressBonus + (gear.stress ?? 0));
-
-  const hopeBonus = advs.filter(a => a === 'hope').length;
-  const maxHope = 6 + hopeBonus;
-
-  // Base Proficiency
-  const baseProf = tierForLevel(lvl);
-  const profBonus = advs.filter(a => a === 'prof').length + upgrades.filter(a => a === 'prof').length;
-  const earnedProficiency = baseProf + profBonus + (gear.proficiency ?? 0);
-  const totalProf = Math.max(0, earnedProficiency + (Number(s.proficiencyAdjustment) || 0));
-
-  // Armor & Thresholds Calculation
-  let baseArmor = 0;
-  let majorBonus = 0;
-  let severeBonus = 0;
-  let isSuitActive = false;
-  let suitItem = null;
-
-  // Check if a full suit is equipped (e.g. 皮甲套装, 锁甲套装, 板甲套装)
-  if (eq.suit && (!eq.suit.ownedGearId || s.inventoryItems?.some(item => item?.ownedGearId === eq.suit.ownedGearId)) && eq.suit.名称 && eq.suit.名称 !== '无套装 (无甲)') {
-    isSuitActive = true;
-    suitItem = eq.suit;
-    baseArmor = Number(suitItem.护甲值 ?? suitItem.基础护甲 ?? (suitItem.ownedGearId ? 0 : 1));
-    majorBonus = Number(suitItem.重度阈值 ?? (suitItem.ownedGearId ? 0 : 1));
-    severeBonus = Number(suitItem.严重阈值 ?? (suitItem.ownedGearId ? 0 : 2));
-  } else {
-    // Modular pieces calculation
-    const pieces = [eq.head, eq.chest, eq.wrists, eq.legs, eq.feet, eq.back, eq.ring1, eq.ring2, eq.trinket1, eq.trinket2];
-    for (const p of pieces) {
-      if (p) {
-        baseArmor += Number(p.护甲值 || 0);
-        majorBonus += Number(p.重度阈值 || 0);
-        severeBonus += Number(p.严重阈值 || 0);
-      }
-    }
-  }
-
-  // Off-hand shield bonus
-  if (eq.weapon_off && eq.weapon_off.护甲值) {
-    baseArmor += Number(eq.weapon_off.护甲值);
-  }
-
-  // Unarmored baseline thresholds: Major = Level, Severe = Level * 2
-  const majorThreshold = Math.max(1, lvl + majorBonus + (gear.major ?? 0));
-  const severeThreshold = Math.max(majorThreshold, lvl * 2 + severeBonus + (gear.severe ?? 0));
-  const lethalThreshold = Math.max(severeThreshold, severeThreshold * 2 + (gear.lethal ?? 0));
-
-  return {
-    maxHp,
-    maxStress,
-    maxHope,
-    totalProf,
-    earnedProficiency,
-    armorMax: Math.max(0, baseArmor + (gear.armor ?? 0) + (Number(s.armorLimitAdjustment) || 0)),
-    baseArmor,
-    majorThreshold,
-    severeThreshold,
-    lethalThreshold,
-    gear,
-    isSuitActive,
-    suitItem,
-    majorBonus,
-    severeBonus
-  };
+  const job = db?.classes?.find(x => x.ID === char.sheet.classId || x.名称 === char.sheet.classId);
+  return sheetStats(char, job, bagCapacity(char.sheet.bags).totalSlots);
 }
 
 // Main Render Function
@@ -573,6 +538,11 @@ function calculateStats(char) {
 // 核心两层架构控制器 (Two-Tier Layer Controller)
 // ==========================================================================
 function switchLayer(layer, targetIndex) {
+  if (layer === 'sheet' && !characters.length) layer = 'vault';
+  if (layer === 'sheet' && !db) { alert('规则资料尚未加载，请刷新后重试。'); return; }
+  el('btn-save-cloud').hidden = layer !== 'sheet';
+  el('btn-roll-init').hidden = layer !== 'sheet';
+  el('vault-open-btn').hidden = layer !== 'sheet';
   if (layer === 'workshop' && currentUser?.role !== 'gm') return;
   currentLayer = layer;
   const vaultLayer = el('layer-vault');
@@ -665,6 +635,7 @@ function renderVaultLobby() {
 
 function showCharacterCreator() {
   const section = el('vault-creator-section');
+  if (!db) return alert('规则资料尚未加载，请刷新后重试。');
   section.hidden = false;
   section.scrollIntoView({ block: 'nearest' });
   el('new-char-name').focus({ preventScroll: true });
@@ -673,23 +644,24 @@ function showCharacterCreator() {
 function exportCharacterJson(idx = null) {
   const target = (idx !== null && idx !== undefined && characters[idx]) ? characters[idx] : curChar();
   if (!target) return;
-  const jsonStr = JSON.stringify(target, null, 2);
+  const jsonStr = JSON.stringify(payload(target), null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `匕首世界角色_${target.avatar_name || '角色'}_Lv${target.level}.json`;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-function deleteCharacterByIndex(idx) {
+async function deleteCharacterByIndex(idx) {
   const target = characters[idx];
   if (!target) return;
   if (confirm(`确定要彻底删除角色【${target.avatar_name}】吗？此操作无法撤销。`)) {
-    characters.splice(idx, 1);
-    if (!characters.length) {
-      characters.push(createDefaultCharacter());
+    if (target.updated_at) {
+      try { await deleteCharacter(target); } catch (error) { return alert(error.message); }
     }
-    activeCharIndex = Math.min(activeCharIndex, characters.length - 1);
+    characters = characters.filter(c => c !== target);
+    activeCharIndex = Math.max(0, Math.min(activeCharIndex, characters.length - 1));
     saveLocal();
     renderVaultLobby();
   }
@@ -768,26 +740,7 @@ function setupCreationWizard() {
   const fileInput = el('hero-import-file');
   if (importBtn && fileInput) {
     importBtn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const parsed = JSON.parse(ev.target.result);
-          const normalized = normalizeCharacter(parsed);
-          characters.push(normalized);
-          activeCharIndex = characters.length - 1;
-          saveLocal();
-          renderVaultLobby();
-          alert(`成功导入角色【${normalized.avatar_name}】！`);
-        } catch {
-          alert('导入失败：文件格式不符合匕首世界角色卡规范。');
-        }
-      };
-      reader.readAsText(file);
-      fileInput.value = '';
-    });
+    fileInput.addEventListener('change', importCharacterJson);
   }
 }
 
@@ -833,20 +786,16 @@ function updateCreatorSubclassOptions() {
 }
 
 function renderAll() {
+  if (!curChar()) return;
   const c = curChar();
   renderLastRoll(c);
   const s = c.sheet;
   const stats = calculateStats(c);
 
-  // Sync Max limits to state
-  s.hp.max = stats.maxHp;
-  s.stress.max = stats.maxStress;
-  s.hope.max = stats.maxHope;
-  if (s.hp.cur > s.hp.max) s.hp.cur = s.hp.max;
-  if (s.stress.cur > s.stress.max) s.stress.cur = s.stress.max;
-  if (s.hope.cur > s.hope.max) s.hope.cur = s.hope.max;
-  if (s.armorPips.cur > stats.armorMax) s.armorPips.cur = stats.armorMax;
-
+  const current = {
+    hp: Math.min(Math.max(0,s.hp.cur), stats.maxHp), stress: Math.min(Math.max(0,s.stress.cur), stats.maxStress),
+    hope: Math.min(s.hope.cur, stats.maxHope), armor: Math.min(Math.max(0,s.armorPips.cur), stats.armorMax)
+  };
   // 1. Top Header Info
   el('cur-char-name').textContent = c.avatar_name || '无名角色';
   const clsObj = db?.classes?.find(x => x.ID === s.classId || x.名称 === s.classId);
@@ -865,45 +814,36 @@ function renderAll() {
   }
 
   // 2. Combat Resource Tracks & Pips
-  renderPips('hp', s.hp.cur, s.hp.max, 'filled-health');
-  renderPips('stress', s.stress.cur, s.stress.max, 'filled-stress');
-  renderPips('hope', s.hope.cur, s.hope.max, 'filled-hope');
-  renderPips('armor', s.armorPips.cur, stats.armorMax, 'filled-armor');
+  renderPips('hp', current.hp, stats.maxHp, 'filled-health');
+  renderPips('stress', current.stress, stats.maxStress, 'filled-stress');
+  renderPips('hope', current.hope, stats.maxHope, 'filled-hope');
+  renderPips('armor', current.armor, stats.armorMax, 'filled-armor');
 
-  el('hp-cur').textContent = s.hp.cur;
-  el('hp-max').textContent = s.hp.max;
-  el('stress-cur').textContent = s.stress.cur;
-  el('stress-max').textContent = s.stress.max;
-  el('hope-cur').textContent = s.hope.cur;
-  el('hope-max').textContent = s.hope.max;
-  el('armor-cur').textContent = s.armorPips.cur;
+  el('hp-cur').textContent = current.hp;
+  el('hp-max').textContent = stats.maxHp;
+  el('stress-cur').textContent = current.stress;
+  el('stress-max').textContent = stats.maxStress;
+  el('hope-cur').textContent = current.hope;
+  el('hope-max').textContent = stats.maxHope;
+  el('armor-cur').textContent = current.armor;
+  el('armor-remaining').textContent = stats.armorMax - current.armor;
   el('armor-max').textContent = stats.armorMax;
 
   el('threshold-a').textContent = stats.majorThreshold;
   el('threshold-b').textContent = stats.severeThreshold;
   el('threshold-c').textContent = stats.lethalThreshold;
-  el('stress-condition').hidden = s.stress.cur < s.stress.max;
-  el('death-condition').hidden = s.hp.cur > 0;
+  el('stress-condition').hidden = current.stress < stats.maxStress;
+  el('death-condition').hidden = current.hp > 0;
   for (const condition of ['vulnerable', 'restrained', 'hidden']) {
     el('condition-' + condition).checked = Boolean(s.conditions?.[condition]);
   }
 
   // Thresholds Dashboard Readout
   el('stat-armor-score').textContent = stats.baseArmor;
-  const evasionAdjustment = Number(s.evasionAdjustment) || 0;
-  const evasionAdvances = Object.entries(s.levelAdvancements ?? {})
-    .filter(([level]) => Number(level) <= c.level).flatMap(([, choices]) => choices)
-    .filter(choice => choice === 'evasion').length;
-  const armorFeature = stats.suitItem?.描述 ?? '';
-  const armorEvasion = (stats.gear.evasion ?? 0) + (Number(armorFeature.match(/(?:灵活|重型|极重|困难)\*\*\]：[^。]*?闪避值\s*([+-]\s*\d+)/)?.[1]?.replace(/\s/g, '')) || 0);
-  const evasion = el('stat-evasion');
-  evasion.textContent = clsObj?.闪避值 != null ? Number(clsObj.闪避值) + armorEvasion + evasionAdjustment + evasionAdvances : '—';
-  el('evasion-breakdown').textContent = clsObj?.闪避值 != null
-    ? `职业 ${clsObj.闪避值} · 护甲 ${armorEvasion} · 升级 ${evasionAdvances}` : '';
-  el('evasion-adjustment').value = evasion.textContent === '—' ? '' : evasion.textContent;
-  el('evasion-adjustment').dataset.base = Number(clsObj?.闪避值 ?? 0) + armorEvasion + evasionAdvances;
-  el('proficiency-current').value = stats.totalProf;
-  el('armor-limit').value = stats.armorMax;
+  el('stat-evasion').textContent = stats.values.evasion;
+  el('evasion-breakdown').textContent = '基础与装备 ' + stats.automatic.evasion;
+  for (const [id, key] of Object.entries(quickAdjustments)) el(id).value = adjustment(s, key);
+  renderAdjustments(c, stats);
   el('stat-proficiency').textContent = stats.totalProf;
   const tier = tierForLevel(c.level);
   el('cur-tier-tag').textContent = `位阶 ${tier} · ${['1', '2–4', '5–7', '8–10'][tier - 1]} 级`;
@@ -917,7 +857,8 @@ function renderAll() {
     for (const [attr, mod] of Object.entries(s.attributes)) {
       const modEl = el(`attr-mod-${attr}`);
       if (modEl) {
-        modEl.value = Number(mod) + (stats.gear[attr] ?? 0);
+        modEl.value = stats.values[attr];
+        modEl.readOnly = true;
         modEl.title = stats.gear[attr] ? `基础 ${mod} · 装备 ${stats.gear[attr]}` : '基础属性';
       }
     }
@@ -937,16 +878,13 @@ function renderPips(type, cur, max, fillClass) {
   const container = el(`${type}-pips`);
   if (!container) return;
   container.innerHTML = '';
-  for (let i = 0; i < max; i++) {
+  for (let i = 0; i < Math.min(max, 120); i++) {
     const pip = document.createElement('div');
     pip.className = `pip ${i < cur ? fillClass : ''}`;
     pip.title = `${type.toUpperCase()} 点数 ${i + 1}`;
     pip.addEventListener('click', () => {
       const c = curChar();
-      if (type === 'hp') c.sheet.hp.cur = (i + 1 === c.sheet.hp.cur) ? i : i + 1;
-      else if (type === 'stress') c.sheet.stress.cur = (i + 1 === c.sheet.stress.cur) ? i : i + 1;
-      else if (type === 'hope') c.sheet.hope.cur = (i + 1 === c.sheet.hope.cur) ? i : i + 1;
-      else if (type === 'armor') c.sheet.armorPips.cur = (i + 1 === c.sheet.armorPips.cur) ? i : i + 1;
+      c.sheet[type === 'armor' ? 'armorPips' : type].cur = i + 1 === cur ? i : i + 1;
       saveLocal();
       renderAll();
     });
@@ -1074,10 +1012,13 @@ function renderFoundations(clsObj) {
 
   if (el('fn-char-name')) el('fn-char-name').value = c.avatar_name || '';
   if (s.ancestryId && el('fn-select-ancestry')) el('fn-select-ancestry').value = s.ancestryId;
-  if (s.communityId && el('fn-select-community')) el('fn-select-community').value = s.communityId;
+  if (el('fn-select-community')) el('fn-select-community').value = s.communityId;
   if (s.classId && el('fn-select-class')) el('fn-select-class').value = s.classId;
+  updateSubclassOptions();
   if (s.subclassId && el('fn-select-subclass')) el('fn-select-subclass').value = s.subclassId;
-  if (el('fn-gm-notes')) el('fn-gm-notes').value = c.notes || '';
+  el('player-notes').value = s.journal || '';
+  el('gm-notes-panel').hidden = !canViewCommunity || !c.updated_at;
+  if (el('gm-note-dialog').open) el('gm-note-dialog').close();
 
   // 性别标签与单选按钮微调 (男/女/无)
   const currentGender = s.gender || '男';
@@ -1176,6 +1117,8 @@ function renderFoundations(clsObj) {
 
   // Community
   const comm = db?.communities?.find(cm => cm.ID === s.communityId);
+  el('fn-community-title').textContent = '社群';
+  el('fn-community-desc').textContent = '未登记';
   if (comm) {
     el('fn-community-title').textContent = comm.名称;
     el('fn-community-desc').innerHTML = renderMarkdown(comm.描述 || comm.简介 || '社群风俗');
@@ -1183,6 +1126,7 @@ function renderFoundations(clsObj) {
 }
 
 function renderDomainCards() {
+  if (!curChar()) return;
   const character = curChar();
   const sheet = character.sheet;
   const equipped = uniqueCards(sheet.equippedDomainCards);
@@ -1242,7 +1186,7 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
   title.textContent = card.名称;
   const meta = document.createElement('p');
   const cost = recallCost(card);
-  meta.textContent = `${card.领域 || '战役'} · ${cardLevel(card)} 级 · ${card.类型 || card.属性 || '领域卡'} · 回想 ${cost} 压力`;
+  meta.textContent = `${card.领域 || '战役'} · ${cardLevel(card)} 级 · ${card.属性 || card.类型 || '领域卡'} · 回想 ${cost} 压力`;
   const body = document.createElement('div');
   body.className = 'dh-card-desc';
   body.innerHTML = renderMarkdown(card.描述 || '');
@@ -1281,7 +1225,7 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
       const swapped = active.find(item => cardKey(item) === swap.value);
       if (active.length > 5 || active.length === 5 && !swapped) return alert('配置已满，请选择一张卡移回宝库。');
       const stressCost = el('domain-rest').checked ? 0 : cost;
-      if (sheet.stress.cur + stressCost > sheet.stress.max) return alert('可标记的压力点不足。');
+      if (stressCost && sheet.stress.cur + stressCost > calculateStats(character).maxStress) return alert('可标记的压力点不足。');
       if (stressCost && !confirm(`标记 ${stressCost} 点压力并回想此卡？`)) return;
       sheet.stress.cur += stressCost;
       const vault = sheet.vaultDomainCards.filter(item => cardKey(item) !== key);
@@ -1334,7 +1278,7 @@ function renderInventory(stats) {
   // Visual Grid
   const grid = el('inventory-grid');
   grid.innerHTML = '';
-  const items = c.sheet.inventoryItems || [];
+  const items = storedItems(c.sheet);
 
   const overflow = el('inventory-overflow');
   overflow.replaceChildren();
@@ -1354,15 +1298,15 @@ function renderInventory(stats) {
         ${item.qty > 1 ? `<span class="cell-qty">x${item.qty}</span>` : ''}
       `;
       cell.querySelector('.cell-icon').append(itemImage(item));
-      cell.querySelector('.cell-name').textContent = item.name;
+      cell.querySelector('.cell-name').textContent = item.name + (item.slot === 'passive' ? (i < totalSlots ? ' · 生效' : ' · 未生效') : '');
       cell.title = `${item.name}: ${item.desc || '物品'}\n(点击操作)`;
       cell.addEventListener('click', () => {
-        openItemActionModal(i);
+        openItemActionModal(c.sheet.inventoryItems.indexOf(item));
       });
     } else {
       cell.innerHTML = `<span style="color:rgba(255,255,255,0.08);font-size:11px;">#${i + 1}</span>`;
       cell.addEventListener('click', () => {
-        openAddItemModal(i);
+        openItemPicker('loot');
       });
     }
     (i < totalSlots ? grid : overflow).appendChild(cell);
@@ -1377,33 +1321,13 @@ function renderInventory(stats) {
 
   // Armor Formula Breakdown Readout
   const fb = el('armor-formula-breakdown');
-  fb.innerHTML = `
-    <div class="formula-row">
-      <span>基准无甲状态公式：</span>
-      <span>基础护甲 0 点，重度阈值 = 等级 (${c.level})，严重阈值 = 等级×2 (${c.level * 2})</span>
-    </div>
-    <div class="formula-row">
-      <span>防具计算模式：</span>
-      <span class="formula-rule-badge">${stats.isSuitActive ? '套装覆盖模式 (SRD 套装规则)' : '散件细分累加模式'}</span>
-    </div>
-    ${stats.isSuitActive ? `
-      <div class="formula-row" style="color:var(--text-gold);">
-        <span>当前生效套装：<strong>${stats.suitItem.名称}</strong></span>
-        <span>基础护甲 ${stats.baseArmor} | 重度阈值 +${stats.majorBonus} (总 ${stats.majorThreshold}) | 严重阈值 +${stats.severeBonus} (总 ${stats.severeThreshold})</span>
-      </div>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
-        ※ 穿戴了整套护甲（如皮甲套装、锁甲套装），系统已自动覆盖头部、身躯、腿部等散件护甲值，以套装统一防护力进行严谨判定。
-      </p>
-    ` : `
-      <div class="formula-row" style="color:var(--text-main);">
-        <span>散件部件加成累加：</span>
-        <span>散件提供护甲 +${stats.baseArmor} | 重度加成 +${stats.majorBonus} (总 ${stats.majorThreshold}) | 严重加成 +${stats.severeBonus} (总 ${stats.severeThreshold})</span>
-      </div>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
-        ※ 未装备整套套装时，角色自由组合穿戴的头盔、身躯、护腕、护胫等部件将各自叠加护甲槽与阈值加成。
-      </p>
-    `}
-  `;
+  fb.textContent = '护甲上限 ' + stats.armorMax + ' · 装备与奇物 ' + stats.baseArmor + ' · 手动补正 ' + adjustment(c.sheet,'armor');
+  const legacy = Object.values({...c.sheet.equipment,...c.sheet.bags}).filter(i => i?.ID?.startsWith('装备:') && !i.ownedGearId);
+  if (legacy.length) {
+    const review = document.createElement('p');
+    review.textContent = '旧档物品待主持人核对：'+legacy.map(i => i.名称).join('、');
+    fb.append(review);
+  }
 }
 
 // Event Listeners Setup
@@ -1523,8 +1447,8 @@ function advanceCharacter() {
       return alert('请选择兼职职业、领域和子职业。');
     }
     const stats = calculateStats(character);
-    if (stats.maxHp + choices.filter(key => key === 'hp').length > 12 ||
-        stats.maxStress + choices.filter(key => key === 'stress').length > 12) return alert('生命和压力上限为 12。');
+    if (stats.innate.hp + choices.filter(key => key === 'hp').length > 12 ||
+        stats.innate.stress + choices.filter(key => key === 'stress').length > 12) return alert('生命和压力上限为 12。');
     if (choices.includes('traits')) {
       for (const key of selectedTraits) sheet.attributes[key]++;
       sheet.levelTraitMarks = { ...sheet.levelTraitMarks, [level]: selectedTraits };
@@ -1555,6 +1479,37 @@ function getNextSubclass(sheet) {
     .find(card => card && !acquired.has(card.ID)) ?? null;
 }
 
+const quickAdjustments = {'evasion-adjustment':'evasion','proficiency-current':'proficiency','armor-limit':'armor'};
+function writeAdjustment(key, value) {
+  const sheet = curChar().sheet;
+  const delta = Number(value);
+  if (!Number.isSafeInteger(delta)) { renderAll(); return; }
+  (sheet.adjustments ??= {})[key] = delta;
+  saveLocal(); renderAll();
+}
+function renderAdjustments(character, stats) {
+  const body = el('stat-calculations');
+  body.replaceChildren();
+  for (const [key,label] of Object.entries(gearEffects)) {
+    const row = body.insertRow();
+    row.insertCell().textContent = label;
+    function input(cell, value, label, change) {
+      const field = document.createElement('input');
+      field.type = 'number'; field.step = '1'; field.value = value;
+      field.setAttribute('aria-label',label); field.className = 'dw-input';
+      field.onchange = () => change(Math.trunc(Number(field.value)) || 0);
+      cell.append(field);
+    }
+    const base = row.insertCell();
+    if (Object.hasOwn(traits,key)) input(base, character.sheet.attributes[key], label+'基础', value => {
+      character.sheet.attributes[key] = value; saveLocal(); renderAll();
+    });
+    else base.textContent = stats.innate[key];
+    row.insertCell().textContent = stats.gear[key] || 0;
+    input(row.insertCell(), adjustment(character.sheet,key), label+'补正', value => writeAdjustment(key,value));
+    row.insertCell().textContent = stats.values[key];
+  }
+}
 function setupEventListeners() {
   // Steppers: Level
   el('lvl-up').addEventListener('click', () => {
@@ -1567,44 +1522,24 @@ function setupEventListeners() {
     c.level--; saveLocal(); renderAll();
   });
 
-  // Resource Plus/Minus Buttons
-  el('hp-plus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hp.cur < c.sheet.hp.max) { c.sheet.hp.cur++; saveLocal(); renderAll(); } });
-  el('hp-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hp.cur > 0) { c.sheet.hp.cur--; saveLocal(); renderAll(); } });
-  el('stress-plus').addEventListener('click', () => { const c = curChar(); if (c.sheet.stress.cur < c.sheet.stress.max) { c.sheet.stress.cur++; saveLocal(); renderAll(); } });
-  el('stress-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.stress.cur > 0) { c.sheet.stress.cur--; saveLocal(); renderAll(); } });
-  el('hope-plus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hope.cur < c.sheet.hope.max) { c.sheet.hope.cur++; saveLocal(); renderAll(); } });
-  el('hope-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.hope.cur > 0) { c.sheet.hope.cur--; saveLocal(); renderAll(); } });
-  el('armor-plus').addEventListener('click', () => { const c = curChar(); const st = calculateStats(c); if (c.sheet.armorPips.cur < st.armorMax) { c.sheet.armorPips.cur++; saveLocal(); renderAll(); } });
-  el('armor-minus').addEventListener('click', () => { const c = curChar(); if (c.sheet.armorPips.cur > 0) { c.sheet.armorPips.cur--; saveLocal(); renderAll(); } });
-
-  const adjustments = {
-    'evasion-adjustment': ['evasionAdjustment', () => Number(el('evasion-adjustment').dataset.base)],
-    'proficiency-current': ['proficiencyAdjustment', character => calculateStats(character).earnedProficiency],
-    'armor-limit': ['armorLimitAdjustment', character => { const stats = calculateStats(character); return stats.baseArmor + (stats.gear.armor ?? 0); }],
-  };
-  for (const [id, [field, base]] of Object.entries(adjustments)) {
-    el(id).addEventListener('change', event => {
-      const character = curChar();
-      character.sheet[field] = Math.max(0, Math.trunc(Number(event.target.value)) || 0) - base(character);
-      saveLocal();
-      renderAll();
-    });
+  for (const [key, cap] of Object.entries({hp:'maxHp', stress:'maxStress', hope:'maxHope', armor:'armorMax'})) {
+    for (const [action, delta] of [['plus',1], ['minus',-1]]) {
+      el(key + '-' + action).onclick = () => {
+        const c = curChar(), max = calculateStats(c)[cap];
+        const track = c.sheet[key === 'armor' ? 'armorPips' : key];
+        track.cur = Math.max(0, Math.min(max, Math.min(max, track.cur) + delta));
+        saveLocal(); renderAll();
+      };
+    }
+  }
+  for (const [id,key] of Object.entries(quickAdjustments)) {
+    el(id).onchange = event => writeAdjustment(key,event.target.value);
   }
   document.querySelectorAll('[data-adjust]').forEach(button => {
-    button.addEventListener('click', () => {
-      const input = el(button.dataset.adjust);
-      input.value = Math.max(0, (Number(input.value) || 0) + Number(button.dataset.delta));
-      input.dispatchEvent(new Event('change'));
-    });
-  });
-  document.querySelectorAll('[data-trait]').forEach(input => {
-    input.setAttribute('aria-label', traits[input.dataset.trait]);
-    input.addEventListener('change', () => {
-      const character = curChar();
-      character.sheet.attributes[input.dataset.trait] = (Math.trunc(Number(input.value)) || 0) - (calculateStats(character).gear[input.dataset.trait] ?? 0);
-      saveLocal();
-      renderAll();
-    });
+    button.onclick = () => {
+      const id = button.dataset.adjust;
+      writeAdjustment(quickAdjustments[id], Number(el(id).value) + Number(button.dataset.delta));
+    };
   });
   document.querySelectorAll('[data-trait-mark]').forEach(input => {
     input.addEventListener('change', () => {
@@ -1705,12 +1640,21 @@ function setupEventListeners() {
     renderAll();
   });
 
-  el('fn-gm-notes').addEventListener('input', e => {
+  el('player-notes').oninput = e => { curChar().sheet.journal = e.target.value; saveLocal(); };
+  el('gm-note-open').onclick = async () => {
     const c = curChar();
-    c.notes = e.target.value;
-    saveLocal();
-  });
-
+    if (currentUser?.role !== 'gm' || !c?.updated_at) return;
+    try {
+      const note = await readGmNote(c.id);
+      if (curChar() !== c) return;
+      el('fn-gm-notes').value = note?.body || '';
+      el('gm-note-dialog').showModal();
+      el('gm-note-save').onclick = async () => {
+        try { await writeGmNote(c.id,el('fn-gm-notes').value,note); el('gm-note-dialog').close(); }
+        catch (error) { alert(error.message); }
+      };
+    } catch (error) { alert(error.message); }
+  };
   // Currency Inputs
   ['handfuls', 'bags', 'chests'].forEach(type => {
     el(`coin-${type}`).addEventListener('change', e => {
@@ -1723,86 +1667,51 @@ function setupEventListeners() {
 
   // Top Bar Actions & Two-Tier Layer Switching
   el('btn-back-vault')?.addEventListener('click', () => {
-    if (currentLayer === 'workshop') {
-      switchLayer('vault');
-    } else {
-      switchLayer('vault');
-    }
+    switchLayer('vault');
   });
   el('btn-open-vault')?.addEventListener('click', () => switchLayer('vault'));
 
 
-  el('vault-open-btn').addEventListener('click', openVaultModal);
-  el('vault-modal-close').addEventListener('click', closeVaultModal);
-  el('vault-create-btn').addEventListener('click', createNewAvatar);
-  el('vault-refresh-btn').addEventListener('click', async () => {
-    try {
-      updateSyncStatus(true, '正在刷新云端…');
-      const account = await loadAccount();
-      if (account?.characters?.length) {
-        characters = account.characters.map(normalizeCharacter);
-        activeCharIndex = 0;
-        updateSyncStatus(true, `云端已同步 · ${account.login || '冒险者'}`);
-        renderVaultCharList();
-        renderAll();
-      } else {
-        alert('云端暂无其他角色。');
-      }
-    } catch (err) {
-      alert('刷新失败：' + err.message);
-    }
-  });
-
-  el('btn-save-cloud').addEventListener('click', async () => {
-    try {
-      const c = curChar();
-      updateSyncStatus(true, '正在上传云端…');
-      const isExistingCloudRecord = c.id && !c.id.startsWith('local_') && !c.id.startsWith('imported_') && c.updated_at;
-      const saved = await saveCharacter({
-        avatar_name: c.avatar_name,
-        level: c.level,
-        sheet: c.sheet,
-        notes: c.notes
-      }, isExistingCloudRecord ? c : null);
-      c.id = saved.id;
-      c.updated_at = saved.updated_at;
-      saveLocal();
-      updateSyncStatus(true, '云端已同步！');
-      alert(`角色【${c.avatar_name}】已成功同步至云端！`);
-    } catch (err) {
-      alert('保存至云端失败：' + err.message);
-      updateSyncStatus(false, '保存失败 (已存本地)');
-    }
-  });
+  el('vault-open-btn').onclick = () => switchLayer('vault');
+  el('btn-vault-refresh').onclick = async () => {
+    try { reconcileAccount(await loadAccount(),true); updateSyncStatus(true,'云端已刷新'); }
+    catch (err) { alert('刷新失败：' + err.message); }
+  };
+  el('btn-save-cloud').onclick = async () => {
+    const c = curChar();
+    if (!c || !db) return alert('请等规则资料加载后再保存。');
+    try { await persist(c); updateSyncStatus(true,'角色已保存'); }
+    catch (err) { alert(err.message); updateSyncStatus(false,'本地草稿'); }
+  };
 
   // Fixed More Dropdown (Toggle class 'show' and close on outside click)
   const moreBtn = el('btn-more-toggle');
   const moreDropdown = el('more-dropdown');
   moreBtn.addEventListener('click', e => {
     e.stopPropagation();
-    moreDropdown.classList.toggle('show');
+    moreDropdown.hidden = !moreDropdown.classList.toggle('show');
   });
   document.addEventListener('click', e => {
     if (moreDropdown.classList.contains('show') && !moreDropdown.contains(e.target) && e.target !== moreBtn) {
-      moreDropdown.classList.remove('show');
+      moreDropdown.hidden = true; moreDropdown.classList.remove('show');
     }
   });
 
   el('btn-create-char').addEventListener('click', () => {
-    moreDropdown.classList.remove('show');
+    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
     switchLayer('vault');
     showCharacterCreator();
   });
   el('btn-export-json').addEventListener('click', () => {
-    moreDropdown.classList.remove('show');
+    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
     exportCharacterJson();
   });
   el('import-json-file').addEventListener('change', e => {
-    moreDropdown.classList.remove('show');
+    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
     importCharacterJson(e);
   });
   el('btn-roll-init').addEventListener('click', () => {
-    moreDropdown.classList.remove('show');
+    moreDropdown.hidden = true; moreDropdown.classList.remove('show');
     openDiceRoll('agility');
   });
 
@@ -1909,7 +1818,7 @@ function setupEventListeners() {
   el('btn-ws-clear-lib')?.addEventListener('click', clearWorkshopLibrary);
 
   // Add Item to Bag
-  el('btn-add-item').addEventListener('click', () => openAddItemModal());
+  el('ws-catalog').onclick = () => openItemPicker('loot');
   el('btn-loot-catalog').addEventListener('click', () => openItemPicker('loot'));
   for (const field of ['skin', 'hair', 'beard']) {
     el(`paperdoll-${field}`).addEventListener('change', event => {
@@ -1973,8 +1882,8 @@ function setupEventListeners() {
     const item = c.sheet.inventoryItems[activeBagItemIndex];
     if (item && confirm(`确定要丢弃【${item.name}】吗？`)) {
       c.sheet.inventoryItems.splice(activeBagItemIndex, 1);
-      if (item.ownedGearId) for (const [slot, equipped] of Object.entries(c.sheet.equipment)) {
-        if (equipped?.ownedGearId === item.ownedGearId) c.sheet.equipment[slot] = null;
+      if (item.ownedGearId) for (const slots of [c.sheet.equipment,c.sheet.bags]) for (const [slot,equipped] of Object.entries(slots)) {
+        if (equipped?.ownedGearId === item.ownedGearId) slots[slot] = null;
       }
       saveLocal();
       renderAll();
@@ -1993,10 +1902,19 @@ function openItemActionModal(index) {
   el('item-action-title').textContent = item.name;
   const desc = el('item-action-desc');
   desc.innerHTML = renderMarkdown(item.desc || '');
+  el('item-qty-plus').hidden = Boolean(item.ownedGearId);
+  el('item-qty-minus').hidden = Boolean(item.ownedGearId);
   if (item.slot) {
     const attributes = document.createElement('p');
-    const location = item.slot === 'passive' && index >= bagCapacity(c.sheet.bags).totalSlots
+    const location = item.slot === 'passive' && storedItems(c.sheet).indexOf(item) >= bagCapacity(c.sheet.bags).totalSlots
       ? '背包奇物 · 当前在溢出区' : gearSlots[item.slot];
+    if (location?.includes('溢出') && bagCapacity(c.sheet.bags).totalSlots > 0) {
+      const move = document.createElement('button');
+      move.textContent = '移入背包首格'; move.onclick = () => {
+        c.sheet.inventoryItems.splice(index,1); c.sheet.inventoryItems.unshift(item);
+        el('item-action-modal').hidden = true; saveLocal(); renderAll();
+      }; desc.append(move);
+    }
     attributes.textContent = [location, gearFormula(item)].filter(Boolean).join(' · ');
     desc.prepend(attributes);
   }
@@ -2015,39 +1933,26 @@ function openItemPicker(slotKey) {
   currentPickerSlot = slotKey;
   el('item-picker-modal').hidden = false;
   const isLoot = slotKey === 'loot';
-  el('picker-title').textContent = isLoot ? '战利品与消耗品' : `选择装备 · ${getSlotTitle(slotKey)}`;
+  el('picker-title').textContent = isLoot ? '物品图鉴' : `选择装备 · ${getSlotTitle(slotKey)}`;
   const search = el('picker-search-input');
   search.value = '';
   search.placeholder = isLoot ? '搜索物品' : '搜索装备';
   el('picker-unequip-btn').hidden = isLoot;
 
-  let candidates = [];
+  let candidates;
   if (isLoot) {
-    candidates = db?.loot || [];
-  } else if (slotKey.startsWith('weapon_')) {
-    candidates = (db?.weapons || []).filter(item => item.类型 === (slotKey === 'weapon_off' ? '副武器' : '主武器'));
-  } else if (slotKey === 'suit') {
-    candidates = db?.armor || [];
-  } else if (slotKey === 'costume') {
-    candidates = (db?.modular_gear || []).filter(item => item.部位 === 'costume');
-  } else if (slotKey.includes('bag') || slotKey.includes('pouch') || slotKey.includes('satchel')) {
-    const part = slotKey === 'main_bag' ? 'main-bag' : slotKey.split('_')[0];
-    candidates = (db?.modular_gear || []).filter(g => g.部位 === part);
+    candidates = [...(db?.weapons || []), ...(db?.armor || []), ...(db?.loot || [])];
   } else {
-    const part = slotKey.replace(/[0-9]/g, '');
-    candidates = (db?.modular_gear || []).filter(g => g.部位 === part || g.类型 === getSlotTitle(slotKey));
-  }
-
-  if (!isLoot) {
-    const assigned = new Set(Object.entries(curChar().sheet.equipment)
-      .filter(([key]) => key !== slotKey).map(([, item]) => item?.ownedGearId).filter(Boolean));
-    const owned = curChar().sheet.inventoryItems.filter(item => item?.ownedGearId && !assigned.has(item.ownedGearId) && slotMatches(item, slotKey));
-    candidates = [...owned.map(item => ({
-      名称: item.name, 描述: item.desc, 位阶: item.tier, 品类: item.type,
-      属性: item.weapon?.trait, 伤害: item.weapon?.damage, 距离: item.weapon?.range,
-      伤害类型: item.weapon?.kind, 负荷: item.weapon?.burden,
-      ownedGearId: item.ownedGearId, appearance: item.appearance, ...readGear(item),
-    })), ...candidates];
+    const sheet = curChar().sheet;
+    const assigned = new Set(Object.entries({...sheet.equipment,...sheet.bags})
+      .filter(([key]) => key !== slotKey).map(([,item]) => item?.ownedGearId));
+    candidates = sheet.inventoryItems.filter(item => item?.ownedGearId && !assigned.has(item.ownedGearId) && slotMatches(item,slotKey))
+      .map(item => item.resourceId ? {...sourceItem(item.resourceId), ownedGearId:item.ownedGearId,slot:item.slot} : ({
+        名称:item.name, 描述:item.desc, 位阶:item.tier, 品类:item.type, 容量:item.capacity,
+        属性:item.weapon?.trait, 伤害:item.weapon?.damage, 距离:item.weapon?.range,
+        伤害类型:item.weapon?.kind, 负荷:item.weapon?.burden, ownedGearId:item.ownedGearId,
+        appearance:item.appearance,...readGear(item)
+      }));
   }
   currentPickerCandidates = candidates;
   renderPickerList(candidates);
@@ -2079,13 +1984,18 @@ function renderPickerList(items) {
     const card = document.createElement('div');
     card.className = 'picker-item-card';
     decorateGear(card, item, currentPickerSlot);
+    const catalog = currentPickerSlot === 'loot';
+    const grant = catalog && currentUser?.role === 'gm' && currentLayer === 'workshop';
     const issue = currentPickerSlot === 'loot' ? '' : getEquipmentIssue(currentPickerSlot, item);
     card.innerHTML = `
       <div class="picker-item-title"></div>
-      <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? weaponSummary(item, calculateStats(curChar()).totalProf) : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
+      <div class="picker-item-stats">${item.护甲值 ? `+${item.护甲值} 护甲` : ''} ${item.伤害 ? weaponSummary(item, catalog ? 1 : calculateStats(curChar()).totalProf) : ''} ${item.容量 ? `容量 +${item.容量}格` : ''}</div>
       <div class="picker-item-desc">${renderMarkdown(item.描述 || '')}</div>
       <button type="button" class="picker-item-equip-btn" ${issue ? 'disabled' : ''}>${currentPickerSlot === 'loot' ? '放入背包' : '装备'}</button>
     `;
+    const action = card.querySelector('button');
+    action.hidden = catalog && !grant;
+    if (grant) action.textContent = '发放';
     const title = card.querySelector('.picker-item-title');
     title.textContent = item.名称;
     title.prepend(itemImage(item));
@@ -2100,10 +2010,10 @@ function renderPickerList(items) {
       reason.textContent = issue;
       card.append(reason);
     }
-    card.addEventListener('click', () => {
+    action.addEventListener('click', async () => {
       if (issue) return;
-      if (currentPickerSlot === 'loot') {
-        if (!putLootInBag(item)) return;
+      if (catalog) {
+        if (!grant || !await grantSourceItem(item)) return;
       } else {
         equipItemToSlot(currentPickerSlot, item);
       }
@@ -2113,28 +2023,27 @@ function renderPickerList(items) {
   });
 }
 
-function putLootInBag(item) {
-  const character = curChar();
-  const stats = calculateStats(character);
-  const items = character.sheet.inventoryItems;
-  const existing = items.find(entry => entry.resourceId === item.ID && item.ID);
-  if (existing) {
-    existing.qty = (existing.qty || 1) + 1;
-  } else {
-    if (items.length >= bagCapacity(character.sheet.bags).totalSlots) {
-      alert('背包已满');
-      return false;
-    }
-    items.push({ resourceId: item.ID, name: item.名称, desc: item.描述 || '', type: item.类型, qty: 1 });
+function sourceItem(id) {
+  return [db.weapons,db.armor,db.loot].flat().find(row => row.ID === id);
+}
+function grantSourceItem(record) {
+  const relics = {神行遗宝:'agility',强力遗宝:'strength',控制遗宝:'finesse',调和遗宝:'instinct',魅力遗宝:'presence',启迪遗宝:'knowledge'};
+  const wearable = {奥术斗篷:'back',壁虎手套:'wrists',湖行者长靴:'feet',寂静戒指:'ring',抵抗戒指:'ring',
+    镇静吊坠:'trinket',空刃护符:'trinket',匿踪护身符:'trinket',闪烁飞虫吊坠:'trinket'};
+  const target = characters[workshopState.targetCharIndex];
+  if (record.描述?.includes('不能同时持有其他遗宝') && target?.sheet.inventoryItems.some(i => sourceItem(i.resourceId)?.描述?.includes('不能同时持有其他遗宝'))) {
+    alert('该角色已持有遗宝。'); return false;
   }
-  saveLocal();
-  renderInventory(stats);
-  return true;
+  const slot = {'主武器':'weapon_main','副武器':'weapon_off','护甲':'suit'}[record.类型] || wearable[record.名称] || (relics[record.名称] ? 'passive' : '');
+  const item = {resourceId:record.ID,name:record.名称,desc:record.描述,type:record.类型,
+    tier:record.位阶, modifiers:relics[record.名称] ? {[relics[record.名称]]:1} : {},slot,qty:1,ownedGearId:slot ? crypto.randomUUID() : undefined};
+  return deliver(workshopState.targetCharIndex,'inventoryItems',item);
 }
 
 function equipItemToSlot(slotKey, item) {
   const c = curChar();
   if (getEquipmentIssue(slotKey, item, c)) return;
+  preserveOldEquipment(c,slotKey);
   if (slotKey.startsWith('weapon_')) {
     c.sheet.equipment[slotKey] = item;
   } else if (['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(slotKey)) {
@@ -2146,9 +2055,18 @@ function equipItemToSlot(slotKey, item) {
   renderAll();
 }
 
+function preserveOldEquipment(c,slot) {
+  const old = c.sheet.equipment[slot] ?? c.sheet.bags[slot];
+  if (old && !old.ownedGearId && old.ID && sourceItem(old.ID)) {
+    c.sheet.inventoryItems.push({resourceId:old.ID,name:old.名称,desc:old.描述,qty:1,
+      ownedGearId:crypto.randomUUID(),slot:({'主武器':'weapon_main','副武器':'weapon_off','护甲':'suit'})[old.类型]});
+  }
+}
+
 function unequipCurrentSlot() {
   if (!currentPickerSlot) return;
   const c = curChar();
+  preserveOldEquipment(c,currentPickerSlot);
   if (currentPickerSlot.startsWith('weapon_')) {
     c.sheet.equipment[currentPickerSlot] = null;
   } else if (['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(currentPickerSlot)) {
@@ -2174,7 +2092,7 @@ function getSlotTitle(k) {
 
 // Duality Dice Rolling Logic (1d12 Hope + 1d12 Fear)
 function rollHistoryKey(character) {
-  return `daggerworld.roll-history.v1:${JSON.stringify([currentUser?.owner ?? 'local', character.id])}`;
+  return `daggerworld.roll-history.v1:${JSON.stringify([owner ?? 'local', character.id])}`;
 }
 
 function readLastRoll(key) {
@@ -2211,7 +2129,7 @@ function openDiceRoll(attr) {
 
 function executeDualityRoll(attr) {
   const c = curChar();
-  const mod = (Number(c.sheet.attributes[attr]) || 0) + (calculateStats(c).gear[attr] ?? 0);
+  const mod = calculateStats(c).values[attr];
 
   const hopeDie = Math.floor(Math.random() * 12) + 1;
   const fearDie = Math.floor(Math.random() * 12) + 1;
@@ -2245,81 +2163,6 @@ function executeDualityRoll(attr) {
   try { localStorage.setItem(key, JSON.stringify(entry)); } catch { /* Keep the last roll in memory. */ }
   renderLastRoll(c);
 }
-
-// Character Vault Modal Management
-function openVaultModal() {
-  el('vault-modal').hidden = false;
-  renderVaultCharList();
-}
-
-function closeVaultModal() {
-  el('vault-modal').hidden = true;
-}
-
-function renderVaultCharList() {
-  const container = el('vault-char-list');
-  container.innerHTML = '';
-
-  characters.forEach((char, idx) => {
-    const card = document.createElement('div');
-    card.className = `vault-char-card ${idx === activeCharIndex ? 'active' : ''}`;
-    const clsObj = db?.classes?.find(c => c.ID === char.sheet?.classId || c.名称 === char.sheet?.classId);
-    card.innerHTML = `
-      <div class="vault-char-left">
-        <span style="font-size:24px;">🛡️</span>
-        <div>
-          <div class="vault-char-title">${char.avatar_name || '无名角色'}</div>
-          <div class="vault-char-meta">${clsObj?.名称 || '战士'} · Lv ${char.level} · 更新于 ${new Date(char.updated_at || Date.now()).toLocaleDateString()}</div>
-        </div>
-      </div>
-      <div class="vault-char-actions">
-        <button class="dw-btn dw-btn-outline" style="padding:4px 8px;font-size:11px;" data-idx="${idx}">切换载入</button>
-        ${characters.length > 1 ? `<button class="dw-btn dw-btn-outline" style="padding:4px 8px;font-size:11px;color:var(--accent-health);" data-del-idx="${idx}">删除</button>` : ''}
-      </div>
-    `;
-
-    card.querySelector('[data-idx]').addEventListener('click', e => {
-      e.stopPropagation();
-      activeCharIndex = idx;
-      closeVaultModal();
-      renderAll();
-    });
-
-    const delBtn = card.querySelector('[data-del-idx]');
-    if (delBtn) {
-      delBtn.addEventListener('click', async e => {
-        e.stopPropagation();
-        if (confirm(`确定要彻底删除角色【${char.avatar_name}】吗？`)) {
-          if (!char.id.startsWith('local_') && !char.id.startsWith('imported_')) {
-            try { await deleteCharacter(char.id); } catch (err) { console.warn(err); }
-          }
-          characters.splice(idx, 1);
-          activeCharIndex = 0;
-          saveLocal();
-          renderVaultCharList();
-          renderAll();
-        }
-      });
-    }
-
-    container.appendChild(card);
-  });
-}
-
-function createNewAvatar() {
-  const name = prompt('请输入新角色的角色名称：', '深水城探索者');
-  if (!name) return;
-  const newChar = createDefaultCharacter(name);
-  characters.push(newChar);
-  activeCharIndex = characters.length - 1;
-  saveLocal();
-  closeVaultModal();
-  renderAll();
-}
-
-// ==========================================================================
-// 主持人专属：独立资源工坊与军械库系统 (Layer 3: Workshop, Armory & PbDH Pack)
-// ==========================================================================
 
 let workshopState = {
   currentTab: 'item',          // 'item' | 'domain-card' | 'custom-domain'
@@ -2357,12 +2200,13 @@ function updateWorkshopTargetSelect() {
   characters.forEach((char, idx) => {
     const opt = document.createElement('option');
     opt.value = idx;
-    opt.textContent = `${char.avatar_name || '未命名'} (Lv.${char.sheet.level || 1} ${char.sheet.classId || '冒险者'})`;
+    opt.textContent = `${char.avatar_name || '未命名'} (Lv.${char.level || 1} ${char.sheet.classId || '冒险者'})`;
     if (idx === workshopState.targetCharIndex) opt.selected = true;
     sel.appendChild(opt);
   });
 
-  const c = characters[workshopState.targetCharIndex] || characters[0];
+  if (!characters[workshopState.targetCharIndex]) workshopState.targetCharIndex = 0;
+  const c = characters[workshopState.targetCharIndex];
   if (c && meta) {
     const invCount = (c.sheet.inventoryItems || []).length;
     const equippedCards = (c.sheet.equippedDomainCards || []).length;
@@ -2452,6 +2296,7 @@ function updateItemPreview() {
   el('ws-item-effects').hidden = !gear.slot;
   decorateGear(el('ws-item-preview'), { ...gear, tier });
   if (gearFormula(gear)) el('ws-prev-stats').textContent = gearFormula(gear);
+  el('ws-container-label').hidden = !['main_bag','pouch','satchel'].includes(gear.slot);
   el('ws-prev-icon')?.replaceChildren(itemImage({ name, type, subcat, appearance: el('ws-item-appearance')?.value }));
 }
 
@@ -2479,11 +2324,12 @@ function updateCardPreview() {
 // 提交物品创制 / 编辑 (保存或发放)
 function workshopGear() {
   const modifiers = Object.fromEntries(Object.keys(gearEffects).map(key => [key, el('gear-effect-' + key).value]));
-  return readGear({ slot: el('ws-item-slot').value, quality: el('ws-item-quality').value, modifiers });
+  return readGear({ capacity:Number(el('ws-container-cap').value), slot: el('ws-item-slot').value, quality: el('ws-item-quality').value, modifiers });
 }
 
 function fillWorkshopGear(item = {}) {
   const gear = readGear(item);
+  el('ws-container-cap').value = gear.capacity ?? '';
   el('ws-item-slot').value = gear.slot;
   el('ws-item-quality').value = gear.quality;
   for (const key of Object.keys(gearEffects)) el('gear-effect-' + key).value = gear.modifiers[key] ?? '';
@@ -2505,6 +2351,7 @@ function handleWorkshopItemSubmit(isDispatch) {
   const icon = resolveItemIcon(name, type, subcat);
 
   const gear = workshopGear();
+  if (['main_bag','pouch','satchel'].includes(gear.slot) && !gear.capacity) return alert('请填写容器容量（1–999格）。');
   if (type === '消耗品' && gear.slot) return alert('消耗品请将部位设为「无」。');
   if (['武器', '护甲'].includes(type) && !gear.slot) return alert('请选择装备部位。');
   if (gear.slot && [...el('ws-gear-fields').querySelectorAll('input')].some(input => !input.checkValidity())) {
@@ -2638,12 +2485,12 @@ function handleSaveCustomDomain() {
 
 // 发放物品至指定角色背包
 function dispatchItemToCharacter(item, charIndex) {
-  const target = characters[charIndex] || curChar();
+  const target = characters[charIndex];
   if (!target) return alert('未找到目标角色！');
   if (!target.sheet.inventoryItems) target.sheet.inventoryItems = [];
 
   const formattedDesc = item.stats ? `**【${item.type} · ${item.subcat || '标准'}】** ${item.stats}\n\n${item.desc}` : item.desc;
-  target.sheet.inventoryItems.push({
+  return deliver(charIndex,'inventoryItems',{
     name: item.name,
     desc: formattedDesc,
     qty: 1,
@@ -2657,27 +2504,30 @@ function dispatchItemToCharacter(item, charIndex) {
     tier: item.tier
   });
 
-  saveLocal();
-  if (charIndex === activeCharIndex) {
-    renderAll();
-  }
-  updateWorkshopTargetSelect();
-  alert(`👑 已成功向角色【${target.avatar_name}】的背包发放【${item.name}】！`);
 }
 
-// 发放领域卡至指定角色领域秘藏
 function dispatchCardToCharacter(card, charIndex) {
-  const target = characters[charIndex] || curChar();
-  if (!target) return alert('未找到目标角色！');
-  if (!target.sheet.customDomainCards) target.sheet.customDomainCards = [];
+  return deliver(charIndex,'customDomainCards',card);
+}
 
-  target.sheet.customDomainCards.push(card);
-  saveLocal();
-  if (charIndex === activeCharIndex) {
-    renderDomainCards();
+async function deliver(index,field,item) {
+  const target = characters[index];
+  if (currentUser?.role !== 'gm' || !target?.updated_at) {
+    alert('请选择已经保存到云端的角色。'); return false;
   }
-  updateWorkshopTargetSelect();
-  alert(`👑 已成功向角色【${target.avatar_name}】的领域秘藏发放【${card.名称 || card.name}】！`);
+  if (field === 'customDomainCards' && target.sheet[field].some(c => cardKey(c) === cardKey(item))) {
+    alert('角色已持有这张卡。'); return false;
+  }
+  const proposed = structuredClone(target);
+  proposed.sheet[field].push(item);
+  const data = payload(proposed);
+  try {
+    await persist(target,data);
+    target.sheet[field].push(item); saveLocal();
+    updateWorkshopTargetSelect();
+    if (currentLayer === 'sheet') renderAll();
+    alert('已发放至'+target.avatar_name+'。'); return true;
+  } catch (error) { alert('发放未确认，请刷新后核对。'+error.message); return false; }
 }
 
 // 回显载入物品进入编辑状态
@@ -3188,40 +3038,21 @@ function clearWorkshopLibrary() {
 
 
 // 背包放入物品模态框 (智能结合 Kenney 图标解析)
-function openAddItemModal(gridIndex = null) {
-  const character = curChar();
-  if (character.sheet.inventoryItems.length >= bagCapacity(character.sheet.bags).totalSlots) return alert('背包容量不足。');
-  const name = prompt('物品名称');
-  if (!name) return;
-  const desc = prompt('物品描述');
-  const c = curChar();
-  if (!c.sheet.inventoryItems) c.sheet.inventoryItems = [];
-
-  const icon = resolveItemIcon(name);
-  const item = { name, desc: desc || '', qty: 1, icon };
-  if (gridIndex !== null && gridIndex < c.sheet.inventoryItems.length) {
-    c.sheet.inventoryItems[gridIndex] = item;
-  } else {
-    c.sheet.inventoryItems.push(item);
-  }
-  saveLocal();
-  renderInventory(calculateStats(c));
-}
-
-
 function importCharacterJson(e) {
   const file = e.target.files[0];
   if (!file) return;
+  e.target.value = '';
   const reader = new FileReader();
   reader.onload = ev => {
     try {
       const imported = JSON.parse(ev.target.result);
       if (!imported.sheet) throw new Error('无效的角色卡格式');
+      delete imported.updated_at; delete imported.owner_id; delete imported.notes;
       imported.id = 'imported_' + Date.now();
       characters.push(normalizeCharacter(imported));
       activeCharIndex = characters.length - 1;
       saveLocal();
-      renderAll();
+      switchLayer('sheet',activeCharIndex);
       alert(`已成功导入角色【${imported.avatar_name}】！`);
     } catch (err) {
       alert('导入失败：' + err.message);

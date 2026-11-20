@@ -3074,3 +3074,7 @@ body.dw-theme {
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
+
+.stat-details {grid-column:1/-1;padding:.7rem;background:var(--bg-card)} .stat-details summary{cursor:pointer}.stat-details table{width:100%;text-align:center}.stat-details input{width:5em;max-width:100%}
+
+.md-badge strong, .md-badge em { color: inherit; }
