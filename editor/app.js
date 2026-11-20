@@ -153,6 +153,7 @@ function getDomainColor(domain) {
 // Markdown & Rich Tag Renderer
 function renderMarkdown(str) {
   if (!str) return '';
+  if (typeof str === 'string') str = str.replace(/主持人|(?<![A-Za-z])GM(?![A-Za-z])/g, '系统');
   let out = String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -798,7 +799,7 @@ function updateCreatorClassPreview() {
   if (c) {
     preview.innerHTML = `
       <div style="display:flex;gap:10px;margin-bottom:6px;font-size:11px;">
-        <span style="color:var(--text-gold);"><strong>领域：</strong>${c.领域 || '战役'}</span>
+        <span style="color:var(--text-gold);"><strong>领域：</strong>${c.领域 || '未归类'}</span>
         <span><strong>初始生命：</strong>${c.生命点 || 6}</span>
         <span><strong>初始闪避：</strong>${c.闪避值 || 10}</span>
       </div>
@@ -997,7 +998,7 @@ function renderSlotArt(slot, item) {
     if (item?.ID?.startsWith('装备:') && !item.ownedGearId) {
       const marker = document.createElement('small');
       marker.className = 'legacy-gear-marker';
-      marker.textContent = '旧档待核';
+      marker.textContent = '旧版物品';
       slotElement.append(marker);
     }
   }
@@ -1096,7 +1097,7 @@ function renderFoundations(clsObj) {
       }
     });
   } else {
-    if (lockStatusEl) lockStatusEl.innerHTML = '<span class="lock-icon">🔒</span> 核心基石已铭刻 (玩家锁定)';
+    if (lockStatusEl) lockStatusEl.innerHTML = '<span class="lock-icon">🔒</span> 已锁定';
     if (alertNoticeEl) alertNoticeEl.hidden = true;
     if (gmToggleBtn) {
       gmToggleBtn.classList.remove('active');
@@ -1227,7 +1228,7 @@ function domainCard(card, action, character, owned = false, replaceable = []) {
   title.textContent = card.名称;
   const meta = document.createElement('p');
   const cost = recallCost(card);
-  meta.textContent = `${card.领域 || '战役'} · ${cardLevel(card)} 级 · ${card.属性 || card.类型 || '领域卡'} · 回想 ${cost} 压力`;
+  meta.textContent = `${card.领域 || '未归类'} · ${cardLevel(card)} 级 · ${card.属性 || card.类型 || '领域卡'} · 回想 ${cost} 压力`;
   const body = document.createElement('div');
   body.className = 'dh-card-desc';
   body.innerHTML = renderMarkdown(card.描述 || '');

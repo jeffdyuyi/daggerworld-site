@@ -43,7 +43,7 @@
         <div class="more-dropdown" id="more-dropdown" hidden>
           <a href="https://forum.bo3studio.com/" target="_blank" rel="noopener noreferrer" class="dropdown-link">🏢 代理商社区：三局两胜 ↗</a>
           <a href="../account.html" class="dropdown-link">游戏入口</a>
-          <a href="../index.html#archive" class="dropdown-link">📖 战役图鉴</a>
+          <a href="../index.html#archive" class="dropdown-link">📖 版本档案</a>
         </div>
       </div>
     </div>
@@ -53,7 +53,7 @@
        LAYER 1: 角色库展示与创角大厅 (Vault & Creation Lobby)
        ========================================================================== -->
   <div id="layer-vault" class="app-layer layer-vault">
-    
+
     <!-- Hero Banner -->
     <div class="vault-hero-banner">
       <div class="vault-hero-content">
@@ -70,7 +70,7 @@
 
     <!-- Layout: Left Characters List | Right Creation Wizard -->
     <div class="vault-layout-grid">
-      
+
       <!-- Left: Existing Characters List -->
       <div class="vault-characters-section">
         <div class="section-title-bar">
@@ -100,7 +100,7 @@
             <h2>新建角色</h2>
             <button type="button" class="dw-btn dw-btn-outline" id="btn-close-creator">取消</button>
           </div>
-          <p class="creator-desc">创建后，基础设定由主持人修改。</p>
+
 
           <form id="form-create-character" class="creator-form" onsubmit="return false;">
             <!-- Name -->
@@ -111,7 +111,7 @@
 
             <!-- Gender: 男 / 女 / 无 -->
             <div class="form-group">
-              <label>性别气质 (Gender)</label>
+              <label>性别</label>
               <div class="gender-pill-group" id="gender-selector">
                 <button type="button" class="gender-pill active" data-gender="男"><span class="gender-sym">♂</span> 男</button>
                 <button type="button" class="gender-pill" data-gender="女"><span class="gender-sym">♀</span> 女</button>
@@ -122,7 +122,7 @@
 
             <!-- Ancestry -->
             <div class="form-group">
-              <label for="new-char-ancestry">种族血统 (Ancestry)</label>
+              <label for="new-char-ancestry">种族</label>
               <select id="new-char-ancestry" class="creator-select"></select>
               <div class="preview-card-mini" id="preview-ancestry-card"></div>
             </div>
@@ -140,21 +140,21 @@
 
             <!-- Class -->
             <div class="form-group">
-              <label for="new-char-class">主职法门 (Class)</label>
+              <label for="new-char-class">职业</label>
               <select id="new-char-class" class="creator-select"></select>
               <div class="preview-card-mini" id="preview-class-card"></div>
             </div>
 
             <!-- Subclass -->
             <div class="form-group">
-              <label for="new-char-subclass">专精流派 (Subclass)</label>
+              <label for="new-char-subclass">子职业</label>
               <select id="new-char-subclass" class="creator-select"></select>
             </div>
 
             <!-- Submit -->
             <div class="creator-actions">
               <button type="button" class="btn-create-submit" id="btn-submit-create-char">
-                <span>⚔️</span> 确立契约并进入角色卡 ›
+                <span>⚔️</span> 创建角色
               </button>
             </div>
           </form>
@@ -299,11 +299,11 @@
 
   <!-- Tab Content Containers -->
   <main class="page-viewport">
-    
+
     <!-- PAGE 1: 【概览】 -->
     <section class="tab-page active" id="page-overview">
       <div class="overview-grid">
-        
+
         <!-- Left 3/4: Equipment Silhouette & Paper Doll -->
         <div class="equipment-paperdoll-section">
           <div class="section-title-bar">
@@ -378,7 +378,7 @@
                 <label id="gm-paperdoll-wing-option">翅膀 <select id="gm-paperdoll-wings"><option value="petal">蝶翼</option><option value="vein">薄翼</option></select></label>
               </div>
               </details>
-              <button type="button" class="dw-btn dw-btn-outline" id="paperdoll-export" disabled>下载棋子 PNG</button>
+              <button type="button" class="dw-btn dw-btn-outline" id="paperdoll-export" disabled>下载角色头像</button>
               <small id="paperdoll-status" role="status" hidden></small>
             </div>
 
@@ -648,15 +648,15 @@
     <!-- PAGE 2: 【基石】 -->
     <section class="tab-page" id="page-foundations">
       <div class="foundations-container">
-        
+
         <!-- Foundations Core Identity Card with GM Override -->
         <div class="foundations-identity-panel">
           <div class="identity-header-row">
             <div class="identity-title-group">
-              <span class="f-badge">契约基石</span>
+              <span class="f-badge">角色资料</span>
               <h3>基础设定</h3>
               <span class="lock-indicator" id="fn-lock-status">
-                <span class="lock-icon">🔒</span> 玩家锁定 (契约确立)
+                <span class="lock-icon">🔒</span> 已锁定
               </span>
             </div>
             <div class="identity-action-btns" style="display:flex;gap:8px;">
@@ -678,7 +678,7 @@
               <input type="text" id="fn-char-name" class="dw-input locked-field" placeholder="输入角色名称" disabled>
             </div>
             <div class="f-select-group">
-              <label>性别气质</label>
+              <label>性别</label>
               <div class="fn-gender-group" id="fn-gender-selector">
                 <button type="button" class="gender-pill-mini active" data-gender="男" disabled>♂ 男</button>
                 <button type="button" class="gender-pill-mini" data-gender="女" disabled>♀ 女</button>
@@ -782,7 +782,7 @@
     <!-- PAGE 3: 【技能】 -->
     <section class="tab-page" id="page-skills">
       <div class="skills-container">
-        
+
         <!-- Filter Toolbar -->
         <div class="skills-toolbar">
           <div class="domain-filters" id="domain-filters-bar">
@@ -827,7 +827,7 @@
        LAYER 3: 主持人独立资源工坊与军械库 (Dedicated Workshop & Armory Page)
        ========================================================================== -->
   <div id="layer-workshop" class="app-layer layer-workshop" hidden>
-    
+
     <!-- Workshop Hero Banner -->
     <header class="ws-page-hero">
       <div class="ws-hero-left">
@@ -879,7 +879,7 @@
 
     <!-- Workshop Grid: Left Library & Right Workbench -->
     <div class="workshop-grid-container">
-      
+
       <!-- Left Column: 战役储备军械库 (Storage & Inventory) -->
       <section class="ws-col-library">
         <div class="ws-box-header">
@@ -910,7 +910,7 @@
 
       <!-- Right Column: 创制与编辑工作台 (Creation & Edit Workbench) -->
       <section class="ws-col-workbench">
-        
+
         <!-- Workbench Navigation Tabs -->
         <div class="ws-workbench-tabs">
           <button type="button" class="ws-wtab-btn active" data-target-tab="item">🗡️ 装备与战利品</button>
@@ -1068,7 +1068,7 @@
         <!-- Panel 3: 自定义领域管理 (Custom Domains Manager) -->
         <div class="ws-workbench-panel" id="ws-panel-custom-domain" hidden>
           <div class="domain-manager-container">
-            
+
             <!-- Register New Domain Card -->
             <div class="domain-manager-create-card">
               <div class="ws-box-title-row">
@@ -1076,7 +1076,7 @@
                 <span class="f-badge">战役专属规则</span>
               </div>
               <p class="manager-desc">定义专属于您战役的法术与力量领域。注册后可在创制领域卡时选用，并能在角色卡领域筛选器及导出的 PbDH 卡包中无缝生效。</p>
-              
+
               <form id="ws-form-custom-domain" class="ws-form-grid" onsubmit="return false;" style="margin-top:12px;">
                 <input type="hidden" id="ws-cd-edit-id" value="">
                 <div class="f-select-group">
