@@ -1169,6 +1169,25 @@ function renderAll() {
   el('dash-ancestry').textContent = db?.ancestries?.find(item => item.ID === s.ancestryId)?.名称 ?? s.ancestryId?.split(':').at(-1) ?? '—';
   el('dash-level').textContent = `Lv ${c.level}`;
 
+  const xpInfo = experience(c);
+  const reqXp = xpInfo.required ?? 0;
+  const curXp = xpInfo.points ?? 0;
+  const isMaxLvl = c.level >= lastLevel;
+  const xpDisplay = isMaxLvl ? 'MAX' : `${curXp.toLocaleString('zh-CN')} / ${reqXp.toLocaleString('zh-CN')} XP`;
+
+  const dashXp = el('dash-xp');
+  if (dashXp) {
+    dashXp.textContent = isMaxLvl ? 'XP MAX' : `XP ${curXp.toLocaleString('zh-CN')} / ${reqXp.toLocaleString('zh-CN')}`;
+    dashXp.classList.toggle('xp-ready', !isMaxLvl && curXp >= reqXp);
+    dashXp.title = isMaxLvl ? '已达到最高等级' : `当前经验值 ${curXp}，升至下一级需要 ${reqXp} 经验`;
+  }
+
+  const lvlXpText = el('level-xp-text');
+  if (lvlXpText) {
+    lvlXpText.textContent = xpDisplay;
+    lvlXpText.classList.toggle('xp-ready', !isMaxLvl && curXp >= reqXp);
+  }
+
   const genderEl = el('dash-gender');
   if (genderEl) {
     const gender = s.gender || '男';
@@ -2065,8 +2084,8 @@ function renderInlineAdjustments(character, stats) {
         const textEl = el('gm-bug-text');
         if (textEl) {
           const latest = reports[reports.length - 1];
-          textEl.textContent = `最新：[${latest.target || '机制'}] ${latest.reason || '无说明'}`;
-          textEl.title = reports.map((r, i) => `${i + 1}. [${r.target}] ${r.reason} (${r.date || ''})`).join('\n');
+          textEl.textContent = `最新：${latest.reason || '无说明'}`;
+          textEl.title = reports.map((r, i) => `${i + 1}. ${r.reason} (${r.date || ''})`).join('\n');
         }
       } else {
         gmBanner.hidden = true;
@@ -2176,14 +2195,12 @@ function setupEventListeners() {
   const btnSubmitBug = el('btn-submit-bug-report');
   if (btnSubmitBug) {
     btnSubmitBug.onclick = async () => {
-      const target = el('bug-report-target').value;
-      const reason = el('bug-report-reason').value.trim();
+      const reason = el('bug-report-reason')?.value?.trim();
       if (!reason) return alert('请填写报修说明，以便主持人准确修订。');
       const c = curChar();
       c.sheet.bugReports ??= [];
       const report = {
         id: crypto.randomUUID(),
-        target,
         reason,
         status: 'open',
         date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -4269,7 +4286,17 @@ function updatePortraitModeButtons(character = curChar()) {
   if (btnSil) btnSil.classList.toggle('active', mode === 'silhouette');
   if (btnCus) {
     btnCus.classList.toggle('active', mode === 'custom');
-    btnCus.title = hasCustom ? '已配置自定义立绘' : '点击上传自定义立绘';
+    btnCus.title = hasCustom ? '已配置自定义立绘（点击切换）' : '点击上传自定义立绘';
+  }
+}
+
+function promptUploadCustomPortrait() {
+  const fileInput = el('portrait-file-input');
+  if (fileInput) {
+    fileInput.value = '';
+    fileInput.click();
+  } else {
+    openPortraitEditorModal();
   }
 }
 
@@ -4279,9 +4306,8 @@ function switchPortraitMode(targetMode) {
 
   if (targetMode === 'custom') {
     if (!c.sheet.customPortrait?.dataUrl) {
-      openPortraitEditorModal();
-      // 顺带尝试直接唤起本地文件选择器
-      try { el('portrait-file-input')?.click(); } catch (_) {}
+      // 尚未上传过立绘：直接唤起本地选择图片
+      promptUploadCustomPortrait();
       return;
     }
     c.sheet.portraitMode = 'custom';
@@ -4365,6 +4391,7 @@ function handlePortraitFileSelect(event) {
       if (el('slider-portrait-zoom')) el('slider-portrait-zoom').value = 1.0;
       if (el('slider-portrait-x')) el('slider-portrait-x').value = 0;
       if (el('slider-portrait-y')) el('slider-portrait-y').value = 0;
+      openPortraitEditorModal();
       applyPortraitCropPreview();
     });
   };
@@ -4432,6 +4459,16 @@ function initPortraitListeners() {
   el('btn-cancel-portrait')?.addEventListener('click', closePortraitEditorModal);
   el('btn-save-portrait')?.addEventListener('click', savePortraitCustomization);
 
+  // 点击空立绘提示区直接打开选图
+  el('portrait-crop-empty')?.addEventListener('click', promptUploadCustomPortrait);
+  // 点击纸娃娃舞台区域（若已是自定义立绘）直接打开调整模态框
+  el('paperdoll')?.addEventListener('click', () => {
+    const c = curChar();
+    if (c?.sheet?.portraitMode === 'custom' || c?.sheet?.customPortrait?.dataUrl) {
+      openPortraitEditorModal();
+    }
+  });
+
   // 点击遮罩空白区域或按 ESC 退出弹窗
   el('portrait-editor-modal')?.addEventListener('click', e => {
     if (e.target === el('portrait-editor-modal')) closePortraitEditorModal();
@@ -4440,7 +4477,7 @@ function initPortraitListeners() {
     if (e.key === 'Escape' && !el('portrait-editor-modal')?.hidden) closePortraitEditorModal();
   });
 
-  el('btn-select-portrait-file')?.addEventListener('click', () => el('portrait-file-input')?.click());
+  el('btn-select-portrait-file')?.addEventListener('click', promptUploadCustomPortrait);
   el('portrait-file-input')?.addEventListener('change', handlePortraitFileSelect);
 
   el('btn-reset-portrait-adjust')?.addEventListener('click', () => {

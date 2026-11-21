@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-portrait-v3">
+  <link rel="stylesheet" href="./app.css?v=20261121-portrait-v4">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -227,9 +227,13 @@
         <span class="ancestry-badge" id="dash-ancestry">—</span>
         <span class="class-badge" id="dash-class">—</span>
         <span class="level-badge" id="dash-level">Lv 1</span>
+        <span class="xp-badge" id="dash-xp" title="当前经验值 / 下一级所需经验值">XP 0 / 300</span>
       </div>
       <div class="level-control">
-        <span>等级</span>
+        <div class="level-indicator">
+          <span class="level-title">等级</span>
+          <span class="level-xp-badge" id="level-xp-text">0 / 300 XP</span>
+        </div>
         <button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button> <button type="button" class="dw-btn" id="allocate-points" hidden>分配升级点</button>
         <button type="button" class="dw-btn dw-btn-outline dw-bug-btn" id="btn-open-bug-report" title="属性或机制有误？向主持人提交报告">🐛 申报问题</button>
       </div>
@@ -395,7 +399,8 @@
               </div>
             </div>
             <div class="paperdoll-stage">
-              <div id="paperdoll" class="appearance-frame appearance-frame-sheet"></div>
+              <input type="file" id="portrait-file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="position:fixed;top:-1000px;left:-1000px;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;">
+              <div id="paperdoll" class="appearance-frame appearance-frame-sheet" title="点击可查看或调整立绘"></div>
               <div class="portrait-mode-bar">
                 <div class="portrait-switch-group">
                   <button type="button" class="portrait-switch-btn active" id="btn-mode-silhouette" title="使用人体轮廓（纸娃娃占位）">👤 轮廓</button>
@@ -1494,6 +1499,27 @@
     </div>
   </div>
 
+  <!-- MODAL: Bug Report Modal (玩家向主持人极简报修) -->
+  <div class="dw-modal-backdrop" id="bug-report-modal" hidden>
+    <div class="dw-modal-window narrow-modal">
+      <div class="modal-header">
+        <h2>🐛 属性与机制报修</h2>
+        <button class="modal-close-btn" id="bug-report-close" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">发现属性数值计算不准或规则有误？直接向主持人提交说明，主持人将在后台为您就地补正修订。</p>
+        <div style="margin-bottom:12px;">
+          <label for="bug-report-reason" style="display:block;font-size:12px;color:var(--text-main);margin-bottom:6px;font-weight:bold;">问题或调整说明</label>
+          <textarea id="bug-report-reason" class="dw-input" rows="4" style="width:100%;resize:vertical;font-size:13px;line-height:1.5;" placeholder="例如：我需要修改力量属性，装备了护腕但没算上+1；或基础属性应为2..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="dw-btn dw-btn-outline" id="bug-report-cancel">取消</button>
+        <button type="button" class="dw-btn dw-btn-gold" id="btn-submit-bug-report">📤 发送给主持人</button>
+      </div>
+    </div>
+  </div>
+
   <!-- App Main Entry Module -->
   <dialog id="level-dialog" class="level-dialog">
     <h2 id="level-dialog-title">升级</h2>
@@ -1513,7 +1539,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-portrait-v3').catch(error => {
+    import('./app.js?v=20261121-portrait-v4').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
