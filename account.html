@@ -58,6 +58,10 @@ function autoDetectCode(val) {
     }
     codeHint.textContent = '👑 已自动识别特权激活码 · 身份：主持人基德';
     codeHint.style.display = 'block';
+    try {
+      localStorage.setItem('daggerworld.activation_code', GM_ACTIVATION_CODE);
+      localStorage.setItem('daggerworld.role.current', 'gm');
+    } catch {}
   } else {
     codeHint.style.display = 'none';
   }

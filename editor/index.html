@@ -44,7 +44,7 @@
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
-          <button type="button" class="dropdown-link" id="menu-open-workshop" style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:var(--text-gold,#f59e0b);font-weight:600;" hidden>🛠️ 主持人工坊</button>
+          <button type="button" class="dropdown-link" id="menu-open-workshop" style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:var(--text-gold,#f59e0b);font-weight:600;">🛠️ 主持人工坊</button>
           <button type="button" class="dropdown-link" id="menu-verify-gm" style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px;">🔑 主持人激活码验证</button>
           <a href="https://forum.bo3studio.com/" target="_blank" rel="noopener noreferrer" class="dropdown-link">🏢 代理商社区：三局两胜 ↗</a>
           <a href="../account.html" class="dropdown-link">游戏入口</a>
@@ -66,7 +66,7 @@
       </div>
       <div class="vault-hero-actions">
         <a class="dw-btn dw-btn-outline" href="./assets/lpc/credits.csv">美术来源</a>
-        <button type="button" class="dw-btn dw-btn-outline" id="btn-open-workshop" title="主持人工坊：创制装备、战利品、领域卡与战役储备" hidden>🛠️ 主持人工坊</button>
+        <button type="button" class="dw-btn dw-btn-outline" id="btn-open-workshop" title="主持人工坊：创制装备、战利品、领域卡与战役储备">🛠️ 主持人工坊</button>
         <button class="dw-btn dw-btn-outline" id="btn-vault-refresh">🔄 刷新云端</button>
         <button class="dw-btn dw-btn-outline" id="btn-hero-import">📥 导入角色卡 JSON</button>
         <input type="file" id="hero-import-file" accept=".json" hidden>
@@ -1080,7 +1080,7 @@
                     <div>
                       <label for="ws-item-avatar-visual">纸娃娃穿戴外观 (Avatar Visual · 换装联动)</label>
                       <select id="ws-item-avatar-visual" class="dw-select">
-                        <option value="">自动根据名称与部位匹配</option>
+                        <option value="">无 (不改变纸娃娃穿戴)</option>
                         <optgroup label="⚔️ 工坊原创武器 (Atelier Weapons)">
                           <option value="atelier-weapon-01">引灯细剑 (单手/刺击/灯港)</option>
                           <option value="atelier-weapon-02">杉影钩杖 (长杖/钩爪/霜杉)</option>
@@ -1146,7 +1146,7 @@
                     </div>
                     <div>
                       <label for="ws-item-appearance">物品栏备用像素小图标</label>
-                      <select id="ws-item-appearance" class="dw-select"><option value="">自动匹配</option></select>
+                      <select id="ws-item-appearance" class="dw-select"><option value="">📦 默认箱盒 (无指定)</option></select>
                     </div>
                   </div>
                 </div>
@@ -1204,65 +1204,134 @@
               </div>
             </div>
 
-            <!-- 通用计算块开关区 -->
+            <!-- 正统数值块区 (学习自匕首心标准数据模型：各数值块独立可选，未填写项绝不显示) -->
             <div class="f-select-group ws-col-span-2" style="display:flex;flex-direction:column;gap:12px;">
-              <!-- 计算块 1: 武器数值块 -->
+
+              <!-- 数值块 1: ⚔️ 武器战斗数值块 (Weapon Block) -->
               <div class="ws-calc-block" id="ws-block-weapon">
                 <div class="ws-calc-header">
                   <label>
                     <input type="checkbox" id="ws-toggle-weapon-block" class="ws-block-toggle">
-                    ⚔️ <strong>武器攻击数值块</strong>
-                    <span class="ws-calc-subhint">为物品赋予攻击属性、射程、伤害骰与负荷，可供佩戴或作战调用</span>
+                    ⚔️ <strong>武器战斗数值块 (Weapon)</strong>
+                    <span class="ws-calc-subhint">设定攻击属性、射程、伤害骰与负荷；不填写伤害骰则不作为武器攻击结算</span>
                   </label>
                 </div>
                 <div class="gear-effect-fields" id="ws-weapon-fields" hidden>
-                  <label>攻击属性<select id="ws-weapon-trait" class="dw-select"></select></label>
-                  <label>伤害骰<input id="ws-weapon-damage" class="dw-input" placeholder="例如 d8+2 或 1d10" pattern="(?:[0-9]*d[0-9]+)(?:[+-](?:[0-9]*d[0-9]+|[0-9]+))*"></label>
-                  <label>范围<select id="ws-weapon-range" class="dw-select"><option>近战</option><option>邻近</option><option>近距离</option><option>远距离</option><option>极远距离</option></select></label>
-                  <label>伤害类型<select id="ws-weapon-kind" class="dw-select"><option>物理</option><option>魔法</option></select></label>
-                  <label>负荷<select id="ws-weapon-burden" class="dw-select"><option>单手</option><option>双手</option></select></label>
+                  <label>攻击判定属性
+                    <select id="ws-weapon-trait" class="dw-select">
+                      <option value="">— 未指定 —</option>
+                      <option value="敏捷">敏捷 (Agility)</option>
+                      <option value="力量">力量 (Strength)</option>
+                      <option value="灵巧">灵巧 (Finesse)</option>
+                      <option value="本能">本能 (Instinct)</option>
+                      <option value="风采">风采 (Presence)</option>
+                      <option value="知识">知识 (Knowledge)</option>
+                    </select>
+                  </label>
+                  <label>伤害骰 (Damage)
+                    <input id="ws-weapon-damage" class="dw-input" placeholder="例如 d8, d10+2, 2d6 (留空不显示)" pattern="(?:[0-9]*d[0-9]+)(?:[+-](?:[0-9]*d[0-9]+|[0-9]+))*">
+                  </label>
+                  <label>射程范围 (Range)
+                    <select id="ws-weapon-range" class="dw-select">
+                      <option value="近战">近战 (Melee)</option>
+                      <option value="邻近">邻近 (Very Close)</option>
+                      <option value="近距离">近距离 (Close)</option>
+                      <option value="远距离">远距离 (Far)</option>
+                      <option value="极远距离">极远距离 (Very Far)</option>
+                    </select>
+                  </label>
+                  <label>伤害类型 (Type)
+                    <select id="ws-weapon-kind" class="dw-select">
+                      <option value="物理">物理 (Physical)</option>
+                      <option value="魔法">魔法 (Magic)</option>
+                    </select>
+                  </label>
+                  <label>负荷持握 (Burden)
+                    <select id="ws-weapon-burden" class="dw-select">
+                      <option value="单手">单手 (One-Handed)</option>
+                      <option value="双手">双手 (Two-Handed)</option>
+                      <option value="副手">副手 (Off-Hand)</option>
+                    </select>
+                  </label>
+                  <label>武器特性名 (Feature Name)
+                    <input id="ws-weapon-feature-name" class="dw-input" placeholder="例如: 寒纹 / 破甲 (选填)">
+                  </label>
                 </div>
               </div>
 
-              <!-- 计算块 2: 护甲与伤害阈值数值块 -->
+              <!-- 数值块 2: 🛡️ 护甲防御与伤害阈值数值块 (Armor & Thresholds Block) -->
               <div class="ws-calc-block" id="ws-block-armor">
                 <div class="ws-calc-header">
                   <label>
                     <input type="checkbox" id="ws-toggle-armor-block" class="ws-block-toggle">
-                    🛡️ <strong>护甲与伤害阈值数值块</strong>
-                    <span class="ws-calc-subhint">为物品赋予基础护甲值与重度/严重伤害阈值加成，不论单一部位或多部位均可叠加</span>
+                    🛡️ <strong>护甲与伤害阈值数值块 (Armor & Thresholds)</strong>
+                    <span class="ws-calc-subhint">设定基础护甲值与轻/重/严重伤害阈值；未填写或为0项绝不显示</span>
                   </label>
                 </div>
                 <div class="gear-effect-fields" id="ws-armor-fields" hidden>
-                  <label>基础护甲值<input id="ws-armor-value" class="dw-input" type="number" min="0" max="99" value="0" placeholder="0"></label>
-                  <label>重度伤害阈值 (+Major)<input id="ws-armor-major" class="dw-input" type="number" min="0" max="99" value="0" placeholder="0"></label>
-                  <label>严重伤害阈值 (+Severe)<input id="ws-armor-severe" class="dw-input" type="number" min="0" max="99" value="0" placeholder="0"></label>
+                  <label>基础护甲值 (Base Armor)
+                    <input id="ws-armor-value" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
+                  </label>
+                  <label>轻度伤害阈值 (+Minor)
+                    <input id="ws-armor-minor" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
+                  </label>
+                  <label>重度伤害阈值 (+Major)
+                    <input id="ws-armor-major" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
+                  </label>
+                  <label>严重伤害阈值 (+Severe)
+                    <input id="ws-armor-severe" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
+                  </label>
+                  <label>护甲特性名 (Feature Name)
+                    <input id="ws-armor-feature-name" class="dw-input" placeholder="例如: 沉稳 / 轻盈 (选填)">
+                  </label>
                 </div>
               </div>
 
-              <!-- 计算块 3: 属性与状态上限修正块 -->
+              <!-- 数值块 3: 📊 角色属性与状态上限修正块 (Modifier Contributions) -->
               <div class="ws-calc-block" id="ws-block-modifiers">
                 <div class="ws-calc-header">
                   <label>
                     <input type="checkbox" id="ws-toggle-modifiers-block" class="ws-block-toggle">
-                    📊 <strong>属性与状态上限修正块</strong>
-                    <span class="ws-calc-subhint">对六维属性（敏捷/力量等）、生命上限、压力上限、闪避、护甲上限与熟练进行数值微调</span>
+                    📊 <strong>属性与状态上限修正块 (Modifiers)</strong>
+                    <span class="ws-calc-subhint">对六维属性、生命、压力、闪避、护甲上限与熟练进行加减调整；未填或为0项绝不显示</span>
                   </label>
                 </div>
                 <div class="gear-effect-fields" id="ws-gear-fields" hidden></div>
               </div>
 
-              <input type="text" id="ws-item-stats" class="dw-input" placeholder="属性简要描述（若为空将根据上述生效计算块自动生成）">
+              <!-- 数值块 4: 🧪 使用触发、消耗代价与充能块 (Usage & Charges) -->
+              <div class="ws-calc-block" id="ws-block-usage">
+                <div class="ws-calc-header">
+                  <label>
+                    <input type="checkbox" id="ws-toggle-usage-block" class="ws-block-toggle">
+                    🧪 <strong>使用触发、消耗与充能块 (Usage / Charges)</strong>
+                    <span class="ws-calc-subhint">适用于药剂、奇物、卷轴或特殊战利品；未填写的项不显示</span>
+                  </label>
+                </div>
+                <div class="gear-effect-fields" id="ws-usage-fields" hidden>
+                  <label>使用触发时机 (Trigger)
+                    <input id="ws-usage-trigger" class="dw-input" placeholder="例如: 饮用时 / 行动 / 反应 / 自由动作 / 长休 (选填)">
+                  </label>
+                  <label>消耗代价 (Cost)
+                    <input id="ws-usage-cost" class="dw-input" placeholder="例如: 消耗 1 点希望 / 承受 1 点压力 / 无消耗 (选填)">
+                  </label>
+                  <label>可用充能/次数 (Charges)
+                    <input id="ws-usage-charges" class="dw-input" placeholder="例如: 1 次性消耗 / 3 次充能 / 每日黎明重置 (选填)">
+                  </label>
+                </div>
+              </div>
+
             </div>
+
             <div class="f-select-group ws-col-span-2">
-              <label>机制与效果说明 (支持 Markdown 粗体 **效果**)</label>
-              <textarea id="ws-item-desc" class="dw-textarea" rows="4" placeholder="详细说明使用时机、检定修正、充能次数或消耗规则…"></textarea>
+              <label>机制与效果说明 (支持 Markdown 粗体 **效果**，未填写不显示)</label>
+              <textarea id="ws-item-desc" class="dw-textarea" rows="4" placeholder="详细说明使用时机、检定修正、充能机制或战役背景风味…"></textarea>
             </div>
           </form>
 
-          <!-- Live Preview Card -->
+          <!-- Live Preview Card (所见即所得 · 正统数值纯净呈现) -->
           <div class="ws-preview-box">
-            <div class="preview-title">👁️ 物品效果预览</div>
+            <div class="preview-title">👁️ 物品效果预览 (所见即所得 · 仅显示已填项)</div>
             <div class="ws-item-preview-card" id="ws-item-preview">
               <div class="preview-icon" id="ws-prev-icon">📦</div>
               <div class="preview-content">
@@ -1270,8 +1339,6 @@
                   <strong id="ws-prev-name">物品名称</strong>
                   <span class="preview-tag" id="ws-prev-tag">战利品 · T1</span>
                 </div>
-                <div class="preview-stats" id="ws-prev-stats">暂无属性概览</div>
-                <div class="preview-desc" id="ws-prev-desc">暂无效果说明</div>
               </div>
             </div>
           </div>
@@ -1597,7 +1664,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-gmcode2').catch(error => {
+    import('./app.js?v=20261121-gmblocks2').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';

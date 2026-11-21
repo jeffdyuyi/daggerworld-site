@@ -3845,3 +3845,73 @@ body.dw-theme {
 
 
 
+
+
+/* WS Item Preview Card Rich Canonical Stats & Modifiers */
+.ws-preview-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-main, #f1f5f9);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 3px solid var(--border-gold, #f59e0b);
+}
+.ws-preview-stat-row.weapon-row {
+  border-left-color: #ef4444;
+}
+.ws-preview-stat-row.armor-row {
+  border-left-color: #3b82f6;
+}
+.ws-preview-stat-row.mod-row {
+  border-left-color: #10b981;
+}
+.ws-preview-stat-row.usage-row {
+  border-left-color: #a855f7;
+}
+.ws-preview-stat-row .stat-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+.ws-preview-stat-row .stat-content {
+  flex: 1;
+}
+.stat-feature-pill {
+  font-size: 11px;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--text-gold, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+.ws-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ws-stat-pill {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ws-stat-pill.pos {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.ws-stat-pill.neg {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.ws-preview-slot-note {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+  padding: 2px 4px;
+}
