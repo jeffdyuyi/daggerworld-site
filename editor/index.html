@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-quality-glow1">
+  <link rel="stylesheet" href="./app.css?v=20261121-visual-picker-v1">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -1073,79 +1073,30 @@
                   </div>
                 </div>
 
-                <!-- 3. 图像与纸娃娃穿戴外观选择 -->
+                <!-- 3. 图像与纸娃娃穿戴外观选择 (可视化挑选) -->
                 <div class="ws-field-subgroup ws-col-span-2">
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div>
-                      <label for="ws-item-avatar-visual">纸娃娃穿戴外观 (Avatar Visual · 换装联动)</label>
-                      <select id="ws-item-avatar-visual" class="dw-select">
-                        <option value="">无 (不改变纸娃娃穿戴)</option>
-                        <optgroup label="⚔️ 工坊原创武器 (Atelier Weapons)">
-                          <option value="atelier-weapon-01">引灯细剑 (单手/刺击/灯港)</option>
-                          <option value="atelier-weapon-02">杉影钩杖 (长杖/钩爪/霜杉)</option>
-                          <option value="atelier-weapon-03">陶脊战槌 (钝击/重锤/赤窑)</option>
-                          <option value="atelier-weapon-04">夜纱弧刀 (斩击/弯刀/暮蝶)</option>
-                          <option value="atelier-weapon-05">听潮短矛 (穿刺/矛枪/潮螺)</option>
-                          <option value="atelier-weapon-06">麦穗连枷 (锁链/连枷/金穗)</option>
-                        </optgroup>
-                        <optgroup label="🗡️ 经典制式武器 (Canonical Weapons)">
-                          <option value="sword">经典长剑 (Sword)</option>
-                          <option value="dagger">潜行匕首 (Dagger)</option>
-                          <option value="axe">重型战斧 (Battleaxe)</option>
-                          <option value="hammer">碎骨战锤 (Warhammer)</option>
-                          <option value="spear">长柄战矛 (Spear)</option>
-                          <option value="staff">奥术法杖 (Staff)</option>
-                          <option value="bow">精准长弓 (Longbow)</option>
-                          <option value="crossbow">机械重弩 (Crossbow)</option>
-                          <option value="scythe">死神长镰 (Scythe)</option>
-                        </optgroup>
-                        <optgroup label="🛡️ 盾牌与副手 (Shields & Offhand)">
-                          <option value="atelier-shield-01">螺壳圆盾 (圆盾/潮螺)</option>
-                          <option value="atelier-shield-02">灯芯方盾 (方盾/灯港)</option>
-                          <option value="shield">标准木盾 (Wooden Shield)</option>
-                          <option value="steelShield">重钢鸢盾 (Steel Shield)</option>
-                        </optgroup>
-                        <optgroup label="🥋 护甲与外衣 (Armor & Outfit)">
-                          <option value="atelier-armor-01">灯港短甲 (轻装/胸部)</option>
-                          <option value="atelier-armor-02">杉木斥候皮甲 (巡林/胸部)</option>
-                          <option value="atelier-armor-03">赤窑锁子甲 (链甲/胸部)</option>
-                          <option value="atelier-armor-04">夜织风衣短袍 (游侠/胸部)</option>
-                          <option value="atelier-armor-05">听潮重装胸甲 (板甲/胸部)</option>
-                          <option value="atelier-armor-06">金穗辉光法袍 (丝袍/胸部)</option>
-                          <option value="leather">经典皮甲 (Leather)</option>
-                          <option value="chain">精密链甲 (Chainmail)</option>
-                          <option value="plate">全身板甲 (Full Plate)</option>
-                          <option value="robe">施法长袍 (Spell Robe)</option>
-                          <option value="tunic">冒险者短衣 (Tunic)</option>
-                        </optgroup>
-                        <optgroup label="🪖 头部与战盔 (Helmets & Headwear)">
-                          <option value="atelier-helmet-01">灯港巡卫轻盔</option>
-                          <option value="atelier-helmet-02">杉林巡守兜帽</option>
-                          <option value="atelier-helmet-03">赤窑熔铸铁盔</option>
-                          <option value="atelier-helmet-04">夜织隐匿面具</option>
-                          <option value="atelier-helmet-05">听潮骑士重盔</option>
-                          <option value="atelier-helmet-06">金穗贤者之冠</option>
-                          <option value="helm">十字战盔 (Great Helm)</option>
-                          <option value="hood">暗行者兜帽 (Hood)</option>
-                          <option value="crown">黄金王冠 (Crown)</option>
-                        </optgroup>
-                        <optgroup label="👢 腿足、披风与容器 (Legs & Packs)">
-                          <option value="atelier-boots-01">灯港战靴</option>
-                          <option value="atelier-boots-02">霜杉轻灵短靴</option>
-                          <option value="atelier-boots-05">听潮厚重钢靴</option>
-                          <option value="cape">流浪者披风 (Cloak)</option>
-                          <option value="gloves">强化护手 (Gauntlets)</option>
-                          <option value="boots">探险皮靴 (Boots)</option>
-                          <option value="legs">护腿铁胫 (Greaves)</option>
-                          <option value="atelier-pack-01">旅行主背包 (Main Pack)</option>
-                          <option value="atelier-pouch-01">皮革腰包 (Pouch)</option>
-                          <option value="atelier-satchel-01">游侠挎包 (Satchel)</option>
-                        </optgroup>
-                      </select>
+                  <div class="ws-visual-selector-bar">
+                    <div class="ws-visual-current-card" id="ws-visual-trigger" title="点击打开图样选择图库">
+                      <div class="ws-visual-thumb" id="ws-visual-current-thumb">
+                        <span class="thumb-empty">❓</span>
+                      </div>
+                      <div class="ws-visual-info">
+                        <div class="ws-visual-title-row">
+                          <span class="ws-visual-label">纸娃娃外观：</span>
+                          <strong id="ws-visual-current-name">未指定 (纯背包物品)</strong>
+                        </div>
+                        <span class="ws-visual-subhint" id="ws-visual-current-hint">点击可从武器、护甲、披风、战盔等图库中直接看图挑选</span>
+                      </div>
+                      <button type="button" class="dw-btn dw-btn-gold ws-btn-choose-art" id="btn-open-visual-picker">🎨 挑选图样</button>
+                      <button type="button" class="dw-btn dw-btn-outline ws-btn-clear-art" id="btn-clear-visual" title="清除穿戴外观">✕ 清除</button>
                     </div>
-                    <div>
-                      <label for="ws-item-appearance">物品栏备用像素小图标</label>
-                      <select id="ws-item-appearance" class="dw-select"><option value="">📦 默认箱盒 (无指定)</option></select>
+                    <input type="hidden" id="ws-item-avatar-visual" value="">
+                    
+                    <div class="ws-pixel-icon-picker-line" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                      <label for="ws-item-appearance" style="font-size:12px;color:var(--text-muted);white-space:nowrap;">物品栏备用像素小图标：</label>
+                      <select id="ws-item-appearance" class="dw-select" style="max-width:240px;">
+                        <option value="">📦 默认箱盒 (根据品类自动匹配)</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -1227,8 +1178,20 @@
                       <option value="知识">知识 (Knowledge)</option>
                     </select>
                   </label>
-                  <label>伤害骰 (Damage)
+                  <label style="grid-column: span 2;">伤害骰 (Damage)
                     <input id="ws-weapon-damage" class="dw-input" placeholder="例如 d8, d10+2, 2d6 (留空不显示)" pattern="(?:[0-9]*d[0-9]+)(?:[+-](?:[0-9]*d[0-9]+|[0-9]+))*">
+                    <div class="ws-dice-quick-row">
+                      <span class="ws-dice-quick-label">常用骰：</span>
+                      <button type="button" class="ws-dice-pill" data-dice="d4">d4</button>
+                      <button type="button" class="ws-dice-pill" data-dice="d6">d6</button>
+                      <button type="button" class="ws-dice-pill" data-dice="d8">d8</button>
+                      <button type="button" class="ws-dice-pill" data-dice="d10">d10</button>
+                      <button type="button" class="ws-dice-pill" data-dice="1d12">1d12</button>
+                      <button type="button" class="ws-dice-pill" data-dice="2d6">2d6</button>
+                      <button type="button" class="ws-dice-pill" data-dice="+1">+1</button>
+                      <button type="button" class="ws-dice-pill" data-dice="+2">+2</button>
+                      <button type="button" class="ws-dice-pill ws-dice-clear" data-action="clear-dice" title="清空伤害骰">清空</button>
+                    </div>
                   </label>
                   <label>射程范围 (Range)
                     <select id="ws-weapon-range" class="dw-select">
@@ -1644,6 +1607,42 @@
     </div>
   </div>
 
+  <!-- 装备图样与纸娃娃外观可视化选择弹窗 (GM专属) -->
+  <div id="visual-picker-modal" class="modal-backdrop" hidden>
+    <div class="modal-window visual-picker-window">
+      <div class="modal-header">
+        <h3>🎨 挑选装备图样与外观</h3>
+        <button type="button" class="modal-close" id="btn-close-visual-picker" aria-label="关闭">&times;</button>
+      </div>
+      <div class="visual-picker-toolbar">
+        <div class="visual-picker-categories" id="visual-picker-categories">
+          <button type="button" class="visual-cat-btn active" data-cat="all">全部</button>
+          <button type="button" class="visual-cat-btn" data-cat="weapon">⚔️ 武器</button>
+          <button type="button" class="visual-cat-btn" data-cat="shield">🛡️ 盾牌</button>
+          <button type="button" class="visual-cat-btn" data-cat="armor">🥋 护甲</button>
+          <button type="button" class="visual-cat-btn" data-cat="head">🪖 头部</button>
+          <button type="button" class="visual-cat-btn" data-cat="body">👢 斗篷/腿足</button>
+          <button type="button" class="visual-cat-btn" data-cat="pack">🎒 容器</button>
+          <button type="button" class="visual-cat-btn" data-cat="item">🧪 道具/战利品</button>
+        </div>
+        <div class="visual-picker-search-wrap">
+          <input type="text" id="visual-picker-search" class="dw-input" placeholder="🔍 输入名称快速检索图样...">
+        </div>
+      </div>
+      <div class="visual-picker-body">
+        <div class="visual-picker-grid" id="visual-picker-grid">
+          <!-- 动态渲染图样卡片 -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="visual-picker-tip" style="font-size:12px;color:var(--text-muted);">
+          💡 点击任意图样即可自动套用到当前物品，联动纸娃娃换装与物品栏图标
+        </span>
+        <button type="button" class="dw-btn dw-btn-outline" id="btn-cancel-visual-picker">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <!-- App Main Entry Module -->
   <dialog id="level-dialog" class="level-dialog">
     <h2 id="level-dialog-title">升级</h2>
@@ -1663,7 +1662,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-livepaperdoll-v1').catch(error => {
+    import('./app.js?v=20261121-visual-picker-v1').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';

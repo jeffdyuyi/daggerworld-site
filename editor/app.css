@@ -3998,3 +3998,284 @@ body.dw-theme {
   font-style: italic;
   padding: 2px 4px;
 }
+
+/* ==========================================================================
+   工坊数值块紧凑排版与可视化图样选择器
+   ========================================================================== */
+.gear-effect-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 10px;
+  padding: 8px 0 2px 0;
+}
+.gear-effect-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.gear-effect-fields input,
+.gear-effect-fields select {
+  width: 100%;
+  font-size: 12px;
+}
+
+/* 常用伤害骰快捷点选按钮 */
+.ws-dice-quick-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ws-dice-quick-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ws-dice-pill {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: rgba(45, 33, 27, 0.85);
+  border: 1px solid var(--border-bo3);
+  color: var(--text-gold);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.ws-dice-pill:hover {
+  background: var(--bo3-primary);
+  border-color: var(--bo3-gold);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.ws-dice-pill.ws-dice-clear {
+  color: var(--text-muted);
+  background: rgba(30, 20, 18, 0.6);
+}
+.ws-dice-pill.ws-dice-clear:hover {
+  background: rgba(170, 78, 74, 0.4);
+  color: #f89694;
+  border-color: #aa4e4a;
+}
+
+/* 物品表单可视化图样选择触发卡片 */
+.ws-visual-selector-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ws-visual-current-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-bo3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ws-visual-current-card:hover {
+  border-color: var(--bo3-gold);
+  background: rgba(229, 169, 60, 0.08);
+}
+.ws-visual-thumb {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border-bo3);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8);
+}
+.ws-visual-thumb img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  object-fit: contain;
+}
+.ws-visual-thumb .thumb-empty {
+  font-size: 20px;
+  opacity: 0.6;
+}
+.ws-visual-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.ws-visual-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-visual-label {
+  color: var(--text-muted);
+}
+.ws-visual-title-row strong {
+  color: var(--text-gold);
+}
+.ws-visual-subhint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ws-btn-choose-art {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+.ws-btn-clear-art {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.ws-btn-clear-art:hover {
+  color: #ff7b72;
+}
+
+/* 图样与纸娃娃外观选择弹窗 */
+#visual-picker-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#visual-picker-modal[hidden] {
+  display: none !important;
+}
+.visual-picker-window {
+  width: 900px;
+  max-width: 96vw;
+  max-height: 88vh;
+  background: #1f1513;
+  border: 1px solid var(--border-gold);
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.visual-picker-toolbar {
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid var(--border-bo3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.visual-picker-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.visual-cat-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: rgba(40, 30, 25, 0.8);
+  border: 1px solid var(--border-bo3);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.visual-cat-btn:hover {
+  border-color: var(--bo3-gold);
+  color: var(--text-main);
+}
+.visual-cat-btn.active {
+  background: var(--bo3-primary);
+  border-color: var(--bo3-gold);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 6px rgba(229, 169, 60, 0.4);
+}
+.visual-picker-search-wrap input {
+  width: 100%;
+}
+.visual-picker-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: rgba(15, 10, 9, 0.55);
+}
+.visual-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.visual-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 10px 8px;
+  background: rgba(30, 22, 19, 0.8);
+  border: 1px solid var(--border-bo3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.visual-card:hover {
+  border-color: var(--bo3-gold);
+  background: rgba(60, 40, 32, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.visual-card.selected {
+  border-color: var(--bo3-gold);
+  background: rgba(92, 25, 19, 0.5);
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.6);
+}
+.visual-card-thumb {
+  width: 44px;
+  height: 44px;
+  background: rgba(10, 8, 7, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+.visual-card-thumb img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  object-fit: contain;
+}
+.visual-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.visual-card-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
