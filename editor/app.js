@@ -1,9 +1,9 @@
 import {setupAdventureBoard} from './adventure-board.js?v=20261121-layout2';
 import {livePaperdollEnabled, showCharacterOutline, showCustomPortrait} from './appearance-preview.js?v=20261121-body2';
 import { sheetStats, adjustment } from './stats.js';
-import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
+import { gearSlots, gearEffects, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
-import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-syncfix1';
+import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-auth2';
 import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
 function escapeHtml(str) {
@@ -77,84 +77,19 @@ function ensureDatabaseLoaded() {
 }
 let currentUser = null;
 
-const GM_ACTIVATION_CODE = 'dw-13b5ad967d901d16941150d0fc261f03';
-
-function isGmUser(user = currentUser || readSession()) {
-  const sess = readSession();
-  // 1. 核心凭据：内测主持人专属激活码
-  if (user?.code === GM_ACTIVATION_CODE || sess?.code === GM_ACTIVATION_CODE) return true;
-  try {
-    if (localStorage.getItem('daggerworld.activation_code') === GM_ACTIVATION_CODE) return true;
-    if (localStorage.getItem('daggerworld.role.current') === 'gm') return true;
-  } catch {}
-  // 2. 云端角色直接授权
-  if (user?.role === 'gm' || sess?.role === 'gm') return true;
-  // 3. 历史本地与身份标识兼容
-  const owner = user?.owner || sess?.owner || '';
-  if (owner) {
-    try {
-      if (localStorage.getItem('daggerworld.role.' + owner) === 'gm') return true;
-    } catch {}
-  }
-  const login = String(user?.login || sess?.login || '');
-  if (login.includes('主持') || login.toLowerCase().includes('gm') || login.includes('基德') || login.toLowerCase().includes('kid')) return true;
-  return false;
+function isGmUser() {
+  return currentUser?.role === 'gm';
 }
 
-function updateGmControls() {
-  const isGm = isGmUser();
-  const btnWs = el('btn-open-workshop');
-  if (btnWs) {
-    btnWs.hidden = false;
-    if (isGm) {
-      btnWs.innerHTML = '👑 主持人工坊';
-      btnWs.className = 'dw-btn dw-btn-gold';
-    } else {
-      btnWs.innerHTML = '🛠️ 主持人工坊';
-      btnWs.className = 'dw-btn dw-btn-outline';
-    }
+function applyUserRole(account) {
+  if (account.owner !== readSession()?.owner) return;
+  currentUser = account;
+  const allowed = isGmUser();
+  for (const id of ['btn-open-workshop','menu-open-workshop']) {
+    const button = el(id);
+    if (button) button.hidden = !allowed;
   }
-  const dropdownWs = el('menu-open-workshop');
-  if (dropdownWs) {
-    dropdownWs.hidden = false;
-    dropdownWs.innerHTML = isGm ? '👑 主持人工坊' : '🛠️ 主持人工坊';
-  }
-  const verifyGmBtn = el('menu-verify-gm');
-  if (verifyGmBtn) verifyGmBtn.hidden = isGm;
-  if (isGm && (!campaignResources.items || !campaignResources.items.length)) {
-    loadCampaignResources();
-  }
-}
-
-function applyUserRole(accountOrSession) {
-  if (!accountOrSession) return;
-  const gm = isGmUser(accountOrSession);
-  const role = gm ? 'gm' : (accountOrSession.role || 'player');
-  const code = accountOrSession.code || (gm ? GM_ACTIVATION_CODE : readSession()?.code);
-  currentUser = {
-    ...(currentUser || {}),
-    ...accountOrSession,
-    role,
-    code
-  };
-  const owner = currentUser.owner || readSession()?.owner;
-  if (owner) {
-    try { localStorage.setItem('daggerworld.role.' + owner, role); } catch {}
-    // 持久写回本地 Session，确保会话内测激活码持久固化
-    const sess = readSession();
-    if (sess && sess.owner === owner && (!sess.code || gm)) {
-      sess.code = code;
-      sess.role = role;
-      try { localStorage.setItem('daggerworld.session.v1', JSON.stringify(sess)); } catch {}
-    }
-  }
-  if (gm) {
-    try {
-      localStorage.setItem('daggerworld.role.current', 'gm');
-      localStorage.setItem('daggerworld.activation_code', GM_ACTIVATION_CODE);
-    } catch {}
-  }
-  updateGmControls();
+  if (allowed) loadCampaignResources();
 }
 let characters = [];
 let activeCharIndex = 0;
@@ -478,9 +413,6 @@ async function init() {
   const session = readSession();
   if (!session?.owner) { location.replace("../account.html"); return; }
 
-  // 0. 本地角色身份预先激活：若曾为主持人，首毫秒即识别 GM 并就地亮起管理控件
-  applyUserRole(session);
-
   setupTabs(setupAdventureBoard());
   setupSlotIcons();
   setupCreationWizard();
@@ -499,9 +431,7 @@ async function init() {
   const openAdventure = currentHash === '#adventure';
   const openSheet = openAdventure || currentHash === '#sheet';
   const openWorkshop = currentHash === '#workshop';
-  if (openWorkshop && isGmUser()) {
-    switchLayer('workshop');
-  } else if (openSheet && characters.length) {
+  if (openSheet && characters.length) {
     switchLayer('sheet', activeCharIndex);
     if (openAdventure) document.querySelector('[data-page="adventure"]')?.click();
   } else {
@@ -517,11 +447,11 @@ async function init() {
         applyUserRole(account);
         reconcileAccount(account);
         if (currentLayer === 'sheet') renderAll();
-        if (openAdventure && currentLayer === 'vault' && characters.length) {
-          switchLayer('sheet', activeCharIndex);
-          document.querySelector('[data-page="adventure"]')?.click();
+        if (openSheet && currentLayer === 'vault' && characters.length) {
+          await switchLayer('sheet', activeCharIndex);
+          if (openAdventure) document.querySelector('[data-page="adventure"]')?.click();
         }
-        if (currentHash === '#workshop' && isGmUser()) switchLayer('workshop');
+        if (openWorkshop && isGmUser()) await switchLayer('workshop');
         updateSyncStatus(true, `云端已载入 · ${currentUser.login || '冒险者'}`);
       } catch (err) {
         if (retries > 0) {
@@ -542,12 +472,7 @@ async function init() {
 
 const owner = readSession()?.owner;
 // 解决 GM 离线/在线 owner 漂移：GM 统一使用固定缓存 key，彻底消除 UUID↔dw-gm-host-kid 不一致
-function resolvedCacheKey() {
-  const sess = readSession();
-  if (!sess) return 'daggerworld.vault.v2.' + owner;
-  if (sess.role === 'gm' || sess.owner === 'dw-gm-host-kid') return 'daggerworld.vault.v2.gm';
-  return 'daggerworld.vault.v2.' + (sess.owner || owner);
-}
+function resolvedCacheKey() { return 'daggerworld.vault.v2.' + owner; }
 let baselines = {};
 function payload(c) {
   const sheet = structuredClone(c.sheet);
@@ -752,8 +677,7 @@ function reconcileAccount(account, interactive = false) {
 function saveLocal() {
   const sess = readSession();
   // GM 用固定 key，不受 owner 漂移影响；玩家验证 owner 一致再写
-  const isGm = sess?.role === 'gm' || sess?.owner === 'dw-gm-host-kid';
-  if (isGm || (owner && sess?.owner === owner)) {
+  if (owner && sess?.owner === owner) {
     try { localStorage.setItem(resolvedCacheKey(), JSON.stringify({characters,baselines})); }
     catch (error) { console.warn('角色缓存写入失败：',error); }
   }
@@ -884,6 +808,7 @@ function calculateStats(char) {
 // 核心两层架构控制器 (Two-Tier Layer Controller)
 // ==========================================================================
 async function switchLayer(layer, targetIndex) {
+  if (layer === 'workshop' && !isGmUser()) return;
   if (layer === 'sheet' && !characters.length) layer = 'vault';
   if (layer === 'sheet' && !db) {
     updateSyncStatus(true, '正在加载规则资料…');
@@ -892,7 +817,6 @@ async function switchLayer(layer, targetIndex) {
   }
   el('btn-save-cloud').hidden = layer !== 'sheet';
   el('current-character').hidden = layer !== 'sheet';
-  if (layer === 'workshop' && !isGmUser()) return;
   isGmOverrideActive = false;
   currentLayer = layer;
   const vaultLayer = el('layer-vault');
@@ -2642,19 +2566,7 @@ function setupEventListeners() {
 
   // GM Workshop Triggers & Layer 3 Navigation
   const handleOpenWorkshop = () => {
-    if (isGmUser()) {
-      switchLayer('workshop');
-    } else {
-      const inputCode = prompt('主持人工坊为战役主持特权模块。\n请输入主持人专属内测激活码：', localStorage.getItem('daggerworld.activation_code') || '');
-      if (!inputCode) return;
-      if (inputCode.trim() === GM_ACTIVATION_CODE) {
-        applyUserRole({ role: 'gm', code: GM_ACTIVATION_CODE, login: currentUser?.login || '主持人基德' });
-        alert('👑 主持人身份验证成功！主持人工坊已为您开启。');
-        switchLayer('workshop');
-      } else {
-        alert('激活码不匹配，未能解锁主持人特权。');
-      }
-    }
+    if (isGmUser()) switchLayer('workshop');
   };
   el('btn-open-workshop')?.addEventListener('click', handleOpenWorkshop);
   el('menu-open-workshop')?.addEventListener('click', () => {
@@ -2697,20 +2609,6 @@ function setupEventListeners() {
   // Cancel Edit Mode
   el('btn-cancel-edit')?.addEventListener('click', cancelWorkshopEdit);
 
-  // GM 激活码手动核验备用弹窗
-  el('menu-verify-gm')?.addEventListener('click', () => {
-    if (el('more-dropdown')) el('more-dropdown').hidden = true;
-    const inputCode = prompt('请输入主持人专属内测激活码：');
-    if (!inputCode) return;
-    if (inputCode.trim() === GM_ACTIVATION_CODE) {
-      applyUserRole({ role: 'gm', code: GM_ACTIVATION_CODE, login: currentUser?.login || '主持人基德' });
-      alert('👑 主持人身份验证成功！主持人工坊已为您开启。');
-      switchLayer('workshop');
-    } else {
-      alert('激活码不匹配，未能解锁主持人特权。');
-    }
-  });
-
   // Form Submissions
   el('btn-ws-dispatch-item')?.addEventListener('click', () => handleWorkshopItemSubmit(true));
   el('btn-ws-save-item')?.addEventListener('click', () => handleWorkshopItemSubmit(false));
@@ -2735,7 +2633,6 @@ function setupEventListeners() {
   if (el('ws-item-slot') && el('ws-item-slot').tagName === 'SELECT') {
     for (const [value, label] of Object.entries(gearSlots).filter(([key]) => key !== 'wrists')) el('ws-item-slot').add(new Option(label, value));
   }
-  for (const [value, label] of Object.entries(qualities)) el('ws-item-quality').add(new Option(label, value));
 
   // 绑定正统数值计算块折叠开关
   [

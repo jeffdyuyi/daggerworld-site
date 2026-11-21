@@ -20,12 +20,11 @@
       <h2 id="entry-title">进入游戏</h2>
       <form id="login">
         <label>玩家名称或邮箱
-          <input name="login" id="login-name-input" autocomplete="username" maxlength="100" placeholder="可留空直接输入激活码">
+          <input name="login" id="login-name-input" autocomplete="username" maxlength="100" required placeholder="输入账号名称">
         </label>
         <label>内测激活码
-          <input name="code" id="activation-code-input" type="text" autocomplete="current-password" required placeholder="例如: dw-13b5ad967d901d16941150d0fc261f03">
+          <input name="code" id="activation-code-input" type="text" autocomplete="current-password" required placeholder="输入邀请码">
         </label>
-        <div id="code-recognize-hint" style="display:none;font-size:12px;color:var(--text-gold,#f59e0b);margin-top:-6px;margin-bottom:10px;font-weight:600;"></div>
         <button class="entry-primary">激活并登录</button>
       </form>
       <div id="signed" hidden>
@@ -40,88 +39,32 @@
     </section>
   </main>
 <script type="module">
-import { login, readSession, loadAccount, signOut, GM_ACTIVATION_CODE } from './session.js';
+import { login, readSession, loadAccount, signOut } from './session.js?v=20261121-auth2';
 const form = document.getElementById('login');
-const loginInput = document.getElementById('login-name-input');
-const codeInput = document.getElementById('activation-code-input');
-const codeHint = document.getElementById('code-recognize-hint');
 const signed = document.getElementById('signed');
 const status = document.getElementById('status');
 const button = form.querySelector('button');
-const workshopLink = document.getElementById('entry-workshop-link');
-
-function autoDetectCode(val) {
-  const code = String(val || '').trim();
-  if (code === GM_ACTIVATION_CODE) {
-    if (!loginInput.value.trim() || loginInput.value.trim() === '冒险者') {
-      loginInput.value = '主持人基德';
-    }
-    codeHint.textContent = '👑 已自动识别特权激活码 · 身份：主持人基德';
-    codeHint.style.display = 'block';
-    try {
-      localStorage.setItem('daggerworld.activation_code', GM_ACTIVATION_CODE);
-      localStorage.setItem('daggerworld.role.current', 'gm');
-    } catch {}
-  } else {
-    codeHint.style.display = 'none';
-  }
-}
-
-codeInput.addEventListener('input', e => autoDetectCode(e.target.value));
-codeInput.addEventListener('paste', () => setTimeout(() => autoDetectCode(codeInput.value), 20));
-
-// 如果本地曾存储过激活码，自动预填
-const cachedCode = localStorage.getItem('daggerworld.activation_code');
-if (cachedCode) {
-  codeInput.value = cachedCode;
-  autoDetectCode(cachedCode);
-}
-
 async function showAccount() {
-  const session = readSession();
-  if (!session) return;
-  const isGm = (session.code === GM_ACTIVATION_CODE || session.role === 'gm' || session.login?.includes('主持') || session.login?.includes('基德'));
-  let account;
-  try {
-    account = await loadAccount();
-  } catch (err) {
-    if (isGm) {
-      account = { login: session.login || '主持人基德', role: 'gm' };
-    } else {
-      throw err;
-    }
-  }
+  if (!readSession()) return;
+  const account = await loadAccount();
+  const gm = account.role === 'gm';
   form.hidden = true;
   signed.hidden = false;
-  const gmBadge = (account.role === 'gm' || isGm) ? '<span style="color:var(--text-gold,#f59e0b);font-weight:bold;"> [👑 主持人]</span>' : '';
-  document.getElementById('greeting').innerHTML = '欢迎，' + (account.login || '冒险者') + gmBadge;
-  document.getElementById('entry-title').textContent = (account.role === 'gm' || isGm) ? '主持人操作台' : '选择角色';
-
-  if (account.role === 'gm' || isGm) {
-    if (workshopLink) workshopLink.style.display = 'block';
-  }
+  document.getElementById('greeting').textContent = '欢迎，'+account.login;
+  document.getElementById('entry-title').textContent = gm ? '主持人操作台' : '选择角色';
+  document.getElementById('entry-workshop-link').style.display = gm ? '' : 'none';
 }
-
-form.addEventListener('submit', async event => {
+form.addEventListener('submit',async event => {
   event.preventDefault();
-  const rawCode = codeInput.value.trim();
-  let rawLogin = loginInput.value.trim();
-  if (!rawLogin && rawCode === GM_ACTIVATION_CODE) {
-    rawLogin = '主持人基德';
-    loginInput.value = rawLogin;
-  }
-  if (!rawLogin) {
-    rawLogin = '冒险者_' + rawCode.slice(-4);
-  }
-
+  const data = new FormData(form);
   button.disabled = true;
   status.textContent = '正在验证激活码…';
   try {
-    await login(rawLogin, rawCode);
-    form.reset();
+    await login(data.get('login'),data.get('code'));
     await showAccount();
+    form.reset();
     status.textContent = '';
-  } catch (error) { status.textContent = error.message; }
+  } catch(error) { status.textContent = error.message; }
   finally { button.disabled = false; }
 });
 document.getElementById('sign-out').addEventListener('click', async () => {
