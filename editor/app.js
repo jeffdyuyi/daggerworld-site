@@ -78,18 +78,22 @@ function ensureDatabaseLoaded() {
 let currentUser = null;
 
 function isGmUser() {
-  return currentUser?.role === 'gm';
+  return currentUser?.role === 'gm' || readSession()?.role === 'gm';
 }
 
-function applyUserRole(account) {
-  if (account.owner !== readSession()?.owner) return;
-  currentUser = account;
+function updateGmControls() {
   const allowed = isGmUser();
-  for (const id of ['btn-open-workshop','menu-open-workshop']) {
+  for (const id of ['btn-open-workshop', 'menu-open-workshop']) {
     const button = el(id);
     if (button) button.hidden = !allowed;
   }
   if (allowed) loadCampaignResources();
+}
+
+function applyUserRole(account) {
+  if (!account || account.owner !== readSession()?.owner) return;
+  currentUser = account;
+  updateGmControls();
 }
 let characters = [];
 let activeCharIndex = 0;
@@ -412,6 +416,9 @@ function curChar() {
 async function init() {
   const session = readSession();
   if (!session?.owner) { location.replace("../account.html"); return; }
+
+  // 预先识别 GM 角色并刷新控制按钮
+  applyUserRole(session);
 
   setupTabs(setupAdventureBoard());
   setupSlotIcons();
