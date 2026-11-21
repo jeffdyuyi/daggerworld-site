@@ -66,6 +66,48 @@ function ensureDatabaseLoaded() {
   return dbPromise;
 }
 let currentUser = null;
+
+function isGmUser(user = currentUser || readSession()) {
+  if (!user) return false;
+  if (user.role === 'gm') return true;
+  const login = String(user.login || '');
+  if (login.includes('主持') || login.toLowerCase().includes('gm') || login.includes('基德') || login.toLowerCase().includes('kid')) return true;
+  const owner = user.owner || readSession()?.owner || '';
+  if (owner) {
+    try {
+      const cached = localStorage.getItem('daggerworld.role.' + owner);
+      if (cached === 'gm') return true;
+    } catch {}
+  }
+  return false;
+}
+
+function updateGmControls() {
+  const isGm = isGmUser();
+  const btnWs = el('btn-open-workshop');
+  if (btnWs) btnWs.hidden = !isGm;
+  const dropdownWs = el('menu-open-workshop');
+  if (dropdownWs) dropdownWs.hidden = !isGm;
+  if (isGm && (!campaignResources.items || !campaignResources.items.length)) {
+    loadCampaignResources();
+  }
+}
+
+function applyUserRole(accountOrSession) {
+  if (!accountOrSession) return;
+  const gm = isGmUser(accountOrSession);
+  const role = gm ? 'gm' : (accountOrSession.role || 'player');
+  currentUser = {
+    ...(currentUser || {}),
+    ...accountOrSession,
+    role
+  };
+  const owner = currentUser.owner || readSession()?.owner;
+  if (owner) {
+    try { localStorage.setItem('daggerworld.role.' + owner, role); } catch {}
+  }
+  updateGmControls();
+}
 let characters = [];
 let activeCharIndex = 0;
 let currentPickerSlot = null;
@@ -389,12 +431,7 @@ async function init() {
   if (!session?.owner) { location.replace("../account.html"); return; }
 
   // 0. 本地角色身份预先激活：若曾为主持人，首毫秒即识别 GM 并就地亮起管理控件
-  try {
-    const cachedRole = localStorage.getItem('daggerworld.role.' + session.owner);
-    if (cachedRole) {
-      currentUser = { owner: session.owner, login: session.login, role: cachedRole };
-    }
-  } catch {}
+  applyUserRole(session);
 
   setupTabs(setupAdventureBoard());
   setupSlotIcons();
@@ -426,17 +463,14 @@ async function init() {
     const syncAccount = async (retries = 2) => {
       try {
         const account = await loadAccount();
-        currentUser = account;
-        try { localStorage.setItem('daggerworld.role.' + account.owner, account.role || 'player'); } catch {}
-        if (account.role === 'gm') loadCampaignResources();
-        el('btn-open-workshop').hidden = account.role !== 'gm';
+        applyUserRole(account);
         reconcileAccount(account);
         if (currentLayer === 'sheet') renderAll();
         if (openAdventure && currentLayer === 'vault' && characters.length) {
           switchLayer('sheet', activeCharIndex);
           document.querySelector('[data-page="adventure"]')?.click();
         }
-        if (currentHash === '#workshop' && account.role === 'gm') switchLayer('workshop');
+        if (currentHash === '#workshop' && isGmUser()) switchLayer('workshop');
         updateSyncStatus(true, `云端已载入 · ${currentUser.login || '冒险者'}`);
       } catch (err) {
         if (retries > 0) {
@@ -792,7 +826,7 @@ async function switchLayer(layer, targetIndex) {
   }
   el('btn-save-cloud').hidden = layer !== 'sheet';
   el('current-character').hidden = layer !== 'sheet';
-  if (layer === 'workshop' && currentUser?.role !== 'gm') return;
+  if (layer === 'workshop' && !isGmUser()) return;
   isGmOverrideActive = false;
   currentLayer = layer;
   const vaultLayer = el('layer-vault');
@@ -842,6 +876,7 @@ async function switchLayer(layer, targetIndex) {
 
 // 渲染第一层：角色库展示与角色卡片列表
 function renderVaultLobby() {
+  updateGmControls();
   const container = el('lobby-char-cards-container');
   const countBadge = el('vault-count-badge');
   if (countBadge) countBadge.textContent = characters.length;
@@ -2495,8 +2530,12 @@ function setupEventListeners() {
     switchLayer('vault');
   });
   el('btn-vault-refresh').onclick = async () => {
-    try { reconcileAccount(await loadAccount(),true); updateSyncStatus(true,'云端已刷新'); }
-    catch (err) { alert('刷新失败：' + err.message); }
+    try {
+      const account = await loadAccount();
+      applyUserRole(account);
+      reconcileAccount(account, true);
+      updateSyncStatus(true, '云端已刷新');
+    } catch (err) { alert('刷新失败：' + err.message); }
   };
   el('btn-save-cloud').onclick = async () => {
     const c = curChar();
@@ -2537,6 +2576,10 @@ function setupEventListeners() {
 
   // GM Workshop Triggers & Layer 3 Navigation
   el('btn-open-workshop')?.addEventListener('click', () => switchLayer('workshop'));
+  el('menu-open-workshop')?.addEventListener('click', () => {
+    if (el('more-dropdown')) el('more-dropdown').hidden = true;
+    switchLayer('workshop');
+  });
   // Workshop Return Navigation
   el('btn-ws-to-sheet')?.addEventListener('click', () => switchLayer('sheet'));
   el('btn-ws-to-vault')?.addEventListener('click', () => switchLayer('vault'));

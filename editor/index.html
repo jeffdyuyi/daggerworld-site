@@ -44,6 +44,7 @@
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
+          <button type="button" class="dropdown-link" id="menu-open-workshop" style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:var(--text-gold,#f59e0b);font-weight:600;" hidden>🛠️ 主持人工坊</button>
           <a href="https://forum.bo3studio.com/" target="_blank" rel="noopener noreferrer" class="dropdown-link">🏢 代理商社区：三局两胜 ↗</a>
           <a href="../account.html" class="dropdown-link">游戏入口</a>
           <a href="../index.html#archive" class="dropdown-link">📖 版本档案</a>
@@ -64,7 +65,7 @@
       </div>
       <div class="vault-hero-actions">
         <a class="dw-btn dw-btn-outline" href="./assets/lpc/credits.csv">美术来源</a>
-        <button type="button" class="dw-btn dw-btn-outline" id="btn-open-workshop" hidden>主持人工坊</button>
+        <button type="button" class="dw-btn dw-btn-outline" id="btn-open-workshop" title="主持人工坊：创制装备、战利品、领域卡与战役储备" hidden>🛠️ 主持人工坊</button>
         <button class="dw-btn dw-btn-outline" id="btn-vault-refresh">🔄 刷新云端</button>
         <button class="dw-btn dw-btn-outline" id="btn-hero-import">📥 导入角色卡 JSON</button>
         <input type="file" id="hero-import-file" accept=".json" hidden>
@@ -1645,7 +1646,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-paperdoll-live2').catch(error => {
+    import('./app.js?v=20261121-workshop1').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';
