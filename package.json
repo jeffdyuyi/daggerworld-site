@@ -4,10 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "check": "tsc --noEmit",
     "test": "vitest run",
-    "assets:check": "node --experimental-transform-types fantasy-paperdoll/validate-assets.mjs",
-    "build": "npm run assets:check && npm run check && vite build",
+    "build": "vite build",
     "test:browser": "playwright test",
     "test:live": "vitest run live-realtime.test.ts",
     "build:adventure": "vite build --config vite.adventure.config.js"

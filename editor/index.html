@@ -230,10 +230,6 @@
         <span class="xp-badge" id="dash-xp" title="当前经验值 / 下一级所需经验值">XP 0 / 300</span>
       </div>
       <div class="level-control">
-        <div class="level-indicator">
-          <span class="level-title">等级</span>
-          <span class="level-xp-badge" id="level-xp-text">0 / 300 XP</span>
-        </div>
         <button type="button" class="dw-btn dw-btn-gold" id="lvl-up" hidden>升级</button> <button type="button" class="dw-btn" id="allocate-points" hidden>分配升级点</button>
         <button type="button" class="dw-btn dw-btn-outline dw-bug-btn" id="btn-open-bug-report" title="属性或机制有误？向主持人提交报告">🐛 申报问题</button>
       </div>
@@ -1538,7 +1534,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-stable-v1').catch(error => {
+    import('./app.js?v=20261121-xp-v2').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;
