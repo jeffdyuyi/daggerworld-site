@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-stable-v1">
+  <link rel="stylesheet" href="./app.css?v=20261121-paperdoll-live1">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -399,10 +399,11 @@
               <div id="paperdoll" class="appearance-frame appearance-frame-sheet" title="点击可查看或调整立绘"></div>
               <div class="portrait-mode-bar">
                 <div class="portrait-switch-group">
-                  <button type="button" class="portrait-switch-btn active" id="btn-mode-silhouette" title="使用人体轮廓（纸娃娃占位）">👤 轮廓</button>
-                  <button type="button" class="portrait-switch-btn" id="btn-mode-custom" title="使用自定义上传立绘">🖼️ 立绘</button>
+                  <button type="button" class="portrait-switch-btn active" id="btn-mode-paperdoll" title="动态纸娃娃：换装所见即所得">👤 纸娃娃</button>
+                  <button type="button" class="portrait-switch-btn" id="btn-mode-custom" title="自定义上传立绘">🖼️ 立绘</button>
+                  <button type="button" class="portrait-switch-btn" id="btn-mode-silhouette" title="标准体型轮廓剪影">👤 轮廓</button>
                 </div>
-                <button type="button" class="portrait-setting-btn" id="btn-open-portrait-setting" title="上传或裁剪调整">⚙️ 设置</button>
+                <button type="button" class="portrait-setting-btn" id="btn-open-portrait-setting" title="上传或裁剪调整立绘">⚙️ 立绘设置</button>
               </div>
               <div class="gear-slot costume-slot-highlight" data-slot="costume" title="时装：独立视觉外观">
                 <div class="slot-icon-box" id="slot-icon-costume"></div>
@@ -1035,10 +1036,121 @@
               <label>子类别 / 标签</label>
               <input type="text" id="ws-item-subcat" class="dw-input" placeholder="例如：药剂 / 奇物 / 单手刃 / 卷轴">
               <input type="hidden" id="ws-item-slot" value="">
-              <label for="ws-item-quality">品质</label>
-              <select id="ws-item-quality" class="dw-select"></select>
-              <label for="ws-item-appearance">外观图标</label>
-              <select id="ws-item-appearance" class="dw-select"><option value="">自动匹配</option></select>
+              <input type="hidden" id="ws-item-quality" value="white">
+              <input type="hidden" id="ws-item-suit-tier" value="">
+            </div>
+
+            <!-- 品质外框、制式位阶鎏金与纸娃娃外观选择区 (GM专属) -->
+            <div class="f-select-group ws-col-span-2 ws-visual-section">
+              <div class="ws-visual-header">
+                <strong>✨ 装备外观与光效边框配置 (所见即所得)</strong>
+                <span class="ws-calc-subhint">品质决定底衬双色渐变与边框色；制式套装触发鎏金发光辉光</span>
+              </div>
+              <div class="ws-visual-grid">
+                <!-- 1. 六大品质外框与渐变色 -->
+                <div class="ws-field-subgroup">
+                  <label>装备品质外框与渐变色</label>
+                  <div class="ws-pills-row" id="ws-quality-selector">
+                    <button type="button" class="ws-quality-pill active" data-quality="white" title="普通 (白色渐变)">⚪ 普通</button>
+                    <button type="button" class="ws-quality-pill" data-quality="green" title="优秀 (绿色渐变)">🟢 优秀</button>
+                    <button type="button" class="ws-quality-pill" data-quality="blue" title="精良 (蓝色渐变)">🔵 精良</button>
+                    <button type="button" class="ws-quality-pill" data-quality="purple" title="史诗 (紫色渐变)">🟣 史诗</button>
+                    <button type="button" class="ws-quality-pill" data-quality="orange" title="传说 (橙色渐变)">🟠 传说</button>
+                    <button type="button" class="ws-quality-pill" data-quality="red" title="神器 (红色渐变)">🔴 神器</button>
+                  </div>
+                </div>
+
+                <!-- 2. 匕首心基础位阶制式护甲套装鎏金边框 -->
+                <div class="ws-field-subgroup">
+                  <label class="ws-suit-toggle-label">
+                    <input type="checkbox" id="ws-toggle-suit-tier">
+                    <strong>🛡️ 匕首心制式位阶套装护甲 (开启位阶专属鎏金发光边框)</strong>
+                  </label>
+                  <div class="ws-pills-row" id="ws-suit-tier-container" hidden>
+                    <button type="button" class="ws-tier-pill active" data-tier="1" title="黑铁套装 (T1 · 幽玄铁光)">🛡️ 黑铁 (T1)</button>
+                    <button type="button" class="ws-tier-pill" data-tier="2" title="黄铜套装 (T2 · 铜耀辉光)">🥉 黄铜 (T2)</button>
+                    <button type="button" class="ws-tier-pill" data-tier="3" title="白银套装 (T3 · 银霜辉光)">🥈 白银 (T3)</button>
+                    <button type="button" class="ws-tier-pill" data-tier="4" title="黄金套装 (T4 · 炽金辉光)">🥇 黄金 (T4)</button>
+                  </div>
+                </div>
+
+                <!-- 3. 图像与纸娃娃穿戴外观选择 -->
+                <div class="ws-field-subgroup ws-col-span-2">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                      <label for="ws-item-avatar-visual">纸娃娃穿戴外观 (Avatar Visual · 换装联动)</label>
+                      <select id="ws-item-avatar-visual" class="dw-select">
+                        <option value="">自动根据名称与部位匹配</option>
+                        <optgroup label="⚔️ 工坊原创武器 (Atelier Weapons)">
+                          <option value="atelier-weapon-01">引灯细剑 (单手/刺击/灯港)</option>
+                          <option value="atelier-weapon-02">杉影钩杖 (长杖/钩爪/霜杉)</option>
+                          <option value="atelier-weapon-03">陶脊战槌 (钝击/重锤/赤窑)</option>
+                          <option value="atelier-weapon-04">夜纱弧刀 (斩击/弯刀/暮蝶)</option>
+                          <option value="atelier-weapon-05">听潮短矛 (穿刺/矛枪/潮螺)</option>
+                          <option value="atelier-weapon-06">麦穗连枷 (锁链/连枷/金穗)</option>
+                        </optgroup>
+                        <optgroup label="🗡️ 经典制式武器 (Canonical Weapons)">
+                          <option value="sword">经典长剑 (Sword)</option>
+                          <option value="dagger">潜行匕首 (Dagger)</option>
+                          <option value="axe">重型战斧 (Battleaxe)</option>
+                          <option value="hammer">碎骨战锤 (Warhammer)</option>
+                          <option value="spear">长柄战矛 (Spear)</option>
+                          <option value="staff">奥术法杖 (Staff)</option>
+                          <option value="bow">精准长弓 (Longbow)</option>
+                          <option value="crossbow">机械重弩 (Crossbow)</option>
+                          <option value="scythe">死神长镰 (Scythe)</option>
+                        </optgroup>
+                        <optgroup label="🛡️ 盾牌与副手 (Shields & Offhand)">
+                          <option value="atelier-shield-01">螺壳圆盾 (圆盾/潮螺)</option>
+                          <option value="atelier-shield-02">灯芯方盾 (方盾/灯港)</option>
+                          <option value="shield">标准木盾 (Wooden Shield)</option>
+                          <option value="steelShield">重钢鸢盾 (Steel Shield)</option>
+                        </optgroup>
+                        <optgroup label="🥋 护甲与外衣 (Armor & Outfit)">
+                          <option value="atelier-armor-01">灯港短甲 (轻装/胸部)</option>
+                          <option value="atelier-armor-02">杉木斥候皮甲 (巡林/胸部)</option>
+                          <option value="atelier-armor-03">赤窑锁子甲 (链甲/胸部)</option>
+                          <option value="atelier-armor-04">夜织风衣短袍 (游侠/胸部)</option>
+                          <option value="atelier-armor-05">听潮重装胸甲 (板甲/胸部)</option>
+                          <option value="atelier-armor-06">金穗辉光法袍 (丝袍/胸部)</option>
+                          <option value="leather">经典皮甲 (Leather)</option>
+                          <option value="chain">精密链甲 (Chainmail)</option>
+                          <option value="plate">全身板甲 (Full Plate)</option>
+                          <option value="robe">施法长袍 (Spell Robe)</option>
+                          <option value="tunic">冒险者短衣 (Tunic)</option>
+                        </optgroup>
+                        <optgroup label="🪖 头部与战盔 (Helmets & Headwear)">
+                          <option value="atelier-helmet-01">灯港巡卫轻盔</option>
+                          <option value="atelier-helmet-02">杉林巡守兜帽</option>
+                          <option value="atelier-helmet-03">赤窑熔铸铁盔</option>
+                          <option value="atelier-helmet-04">夜织隐匿面具</option>
+                          <option value="atelier-helmet-05">听潮骑士重盔</option>
+                          <option value="atelier-helmet-06">金穗贤者之冠</option>
+                          <option value="helm">十字战盔 (Great Helm)</option>
+                          <option value="hood">暗行者兜帽 (Hood)</option>
+                          <option value="crown">黄金王冠 (Crown)</option>
+                        </optgroup>
+                        <optgroup label="👢 腿足、披风与容器 (Legs & Packs)">
+                          <option value="atelier-boots-01">灯港战靴</option>
+                          <option value="atelier-boots-02">霜杉轻灵短靴</option>
+                          <option value="atelier-boots-05">听潮厚重钢靴</option>
+                          <option value="cape">流浪者披风 (Cloak)</option>
+                          <option value="gloves">强化护手 (Gauntlets)</option>
+                          <option value="boots">探险皮靴 (Boots)</option>
+                          <option value="legs">护腿铁胫 (Greaves)</option>
+                          <option value="atelier-pack-01">旅行主背包 (Main Pack)</option>
+                          <option value="atelier-pouch-01">皮革腰包 (Pouch)</option>
+                          <option value="atelier-satchel-01">游侠挎包 (Satchel)</option>
+                        </optgroup>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="ws-item-appearance">物品栏备用像素小图标</label>
+                      <select id="ws-item-appearance" class="dw-select"><option value="">自动匹配</option></select>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- 可装备位置多选开关区 -->
@@ -1534,7 +1646,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-xp-v2').catch(error => {
+    import('./app.js?v=20261121-paperdoll-live1').catch(error => {
       console.error('角色库启动失败', error);
       document.getElementById('sync-text').textContent = '加载失败，请刷新重试';
       document.getElementById('current-character').hidden = true;

@@ -913,9 +913,10 @@ async function deleteCharacterByIndex(idx) {
 // 创角向导 (Character Creation Wizard) 控制器
 // ==========================================================================
 function appearanceUrl(character) {
-  const url = new URL('../fantasy-paperdoll/', window.location.href);
-  if (character.sheet?.ancestryId) url.searchParams.set('ancestry', character.sheet.ancestryId);
-  if (character.updated_at && character.owner_id === currentUser?.owner) {
+  const url = new URL('../fantasy-paperdoll/bridge/preview.html', window.location.href);
+  if (character?.sheet?.ancestryId) url.searchParams.set('ancestry', character.sheet.ancestryId);
+  if (character?.sheet?.bodyShape) url.searchParams.set('bodyShape', character.sheet.bodyShape);
+  if (character?.updated_at && character?.owner_id === currentUser?.owner) {
     url.searchParams.set('character', character.id);
   }
   return url;
@@ -924,28 +925,56 @@ function appearanceUrl(character) {
 function setAppearanceFrame(id, character, download = false) {
   const target = el(id);
   if (!target) return;
-  if (!livePaperdollEnabled) {
-    const s = character?.sheet || {};
-    if (s.portraitMode === 'custom' && s.customPortrait?.dataUrl) {
-      showCustomPortrait(target, s.customPortrait);
-    } else {
-      showCharacterOutline(target, s.ancestryId, s.bodyShape);
-    }
+  const s = character?.sheet || {};
+  const mode = s.portraitMode || 'paperdoll';
+
+  if (mode === 'custom' && s.customPortrait?.dataUrl) {
+    target.classList.add('has-custom-portrait');
+    showCustomPortrait(target, s.customPortrait);
     return;
   }
+  target.classList.remove('has-custom-portrait');
+
+  if (mode === 'silhouette') {
+    showCharacterOutline(target, s.ancestryId, s.bodyShape);
+    return;
+  }
+
+  // mode === 'paperdoll': 动态纸娃娃换装态（所见即所得）
   let frame = target.querySelector('iframe');
+  if (frame && frame.contentWindow?.DaggerworldAvatar?.setCharacter) {
+    frame.contentWindow.DaggerworldAvatar.setCharacter(character).catch(err => {
+      console.warn('纸娃娃实时刷新异常，降级显示轮廓:', err);
+      showCharacterOutline(target, s.ancestryId, s.bodyShape);
+    });
+    target.hidden = false;
+    return;
+  }
+
+  const url = appearanceUrl(character);
+  url.searchParams.set('view', 'preview');
+  if (download) url.searchParams.set('download', '');
+
   if (!frame) {
     frame = document.createElement('iframe');
     frame.title = '角色全身预览';
     frame.loading = 'lazy';
+    frame.style.cssText = 'display:block;width:100%;height:100%;border:0;background:transparent';
+    frame.onload = () => {
+      if (frame.contentWindow?.DaggerworldAvatar?.setCharacter) {
+        frame.contentWindow.DaggerworldAvatar.setCharacter(character).catch(() => {});
+      }
+    };
+    frame.onerror = () => {
+      console.warn('纸娃娃加载失败，降级显示人型轮廓');
+      showCharacterOutline(target, s.ancestryId, s.bodyShape);
+    };
+    frame.src = url.href;
     target.replaceChildren(frame);
+  } else if (frame.src !== url.href) {
+    frame.src = url.href;
   }
   target.hidden = false;
-  const url = appearanceUrl(character);
-  url.searchParams.set('view', 'preview');
-  if (download) url.searchParams.set('download', '');
-  frame.hidden = false;
-  if (frame.src !== url.href) frame.src = url.href;
 }
 
 function previewAppearance() {
@@ -1467,9 +1496,11 @@ function decorateGear(node, item, slot = item?.slot) {
   delete node.dataset.quality;
   delete node.dataset.suitTier;
   if (!item) return;
-  node.dataset.quality = readGear(item).quality;
-  const tier = Number(item.tier ?? item.位阶);
-  if ((slot === 'suit' || item.slot === 'suit') && [1, 2, 3, 4].includes(tier)) node.dataset.suitTier = tier;
+  const gear = readGear(item);
+  node.dataset.quality = gear.quality || 'white';
+  const tier = Number(item.suitTier ?? gear.suitTier ?? item.tier ?? item.位阶);
+  const isSuit = Boolean(item.isSuitTier || gear.isSuitTier || slot === 'suit' || item.slot === 'suit' || gear.slot === 'suit');
+  if (isSuit && [1, 2, 3, 4].includes(tier)) node.dataset.suitTier = tier;
 }
 
 function itemImage(item) {
@@ -2613,9 +2644,39 @@ function setupEventListeners() {
   }
   for (const trait of Object.values(traits)) el('ws-weapon-trait')?.add(new Option(trait));
   for (const [value, label] of Object.entries(itemAppearances)) appearanceSelect?.add(new Option(label, value));
-  ['ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-stats', 'ws-item-desc', 'ws-item-appearance', 'ws-item-slot', 'ws-item-quality'].forEach(id => {
+  ['ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-stats', 'ws-item-desc', 'ws-item-appearance', 'ws-item-slot', 'ws-item-quality', 'ws-item-avatar-visual'].forEach(id => {
     el(id)?.addEventListener('input', updateItemPreview);
     el(id)?.addEventListener('change', updateItemPreview);
+  });
+
+  // 绑定品质药丸按钮点击 (白色/绿色/蓝色/紫色/橙色/红色渐变与边框)
+  document.querySelectorAll('.ws-quality-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.quality;
+      document.querySelectorAll('.ws-quality-pill').forEach(b => b.classList.toggle('active', b === btn));
+      if (el('ws-item-quality')) el('ws-item-quality').value = q;
+      updateItemPreview();
+    });
+  });
+
+  // 绑定制式套装位阶开关与四档鎏金边框 (黑铁/黄铜/白银/黄金)
+  el('ws-toggle-suit-tier')?.addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    if (el('ws-suit-tier-container')) el('ws-suit-tier-container').hidden = !isChecked;
+    if (isChecked && (!el('ws-item-suit-tier')?.value || el('ws-item-suit-tier').value === '')) {
+      el('ws-item-suit-tier').value = '1';
+      document.querySelectorAll('.ws-tier-pill').forEach(b => b.classList.toggle('active', b.dataset.tier === '1'));
+    }
+    updateItemPreview();
+  });
+
+  document.querySelectorAll('.ws-tier-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.tier;
+      document.querySelectorAll('.ws-tier-pill').forEach(b => b.classList.toggle('active', b === btn));
+      if (el('ws-item-suit-tier')) el('ws-item-suit-tier').value = t;
+      updateItemPreview();
+    });
   });
   ['ws-card-name', 'ws-card-domain', 'ws-card-type', 'ws-card-level', 'ws-card-recall', 'ws-card-desc'].forEach(id => {
     el(id)?.addEventListener('input', updateCardPreview);
@@ -2774,7 +2835,7 @@ function openItemPicker(slotKey) {
     const assigned = new Set(Object.entries({...sheet.equipment,...sheet.bags})
       .filter(([key]) => key !== slotKey && !(slotKey === 'chest' && key === 'suit')).map(([,item]) => item?.ownedGearId));
     candidates = sheet.inventoryItems.filter(item => item?.ownedGearId && !assigned.has(item.ownedGearId) && (slotMatches(item,slotKey) || (slotKey === 'chest' && slotMatches(item,'suit'))))
-      .map(item => item.resourceId ? {...sourceItem(item.resourceId), ownedGearId:item.ownedGearId, slot:item.slot} : ({
+      .map(item => item.resourceId ? {...sourceItem(item.resourceId), ownedGearId:item.ownedGearId, slot:item.slot, avatarVisualId:item.avatarVisualId, suitTier:item.suitTier, isSuitTier:item.isSuitTier, quality:item.quality} : ({
         名称: item.name || item.名称,
         描述: item.desc || item.描述,
         位阶: item.tier || item.位阶,
@@ -3244,12 +3305,20 @@ function workshopGear() {
   }
   const allowedSlots = getSelectedAllowedSlots();
   const passiveInBag = el('ws-toggle-passive-bag')?.checked ?? false;
+  const quality = el('ws-item-quality')?.value || 'white';
+  const avatarVisualId = el('ws-item-avatar-visual')?.value?.trim() || undefined;
+  const isSuitTier = Boolean(el('ws-toggle-suit-tier')?.checked);
+  const suitTier = isSuitTier ? (Number(el('ws-item-suit-tier')?.value) || 1) : undefined;
+
   return readGear({
     capacity: Number(el('ws-container-cap')?.value),
     slot: allowedSlots[0] || (passiveInBag ? 'passive' : ''),
     allowedSlots,
     passiveInBag,
-    quality: el('ws-item-quality')?.value || 'white',
+    quality,
+    avatarVisualId,
+    isSuitTier,
+    suitTier,
     modifiers
   });
 }
@@ -3270,7 +3339,25 @@ function fillWorkshopGear(item = {}) {
   if (el('ws-toggle-passive-bag')) el('ws-toggle-passive-bag').checked = isPassive;
 
   // 3. 回显品质与容量
-  if (el('ws-item-quality')) el('ws-item-quality').value = item.quality || 'white';
+  const currentQuality = item.quality || 'white';
+  if (el('ws-item-quality')) el('ws-item-quality').value = currentQuality;
+  document.querySelectorAll('.ws-quality-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.quality === currentQuality);
+  });
+
+  const isSuitTier = Boolean(item.isSuitTier || item.suitTier || (item.slot === 'suit' && item.tier));
+  const suitTierVal = Number(item.suitTier || item.tier || 1);
+  if (el('ws-toggle-suit-tier')) el('ws-toggle-suit-tier').checked = isSuitTier;
+  if (el('ws-suit-tier-container')) el('ws-suit-tier-container').hidden = !isSuitTier;
+  if (el('ws-item-suit-tier')) el('ws-item-suit-tier').value = isSuitTier ? String(suitTierVal) : '';
+  document.querySelectorAll('.ws-tier-pill').forEach(btn => {
+    btn.classList.toggle('active', Number(btn.dataset.tier) === suitTierVal);
+  });
+
+  if (el('ws-item-avatar-visual')) {
+    el('ws-item-avatar-visual').value = item.avatarVisualId || '';
+  }
+
   if (el('ws-container-cap')) el('ws-container-cap').value = item.capacity ?? item.容量 ?? '';
   const hasContainer = allowed.some(s => ['main_bag', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].includes(s));
   if (el('ws-container-label')) el('ws-container-label').hidden = !hasContainer;
@@ -3391,6 +3478,9 @@ function handleWorkshopItemSubmit(isDispatch) {
     allowedSlots,
     passiveInBag,
     quality: gear.quality,
+    avatarVisualId: gear.avatarVisualId || undefined,
+    isSuitTier: gear.isSuitTier,
+    suitTier: gear.suitTier,
     modifiers: gear.modifiers,
     capacity: gear.capacity,
     容量: gear.capacity,
@@ -3542,6 +3632,9 @@ function dispatchItemToCharacter(item, charIndex) {
     allowedSlots: gear.allowedSlots,
     passiveInBag: gear.passiveInBag,
     quality: gear.quality,
+    avatarVisualId: item.avatarVisualId || gear.avatarVisualId || undefined,
+    isSuitTier: Boolean(item.isSuitTier || gear.isSuitTier),
+    suitTier: item.suitTier ?? gear.suitTier,
     modifiers: gear.modifiers,
     capacity: gear.capacity,
     容量: gear.capacity,
@@ -4389,11 +4482,13 @@ let portraitDragStart = { x: 0, y: 0 };
 let portraitDragInitial = { x: 0, y: 0 };
 
 function updatePortraitModeButtons(character = curChar()) {
-  const mode = character?.sheet?.portraitMode || 'silhouette';
+  const mode = character?.sheet?.portraitMode || 'paperdoll';
   const hasCustom = Boolean(character?.sheet?.customPortrait?.dataUrl);
   
+  const btnDoll = el('btn-mode-paperdoll');
   const btnSil = el('btn-mode-silhouette');
   const btnCus = el('btn-mode-custom');
+  if (btnDoll) btnDoll.classList.toggle('active', mode === 'paperdoll');
   if (btnSil) btnSil.classList.toggle('active', mode === 'silhouette');
   if (btnCus) {
     btnCus.classList.toggle('active', mode === 'custom');
@@ -4422,8 +4517,10 @@ function switchPortraitMode(targetMode) {
       return;
     }
     c.sheet.portraitMode = 'custom';
-  } else {
+  } else if (targetMode === 'silhouette') {
     c.sheet.portraitMode = 'silhouette';
+  } else {
+    c.sheet.portraitMode = 'paperdoll';
   }
 
   saveLocal();
@@ -4563,6 +4660,7 @@ function initPortraitListeners() {
   if (hasInitPortraitListeners) return;
   hasInitPortraitListeners = true;
 
+  el('btn-mode-paperdoll')?.addEventListener('click', () => switchPortraitMode('paperdoll'));
   el('btn-mode-silhouette')?.addEventListener('click', () => switchPortraitMode('silhouette'));
   el('btn-mode-custom')?.addEventListener('click', () => switchPortraitMode('custom'));
   el('btn-open-portrait-setting')?.addEventListener('click', openPortraitEditorModal);

@@ -43,13 +43,19 @@ export function readGear(item) {
 
   const capacity = Number(item?.capacity);
   const container = ['main_bag', 'pouch', 'satchel', 'pouch_1', 'pouch_2', 'satchel_1', 'satchel_2'].some(k => allowed.includes(k) || slot === k);
+  const avatarVisualId = typeof item?.avatarVisualId === 'string' ? item.avatarVisualId.trim() : undefined;
+  const suitTier = [1, 2, 3, 4].includes(Number(item?.suitTier)) ? Number(item.suitTier) : undefined;
+  const isSuitTier = Boolean(item?.isSuitTier || suitTier);
   return {
     slot,
     allowedSlots: allowed,
     passiveInBag,
     quality,
     modifiers,
-    ...(container && Number.isInteger(capacity) && capacity > 0 && capacity <= 999 ? { capacity } : {})
+    ...(container && Number.isInteger(capacity) && capacity > 0 && capacity <= 999 ? { capacity } : {}),
+    ...(avatarVisualId ? { avatarVisualId } : {}),
+    ...(suitTier ? { suitTier } : {}),
+    ...(isSuitTier ? { isSuitTier } : {})
   };
 }
 

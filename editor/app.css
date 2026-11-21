@@ -3781,5 +3781,89 @@ body.dw-theme {
   border-color: var(--bo3-gold) !important;
 }
 
+/* 主持人物品工坊外观与光效选择器 */
+.ws-visual-section {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-bo3);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ws-visual-header {
+  font-size: 13px;
+  color: var(--text-gold);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding-bottom: 8px;
+}
+.ws-field-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ws-field-subgroup label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.ws-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ws-quality-pill, .ws-tier-pill {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: rgba(30, 25, 20, 0.6);
+  border: 1px solid var(--border-bo3);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.ws-quality-pill:hover, .ws-tier-pill:hover {
+  border-color: var(--bo3-gold);
+  transform: translateY(-1px);
+}
+.ws-quality-pill.active {
+  border-color: var(--bo3-gold) !important;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+  font-weight: bold;
+}
+.ws-quality-pill[data-quality="white"].active { border-color: #a89677 !important; background: rgba(255, 248, 231, 0.18); color: #fff8e7; }
+.ws-quality-pill[data-quality="green"].active { border-color: #648051 !important; background: rgba(100, 128, 81, 0.3); color: #b7e39a; }
+.ws-quality-pill[data-quality="blue"].active { border-color: #4e7c9e !important; background: rgba(78, 124, 158, 0.3); color: #a5d2f3; }
+.ws-quality-pill[data-quality="purple"].active { border-color: #8b5a9e !important; background: rgba(139, 90, 158, 0.3); color: #dcb3ed; }
+.ws-quality-pill[data-quality="orange"].active { border-color: #b96a32 !important; background: rgba(185, 106, 50, 0.3); color: #f8b47d; }
+.ws-quality-pill[data-quality="red"].active { border-color: #aa4e4a !important; background: rgba(170, 78, 74, 0.3); color: #f89694; }
+
+.ws-suit-toggle-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px !important;
+  color: var(--text-gold) !important;
+}
+.ws-tier-pill.active {
+  font-weight: bold;
+  transform: scale(1.02);
+}
+.ws-tier-pill[data-tier="1"].active { border-color: #7a7e8c !important; background: rgba(79, 81, 89, 0.35); color: #e1e3ec; box-shadow: 0 0 10px rgba(80, 87, 102, 0.7); }
+.ws-tier-pill[data-tier="2"].active { border-color: #c97f4c !important; background: rgba(165, 104, 67, 0.35); color: #ffd6be; box-shadow: 0 0 10px rgba(201, 127, 76, 0.7); }
+.ws-tier-pill[data-tier="3"].active { border-color: #95aecf !important; background: rgba(119, 140, 158, 0.35); color: #eef6ff; box-shadow: 0 0 10px rgba(149, 174, 207, 0.7); }
+.ws-tier-pill[data-tier="4"].active { border-color: #e7b450 !important; background: rgba(178, 129, 49, 0.35); color: #fff3ce; box-shadow: 0 0 12px rgba(231, 180, 80, 0.85); }
+
+
 
 
