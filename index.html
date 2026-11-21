@@ -570,7 +570,7 @@ nav { width: 100%; }
 </div>
 
 </main>
-<script src="news-archive.js?v=20261121c"></script>
+<script src="news-archive.js?v=20261121d"></script>
 <script>
 
 const routes=[...document.querySelectorAll('.route')], nav=[...document.querySelectorAll('[data-route]')], filters=[...document.querySelectorAll('[data-category]')];
@@ -633,9 +633,10 @@ function render(){
   const block=document.createElement(heading?'h3':'p');
   const text=heading?value.slice(3):value;
   let safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  safe=safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g,'@@LINK_S@@$2@@LINK_M@@$1@@LINK_E@@');
-  safe=safe.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1 ↗</a>');
-  safe=safe.replace(/@@LINK_S@@(.*?)@@LINK_M@@(.*?)@@LINK_E@@/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$2 ↗</a>');
+  safe=safe.replace(/\[([^\]]+)\]\((https?:\/\/[a-zA-Z0-9_\-\.\/:?#&=%~+@!$'*,;]+)\)|(https?:\/\/[a-zA-Z0-9_\-\.\/:?#&=%~+@!$'*,;]+)/g,(m,mdT,mdU,bare)=>{
+   const u=mdU||bare, l=mdT||u;
+   return '<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+l+' ↗</a>';
+  });
   block.innerHTML=safe;
   return block;
  }));
