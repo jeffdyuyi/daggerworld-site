@@ -45,6 +45,7 @@
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
           <button type="button" class="dropdown-link" id="menu-open-workshop" style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:var(--text-gold,#f59e0b);font-weight:600;" hidden>🛠️ 主持人工坊</button>
+          <button type="button" class="dropdown-link" id="menu-verify-gm" style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px;">🔑 主持人激活码验证</button>
           <a href="https://forum.bo3studio.com/" target="_blank" rel="noopener noreferrer" class="dropdown-link">🏢 代理商社区：三局两胜 ↗</a>
           <a href="../account.html" class="dropdown-link">游戏入口</a>
           <a href="../index.html#archive" class="dropdown-link">📖 版本档案</a>
@@ -994,7 +995,6 @@
           <button type="button" class="ws-wtab-btn active" data-target-tab="item">🗡️ 装备与战利品</button>
           <button type="button" class="ws-wtab-btn" data-target-tab="domain-card">📜 领域法术卡</button>
           <button type="button" class="ws-wtab-btn" data-target-tab="status-effect">✨ 状态与特殊效果</button>
-          <button type="button" class="ws-wtab-btn" data-target-tab="custom-domain">🌌 自定义领域</button>
         </div>
 
         <!-- Edit Status Banner (Appears when editing existing item/card) -->
@@ -1278,12 +1278,12 @@
 
           <!-- Action Buttons -->
           <div class="ws-actions-row">
-            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-item">保存并发放</button>
-            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-item">保存</button>
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-item">👑 保存并发放给角色</button>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-item">💾 存入战役军械库 (不发放)</button>
           </div>
         </div>
 
-        <!-- Panel 2: 创制与编辑领域法术卡 -->
+        <!-- Panel 2: 创制与编辑领域法术卡 (支持就地输入自定义新领域) -->
         <div class="ws-workbench-panel" id="ws-panel-domain-card" hidden>
           <form id="ws-form-domain-card" class="ws-form-grid" onsubmit="return false;">
             <input type="hidden" id="ws-card-edit-id" value="">
@@ -1292,10 +1292,17 @@
               <input type="text" id="ws-card-name" class="dw-input" placeholder="例如：暗流突刺 / 潮汐护盾 / 虚空共鸣" required maxlength="50">
             </div>
             <div class="f-select-group">
-              <label>归属领域 (包含官方与自定义)</label>
+              <label>归属领域 (支持官方与自定义新领域)</label>
               <select id="ws-card-domain" class="dw-select">
-                <!-- Populated dynamically with SRD domains + custom domains -->
+                <!-- Populated dynamically with SRD domains + custom domains + ➕ 自定义新领域 -->
               </select>
+            </div>
+            <div class="f-select-group" id="ws-custom-domain-box" style="display:none;">
+              <label>自定义新领域 (名称与主题色)</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="text" id="ws-card-custom-domain-name" class="dw-input" placeholder="输入新领域名（如：虚空 / 潮汐 / 梦境）" maxlength="12" style="flex:1;">
+                <input type="color" id="ws-card-custom-domain-color" class="dw-color-input" value="#8b5cf6" title="领域主题标识色" style="width:42px;height:38px;padding:2px;cursor:pointer;border-radius:6px;border:1px solid rgba(255,255,255,0.2);">
+              </div>
             </div>
             <div class="f-select-group">
               <label>能力类型</label>
@@ -1335,8 +1342,8 @@
 
           <!-- Action Buttons -->
           <div class="ws-actions-row">
-            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-card">保存并发放</button>
-            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-card">保存</button>
+            <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-card">👑 保存并发放给角色</button>
+            <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-card">💾 存入战役储备库 (不发放)</button>
           </div>
         </div>
 
@@ -1414,62 +1421,6 @@
                 <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-effect">💾 保存至战役状态库</button>
               </div>
             </form>
-          </div>
-        </div>
-
-        <!-- Panel 3: 自定义领域管理 (Custom Domains Manager) -->
-        <div class="ws-workbench-panel" id="ws-panel-custom-domain" hidden>
-          <div class="domain-manager-container">
-
-            <!-- Register New Domain Card -->
-            <div class="domain-manager-create-card">
-              <div class="ws-box-title-row">
-                <h4>🌌 注册新领域</h4>
-                <span class="f-badge">战役专属规则</span>
-              </div>
-              <p class="manager-desc">定义专属于您战役的法术与力量领域。注册后可在创制领域卡时选用，并能在角色卡领域筛选器及导出的 PbDH 卡包中无缝生效。</p>
-
-              <form id="ws-form-custom-domain" class="ws-form-grid" onsubmit="return false;" style="margin-top:12px;">
-                <input type="hidden" id="ws-cd-edit-id" value="">
-                <div class="f-select-group">
-                  <label>领域名称</label>
-                  <input type="text" id="ws-cd-name" class="dw-input" placeholder="例如：虚空 / 潮汐 / 狂暴 / 梦境" required maxlength="12">
-                </div>
-                <div class="f-select-group">
-                  <label>领域主题标识色</label>
-                  <div class="color-picker-group">
-                    <input type="color" id="ws-cd-color" class="dw-color-input" value="#8b5cf6">
-                    <div class="preset-colors">
-                      <span class="color-preset-dot" style="background:#8b5cf6;" data-color="#8b5cf6" title="虚空紫"></span>
-                      <span class="color-preset-dot" style="background:#06b6d4;" data-color="#06b6d4" title="潮汐青"></span>
-                      <span class="color-preset-dot" style="background:#10b981;" data-color="#10b981" title="翡翠绿"></span>
-                      <span class="color-preset-dot" style="background:#f59e0b;" data-color="#f59e0b" title="琥珀金"></span>
-                      <span class="color-preset-dot" style="background:#ec4899;" data-color="#ec4899" title="蔷薇粉"></span>
-                      <span class="color-preset-dot" style="background:#64748b;" data-color="#64748b" title="深渊灰"></span>
-                    </div>
-                  </div>
-                </div>
-                <div class="f-select-group ws-col-span-2">
-                  <label>领域风味理念与描述</label>
-                  <textarea id="ws-cd-desc" class="dw-textarea" rows="3" placeholder="简述该领域的魔法源流、核心概念与施法者风味…"></textarea>
-                </div>
-                <div class="ws-col-span-2" style="display:flex;gap:10px;justify-content:flex-end;">
-                  <button type="button" class="dw-btn dw-btn-outline ws-btn-cancel-edit" id="btn-cancel-cd-edit" hidden>✕ 取消</button>
-                  <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-save-domain">🌌 注册并保存领域</button>
-                </div>
-              </form>
-            </div>
-
-            <!-- Existing Custom Domains List -->
-            <div class="existing-domains-section" style="margin-top:20px;">
-              <div class="ws-box-title-row">
-                <h4>📜 已注册的自定领域 (<span id="ws-custom-domains-count">0</span>)</h4>
-              </div>
-              <div class="custom-domains-grid" id="ws-custom-domains-list">
-                <!-- Rendered dynamically -->
-              </div>
-            </div>
-
           </div>
         </div>
 
@@ -1646,7 +1597,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-workshop1').catch(error => {
+    import('./app.js?v=20261121-gmcode2').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';

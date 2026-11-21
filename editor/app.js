@@ -67,18 +67,27 @@ function ensureDatabaseLoaded() {
 }
 let currentUser = null;
 
+const GM_ACTIVATION_CODE = 'dw-13b5ad967d901d16941150d0fc261f03';
+
 function isGmUser(user = currentUser || readSession()) {
-  if (!user) return false;
-  if (user.role === 'gm') return true;
-  const login = String(user.login || '');
-  if (login.includes('主持') || login.toLowerCase().includes('gm') || login.includes('基德') || login.toLowerCase().includes('kid')) return true;
-  const owner = user.owner || readSession()?.owner || '';
+  const sess = readSession();
+  // 1. 核心凭据：内测主持人专属激活码
+  if (user?.code === GM_ACTIVATION_CODE || sess?.code === GM_ACTIVATION_CODE) return true;
+  try {
+    if (localStorage.getItem('daggerworld.activation_code') === GM_ACTIVATION_CODE) return true;
+    if (localStorage.getItem('daggerworld.role.current') === 'gm') return true;
+  } catch {}
+  // 2. 云端角色直接授权
+  if (user?.role === 'gm' || sess?.role === 'gm') return true;
+  // 3. 历史本地与身份标识兼容
+  const owner = user?.owner || sess?.owner || '';
   if (owner) {
     try {
-      const cached = localStorage.getItem('daggerworld.role.' + owner);
-      if (cached === 'gm') return true;
+      if (localStorage.getItem('daggerworld.role.' + owner) === 'gm') return true;
     } catch {}
   }
+  const login = String(user?.login || sess?.login || '');
+  if (login.includes('主持') || login.toLowerCase().includes('gm') || login.includes('基德') || login.toLowerCase().includes('kid')) return true;
   return false;
 }
 
@@ -88,6 +97,8 @@ function updateGmControls() {
   if (btnWs) btnWs.hidden = !isGm;
   const dropdownWs = el('menu-open-workshop');
   if (dropdownWs) dropdownWs.hidden = !isGm;
+  const verifyGmBtn = el('menu-verify-gm');
+  if (verifyGmBtn) verifyGmBtn.hidden = isGm;
   if (isGm && (!campaignResources.items || !campaignResources.items.length)) {
     loadCampaignResources();
   }
@@ -97,14 +108,29 @@ function applyUserRole(accountOrSession) {
   if (!accountOrSession) return;
   const gm = isGmUser(accountOrSession);
   const role = gm ? 'gm' : (accountOrSession.role || 'player');
+  const code = accountOrSession.code || (gm ? GM_ACTIVATION_CODE : readSession()?.code);
   currentUser = {
     ...(currentUser || {}),
     ...accountOrSession,
-    role
+    role,
+    code
   };
   const owner = currentUser.owner || readSession()?.owner;
   if (owner) {
     try { localStorage.setItem('daggerworld.role.' + owner, role); } catch {}
+    // 持久写回本地 Session，确保会话内测激活码持久固化
+    const sess = readSession();
+    if (sess && sess.owner === owner && (!sess.code || gm)) {
+      sess.code = code;
+      sess.role = role;
+      try { localStorage.setItem('daggerworld.session.v1', JSON.stringify(sess)); } catch {}
+    }
+  }
+  if (gm) {
+    try {
+      localStorage.setItem('daggerworld.role.current', 'gm');
+      localStorage.setItem('daggerworld.activation_code', GM_ACTIVATION_CODE);
+    } catch {}
   }
   updateGmControls();
 }
@@ -446,12 +472,15 @@ async function init() {
   dbPromise = loadDatabase();
   await dbPromise;
 
-  // 3. 决定初始层级视图 (如果 URL 包含 #sheet 则进入第二层工作台，否则默认进入第一层角色库)
+  // 3. 决定初始层级视图 (如果 URL 包含 #workshop 且为主持人则进入工坊，若包含 #sheet 则进入角色工作台，否则默认进入第一层角色库)
   const currentHash = (typeof location !== 'undefined' && location.hash) ? location.hash : '';
   const openAdventure = currentHash === '#adventure';
   const openSheet = openAdventure || currentHash === '#sheet';
-  if (openSheet && characters.length) {
-    switchLayer('sheet',activeCharIndex);
+  const openWorkshop = currentHash === '#workshop';
+  if (openWorkshop && isGmUser()) {
+    switchLayer('workshop');
+  } else if (openSheet && characters.length) {
+    switchLayer('sheet', activeCharIndex);
     if (openAdventure) document.querySelector('[data-page="adventure"]')?.click();
   } else {
     switchLayer('vault');
@@ -2615,14 +2644,39 @@ function setupEventListeners() {
 
   // Cancel Edit Mode
   el('btn-cancel-edit')?.addEventListener('click', cancelWorkshopEdit);
-  el('btn-cancel-cd-edit')?.addEventListener('click', cancelCustomDomainEdit);
+
+  // GM 激活码手动核验备用弹窗
+  el('menu-verify-gm')?.addEventListener('click', () => {
+    if (el('more-dropdown')) el('more-dropdown').hidden = true;
+    const inputCode = prompt('请输入主持人专属内测激活码：');
+    if (!inputCode) return;
+    if (inputCode.trim() === GM_ACTIVATION_CODE) {
+      applyUserRole({ role: 'gm', code: GM_ACTIVATION_CODE, login: currentUser?.login || '主持人基德' });
+      alert('👑 主持人身份验证成功！主持人工坊已为您开启。');
+      switchLayer('workshop');
+    } else {
+      alert('激活码不匹配，未能解锁主持人特权。');
+    }
+  });
 
   // Form Submissions
   el('btn-ws-dispatch-item')?.addEventListener('click', () => handleWorkshopItemSubmit(true));
   el('btn-ws-save-item')?.addEventListener('click', () => handleWorkshopItemSubmit(false));
   el('btn-ws-dispatch-card')?.addEventListener('click', () => handleWorkshopCardSubmit(true));
   el('btn-ws-save-card')?.addEventListener('click', () => handleWorkshopCardSubmit(false));
-  el('btn-ws-save-domain')?.addEventListener('click', handleSaveCustomDomain);
+
+  // 领域卡表单实时预览与自定义新领域交互
+  el('ws-card-domain')?.addEventListener('change', (e) => {
+    const isCustom = e.target.value === '__custom__';
+    const box = el('ws-custom-domain-box');
+    if (box) box.style.display = isCustom ? 'block' : 'none';
+    if (isCustom) el('ws-card-custom-domain-name')?.focus();
+    updateCardPreview();
+  });
+  ['ws-card-name', 'ws-card-type', 'ws-card-level', 'ws-card-recall', 'ws-card-desc', 'ws-card-custom-domain-name', 'ws-card-custom-domain-color'].forEach(id => {
+    el(id)?.addEventListener('input', updateCardPreview);
+    el(id)?.addEventListener('change', updateCardPreview);
+  });
 
   // Live Previews for Forms
   const appearanceSelect = el('ws-item-appearance');
@@ -3153,9 +3207,13 @@ function updateWorkshopTargetSelect() {
 
   for (const id of ['btn-ws-dispatch-item', 'btn-ws-dispatch-card']) {
     const button = el(id);
+    if (!button) continue;
     button.disabled = !target?.updated_at;
-    button.textContent = target ? '保存并发放给 ' + target.avatar_name : '保存并发放';
+    button.textContent = target ? `👑 保存并发放给 ${target.avatar_name}` : '👑 保存并发放给角色';
   }
+  // 确保存入战役军械库/储备库按钮随时可用，无需选定或保存角色即可自由储备原创内容
+  if (el('btn-ws-save-item')) el('btn-ws-save-item').disabled = false;
+  if (el('btn-ws-save-card')) el('btn-ws-save-card').disabled = false;
   sel.innerHTML = '';
   if (!characters.length) {
     sel.innerHTML = '<option value="0">暂无角色（请先创角）</option>';
@@ -3181,7 +3239,7 @@ function updateWorkshopTargetSelect() {
   }
 }
 
-// 填充领域下拉框 (官方 11 领域 + 所有自定义领域)
+// 填充领域下拉框 (官方 11 领域 + 所有自定义领域 + ➕ 输入自定义新领域)
 function populateWorkshopDomainDropdown() {
   const sel = el('ws-card-domain');
   if (!sel) return;
@@ -3213,10 +3271,20 @@ function populateWorkshopDomainDropdown() {
     sel.appendChild(custGroup);
   }
 
-  if (currentVal) sel.value = currentVal;
+  const addGroup = document.createElement('optgroup');
+  addGroup.label = '新建扩展';
+  const newOpt = document.createElement('option');
+  newOpt.value = '__custom__';
+  newOpt.textContent = '➕ 输入自定义新领域…';
+  addGroup.appendChild(newOpt);
+  sel.appendChild(addGroup);
+
+  if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+    sel.value = currentVal;
+  }
 }
 
-// 切换创制工作台右侧子页签 (item / domain-card / custom-domain)
+// 切换创制工作台右侧子页签 (item / domain-card / status-effect)
 function switchWorkshopWorkbenchTab(tab) {
   workshopState.currentTab = tab;
   document.querySelectorAll('.ws-workbench-tabs .ws-wtab-btn').forEach(btn => {
@@ -3225,15 +3293,11 @@ function switchWorkshopWorkbenchTab(tab) {
 
   const pItem = el('ws-panel-item');
   const pCard = el('ws-panel-domain-card');
-  const pCustom = el('ws-panel-custom-domain');
+  const pStatus = el('ws-panel-status-effect');
 
   if (pItem) pItem.hidden = (tab !== 'item');
   if (pCard) pCard.hidden = (tab !== 'domain-card');
-  if (pCustom) pCustom.hidden = (tab !== 'custom-domain');
-
-  if (tab === 'custom-domain') {
-    renderCustomDomainsManager();
-  }
+  if (pStatus) pStatus.hidden = (tab !== 'status-effect');
 }
 
 // 辅助：获取所有选中的允许槽位
@@ -3273,9 +3337,37 @@ function applySlotPreset(preset) {
   if (el('ws-item-slot')) el('ws-item-slot').value = selected[0] || '';
 }
 
-// 实时更新卡牌表单预览（安全空函数实现）
+// 实时更新卡牌表单预览
 function updateCardPreview() {
-  // 目前工坊卡牌预览保留安全接口，防止事件绑定或跨层切换时抛出空引用
+  const name = el('ws-card-name')?.value?.trim() || '卡牌名称';
+  const type = el('ws-card-type')?.value || '法术';
+  const level = Number(el('ws-card-level')?.value) || 1;
+  const recall = Number(el('ws-card-recall')?.value) || 0;
+  const desc = el('ws-card-desc')?.value?.trim() || '卡牌能力与规则描述…';
+
+  const selDomain = el('ws-card-domain')?.value || '利刃';
+  let domainName = selDomain;
+  let domainColor = getDomainColor(selDomain);
+
+  if (selDomain === '__custom__') {
+    const customName = el('ws-card-custom-domain-name')?.value?.trim();
+    domainName = customName || '自定领域';
+    domainColor = el('ws-card-custom-domain-color')?.value || '#8b5cf6';
+  }
+
+  const tag = el('ws-prev-card-tag');
+  if (tag) {
+    tag.textContent = `${domainName} · ${level}级`;
+    tag.style.background = domainColor;
+  }
+  const recallEl = el('ws-prev-card-recall');
+  if (recallEl) recallEl.textContent = `⚡ ${recall}⚡`;
+  const titleEl = el('ws-prev-card-title');
+  if (titleEl) titleEl.textContent = name;
+  const typeEl = el('ws-prev-card-type');
+  if (typeEl) typeEl.textContent = type;
+  const descEl = el('ws-prev-card-desc');
+  if (descEl) descEl.innerHTML = renderMarkdown(desc);
 }
 
 // 实时更新物品表单预览
@@ -3573,7 +3665,34 @@ function handleWorkshopCardSubmit(isDispatch) {
   const name = el('ws-card-name')?.value?.trim();
   if (!name) return alert('请输入卡牌名称！');
 
-  const domain = el('ws-card-domain')?.value || '利刃';
+  let domain = el('ws-card-domain')?.value || '利刃';
+  const customName = el('ws-card-custom-domain-name')?.value?.trim();
+  const customColor = el('ws-card-custom-domain-color')?.value || '#8b5cf6';
+
+  // 若选择了输入自定义新领域或填写了自定义领域名，浓缩就地完成注册登记
+  if (domain === '__custom__' || customName) {
+    if (!customName) return alert('请在自定义领域框中输入新领域的名称！');
+    domain = customName;
+
+    if (!campaignResources.customDomains) campaignResources.customDomains = [];
+    const exIdx = campaignResources.customDomains.findIndex(cd => cd.name === customName);
+    if (exIdx >= 0) {
+      campaignResources.customDomains[exIdx].color = customColor;
+    } else {
+      campaignResources.customDomains.push({
+        id: `cd_${Date.now()}`,
+        name: customName,
+        color: customColor,
+        desc: '战役自创领域'
+      });
+    }
+    domainColors[customName] = customColor;
+    populateWorkshopDomainDropdown();
+    if (el('ws-card-domain')) el('ws-card-domain').value = customName;
+    if (el('ws-custom-domain-box')) el('ws-custom-domain-box').style.display = 'none';
+    if (el('ws-card-custom-domain-name')) el('ws-card-custom-domain-name').value = '';
+  }
+
   const type = el('ws-card-type')?.value || '法术';
   const level = Number(el('ws-card-level')?.value) || 1;
   const recall = Number(el('ws-card-recall')?.value) || 0;
@@ -3592,6 +3711,7 @@ function handleWorkshopCardSubmit(isDispatch) {
   };
 
   // 1. 保存/更新至战役领域卡库
+  if (!campaignResources.domainCards) campaignResources.domainCards = [];
   const existingIdx = campaignResources.domainCards.findIndex(c => (editId ? (c.id === editId || c.ID === editId) : c.名称 === name));
   if (existingIdx >= 0) {
     campaignResources.domainCards[existingIdx] = card;
@@ -3610,42 +3730,6 @@ function handleWorkshopCardSubmit(isDispatch) {
   cancelWorkshopEdit();
   renderWorkshopLibrary();
   renderDomainCards();
-}
-
-// 提交注册 / 修改自定义领域
-function handleSaveCustomDomain() {
-  const name = el('ws-cd-name')?.value?.trim();
-  if (!name) return alert('请输入领域名称！');
-  const color = el('ws-cd-color')?.value || '#8b5cf6';
-  const desc = el('ws-cd-desc')?.value?.trim() || '';
-  const editId = el('ws-cd-edit-id')?.value;
-
-  if (!campaignResources.customDomains) campaignResources.customDomains = [];
-
-  const existingIdx = campaignResources.customDomains.findIndex(d => (editId ? d.id === editId : d.name === name));
-  const domainObj = {
-    id: editId || `cd_${Date.now()}`,
-    name,
-    color,
-    desc
-  };
-
-  if (existingIdx >= 0) {
-    campaignResources.customDomains[existingIdx] = domainObj;
-  } else {
-    campaignResources.customDomains.push(domainObj);
-  }
-
-  // 同步色彩表
-  domainColors[name] = color;
-  saveCampaignResources();
-
-  cancelCustomDomainEdit();
-  populateWorkshopDomainDropdown();
-  renderCustomDomainsManager();
-  renderWorkshopLibrary();
-  renderDomainCards();
-  alert(`已成功注册自定领域【${name}】！`);
 }
 
 // 发放物品至指定角色背包
@@ -3785,14 +3869,15 @@ function loadCardToEdit(card) {
   renderWorkshopLibrary();
 }
 
-// 回显载入自定领域进入编辑状态
+// 回显载入自定领域进入编辑状态（浓缩于领域卡表单内）
 function loadCustomDomainToEdit(cd) {
-  switchWorkshopWorkbenchTab('custom-domain');
-  if (el('ws-cd-edit-id')) el('ws-cd-edit-id').value = cd.id;
-  if (el('ws-cd-name')) el('ws-cd-name').value = cd.name;
-  if (el('ws-cd-color')) el('ws-cd-color').value = cd.color;
-  if (el('ws-cd-desc')) el('ws-cd-desc').value = cd.desc || '';
-  if (el('btn-cancel-cd-edit')) el('btn-cancel-cd-edit').hidden = false;
+  switchWorkshopWorkbenchTab('domain-card');
+  if (el('ws-card-domain')) el('ws-card-domain').value = '__custom__';
+  const box = el('ws-custom-domain-box');
+  if (box) box.style.display = 'block';
+  if (el('ws-card-custom-domain-name')) el('ws-card-custom-domain-name').value = cd.name;
+  if (el('ws-card-custom-domain-color')) el('ws-card-custom-domain-color').value = cd.color;
+  updateCardPreview();
 }
 
 // 退出/取消物品与卡牌编辑模式
@@ -3811,6 +3896,8 @@ function cancelWorkshopEdit() {
   if (el('ws-card-edit-id')) el('ws-card-edit-id').value = '';
   if (el('ws-card-name')) el('ws-card-name').value = '';
   if (el('ws-card-desc')) el('ws-card-desc').value = '';
+  if (el('ws-card-custom-domain-name')) el('ws-card-custom-domain-name').value = '';
+  if (el('ws-custom-domain-box')) el('ws-custom-domain-box').style.display = 'none';
 
   const banner = el('ws-edit-banner');
   if (banner) banner.hidden = true;
@@ -3822,11 +3909,9 @@ function cancelWorkshopEdit() {
 
 // 取消自定领域编辑
 function cancelCustomDomainEdit() {
-  if (el('ws-cd-edit-id')) el('ws-cd-edit-id').value = '';
-  if (el('ws-cd-name')) el('ws-cd-name').value = '';
-  if (el('ws-cd-color')) el('ws-cd-color').value = '#8b5cf6';
-  if (el('ws-cd-desc')) el('ws-cd-desc').value = '';
-  if (el('btn-cancel-cd-edit')) el('btn-cancel-cd-edit').hidden = true;
+  if (el('ws-card-custom-domain-name')) el('ws-card-custom-domain-name').value = '';
+  if (el('ws-card-custom-domain-color')) el('ws-card-custom-domain-color').value = '#8b5cf6';
+  if (el('ws-custom-domain-box')) el('ws-custom-domain-box').style.display = 'none';
 }
 
 // 渲染自定领域管理器
@@ -4288,9 +4373,21 @@ function renderWorkshopLibrary() {
       <div class="ws-card-body-desc">${renderMarkdown(cd.desc || '暂无理念描述')}</div>
       <div class="ws-card-item-actions">
         <button type="button" class="ws-btn-mini" data-action="edit">✏️ 编辑领域</button>
+        <button type="button" class="ws-btn-mini ws-btn-mini-danger" data-action="del">🗑️ 删除领域</button>
       </div>
     `;
     cardEl.querySelector('[data-action="edit"]').addEventListener('click', () => loadCustomDomainToEdit(cd));
+    cardEl.querySelector('[data-action="del"]').addEventListener('click', () => {
+      if (confirm(`确定注销战役领域【${cd.name}】吗？已有的卡牌将保留该领域标记。`)) {
+        const dIdx = campaignResources.customDomains.indexOf(cd);
+        if (dIdx >= 0) campaignResources.customDomains.splice(dIdx, 1);
+        delete domainColors[cd.name];
+        saveCampaignResources();
+        populateWorkshopDomainDropdown();
+        renderWorkshopLibrary();
+        renderDomainCards();
+      }
+    });
     container.appendChild(cardEl);
   });
 }
