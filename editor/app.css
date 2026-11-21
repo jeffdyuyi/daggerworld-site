@@ -1260,7 +1260,7 @@ body.dw-theme {
 }
 
 /* Authentic Daggerheart Domain Card Layout */
-.dh-card {
+.dh-card, .dh-domain-card {
   background: var(--bg-card);
   border: 1px solid var(--border-bo3);
   border-radius: 10px;
@@ -1275,18 +1275,18 @@ body.dw-theme {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.dh-card:hover {
+.dh-card:hover, .dh-domain-card:hover {
   border-color: var(--bo3-blue-light);
   transform: translateY(-3px);
   box-shadow: 0 6px 20px var(--border-glow);
 }
 
-.dh-card.equipped {
+.dh-card.equipped, .dh-domain-card.equipped {
   border-color: var(--bo3-blue-light);
   background: linear-gradient(180deg, #1f2b3b 0%, #17202c 100%);
 }
 
-.dh-card-banner {
+.dh-card-banner, .dh-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3843,14 +3843,11 @@ body.dw-theme {
 .ws-tier-pill[data-tier="4"].active { border-color: #e7b450 !important; background: rgba(178, 129, 49, 0.35); color: #fff3ce; box-shadow: 0 0 12px rgba(231, 180, 80, 0.85); }
 
 
-
-
-
-
 /* WS Item Preview Card Rich Canonical Stats & Modifiers */
 .ws-preview-stat-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 12px;
   color: var(--text-main, #f1f5f9);
