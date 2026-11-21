@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261121-visual-picker-v1">
+  <link rel="stylesheet" href="./app.css?v=20261121-css-fix3">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -1178,7 +1178,8 @@
                       <option value="知识">知识 (Knowledge)</option>
                     </select>
                   </label>
-                  <label style="grid-column: span 2;">伤害骰 (Damage)
+                  <div class="ws-field-col ws-col-span-2">
+                    <label for="ws-weapon-damage">伤害骰 (Damage)</label>
                     <input id="ws-weapon-damage" class="dw-input" placeholder="例如 d8, d10+2, 2d6 (留空不显示)" pattern="(?:[0-9]*d[0-9]+)(?:[+-](?:[0-9]*d[0-9]+|[0-9]+))*">
                     <div class="ws-dice-quick-row">
                       <span class="ws-dice-quick-label">常用骰：</span>
@@ -1608,11 +1609,11 @@
   </div>
 
   <!-- 装备图样与纸娃娃外观可视化选择弹窗 (GM专属) -->
-  <div id="visual-picker-modal" class="modal-backdrop" hidden>
-    <div class="modal-window visual-picker-window">
+  <div id="visual-picker-modal" class="dw-modal-backdrop" hidden>
+    <div class="dw-modal-window visual-picker-window">
       <div class="modal-header">
         <h3>🎨 挑选装备图样与外观</h3>
-        <button type="button" class="modal-close" id="btn-close-visual-picker" aria-label="关闭">&times;</button>
+        <button type="button" class="modal-close-btn" id="btn-close-visual-picker" aria-label="关闭">✕</button>
       </div>
       <div class="visual-picker-toolbar">
         <div class="visual-picker-categories" id="visual-picker-categories">
@@ -1662,7 +1663,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261121-visual-picker-v1').catch(error => {
+    import('./app.js?v=20261121-css-fix3').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';
