@@ -1320,12 +1320,6 @@ function renderAll() {
     dashXp.title = isMaxLvl ? '已达到最高等级' : `当前经验值 ${curXp}，升至下一级需要 ${reqXp} 经验`;
   }
 
-  const lvlXpText = el('level-xp-text');
-  if (lvlXpText) {
-    lvlXpText.textContent = xpDisplay;
-    lvlXpText.classList.toggle('xp-ready', !isMaxLvl && curXp >= reqXp);
-  }
-
   const genderEl = el('dash-gender');
   if (genderEl) {
     const gender = s.gender || '男';
