@@ -1,3 +1,4 @@
+import { visualCatalog } from './visual-catalog.js';
 import {setupAdventureBoard} from './adventure-board.js?v=20261121-layout2';
 import {livePaperdollEnabled, showCharacterOutline, showCustomPortrait} from './appearance-preview.js?v=20261121-body2';
 import { sheetStats, adjustment } from './stats.js';
@@ -3189,94 +3190,6 @@ function executeDualityRoll(attr) {
 // ==========================================================================
 // 主持人工坊 · 装备图样与纸娃娃外观素材库 (驱动可视化看图挑选与纸娃娃联动)
 // ==========================================================================
-const visualCatalog = [
-  // ⚔️ 武器 (Weapons)
-  { id: 'sword', name: '经典长剑', cat: 'weapon', sprite: 'sword', paperdollId: 'sword', slot: 'weapon_main', desc: '单手/双手 斩击长剑' },
-  { id: 'dagger', name: '潜行匕首', cat: 'weapon', sprite: 'dagger', paperdollId: 'dagger', slot: 'weapon_main', desc: '单手/副手 穿刺匕首' },
-  { id: 'axe', name: '重型战斧', cat: 'weapon', sprite: 'axe', paperdollId: 'axe', slot: 'weapon_main', desc: '单手/双手 劈砍战斧' },
-  { id: 'hammer', name: '碎骨战锤', cat: 'weapon', sprite: 'hammer', paperdollId: 'hammer', slot: 'weapon_main', desc: '单手/双手 钝击战锤' },
-  { id: 'spear', name: '长柄战矛', cat: 'weapon', sprite: 'spear', paperdollId: 'spear', slot: 'weapon_main', desc: '双手/单手 穿刺长矛' },
-  { id: 'staff', name: '奥术法杖', cat: 'weapon', sprite: 'staff', paperdollId: 'staff', slot: 'weapon_main', desc: '双手 法杖/长棍' },
-  { id: 'bow', name: '精准长弓', cat: 'weapon', sprite: 'bow', paperdollId: 'bow', slot: 'weapon_main', desc: '双手 远程长弓' },
-  { id: 'crossbow', name: '机械重弩', cat: 'weapon', sprite: 'crossbow', paperdollId: 'crossbow', slot: 'weapon_main', desc: '双手 远程机械弩' },
-  { id: 'scythe', name: '死神长镰', cat: 'weapon', sprite: 'scythe', paperdollId: 'scythe', slot: 'weapon_main', desc: '双手 锋锐战镰' },
-  { id: 'atelier-weapon-01', name: '引灯细剑', cat: 'weapon', sprite: 'sword', paperdollId: 'atelier-weapon-01', slot: 'weapon_main', desc: '工坊原创 · 刺击/单手' },
-  { id: 'atelier-weapon-02', name: '杉影钩杖', cat: 'weapon', sprite: 'staff', paperdollId: 'atelier-weapon-02', slot: 'weapon_main', desc: '工坊原创 · 长杖/钩爪' },
-  { id: 'atelier-weapon-03', name: '陶脊战槌', cat: 'weapon', sprite: 'hammer', paperdollId: 'atelier-weapon-03', slot: 'weapon_main', desc: '工坊原创 · 钝击/重锤' },
-  { id: 'atelier-weapon-04', name: '夜纱弧刀', cat: 'weapon', sprite: 'dagger', paperdollId: 'atelier-weapon-04', slot: 'weapon_main', desc: '工坊原创 · 斩击/弯刀' },
-  { id: 'atelier-weapon-05', name: '听潮短矛', cat: 'weapon', sprite: 'spear', paperdollId: 'atelier-weapon-05', slot: 'weapon_main', desc: '工坊原创 · 穿刺/矛枪' },
-  { id: 'atelier-weapon-06', name: '麦穗连枷', cat: 'weapon', sprite: 'hammer', paperdollId: 'atelier-weapon-06', slot: 'weapon_main', desc: '工坊原创 · 锁链/连枷' },
-
-  // 🛡️ 盾牌与副手 (Shields)
-  { id: 'shield', name: '标准木盾', cat: 'shield', sprite: 'shield', paperdollId: 'shield', slot: 'weapon_off', desc: '副手 圆木盾' },
-  { id: 'steelShield', name: '重钢鸢盾', cat: 'shield', sprite: 'steelShield', paperdollId: 'steelShield', slot: 'weapon_off', desc: '副手 精钢鸢盾' },
-  { id: 'atelier-shield-01', name: '螺壳圆盾', cat: 'shield', sprite: 'shield', paperdollId: 'atelier-shield-01', slot: 'weapon_off', desc: '工坊原创 · 圆盾' },
-  { id: 'atelier-shield-02', name: '灯芯方盾', cat: 'shield', sprite: 'steelShield', paperdollId: 'atelier-shield-02', slot: 'weapon_off', desc: '工坊原创 · 方盾' },
-
-  // 🥋 护甲与外衣 (Armor)
-  { id: 'leather', name: '经典皮甲', cat: 'armor', sprite: 'leather', paperdollId: 'leather', slot: 'chest', desc: '轻甲 · 鞣制硬皮甲' },
-  { id: 'chain', name: '精密链甲', cat: 'armor', sprite: 'chain', paperdollId: 'chain', slot: 'chest', desc: '中甲 · 环扣锁子甲' },
-  { id: 'plate', name: '全身板甲', cat: 'armor', sprite: 'plate', paperdollId: 'plate', slot: 'chest', desc: '重甲 · 锻钢全身甲' },
-  { id: 'robe', name: '施法长袍', cat: 'armor', sprite: 'robe', paperdollId: 'robe', slot: 'chest', desc: '布甲 · 附魔长袍' },
-  { id: 'tunic', name: '冒险者短衣', cat: 'armor', sprite: 'tunic', paperdollId: 'tunic', slot: 'chest', desc: '轻便行旅短衣' },
-  { id: 'shirt', name: '亚麻衬衣', cat: 'armor', sprite: 'shirt', paperdollId: 'shirt', slot: 'chest', desc: '日常贴身衣物' },
-  { id: 'atelier-armor-01', name: '灯港短甲', cat: 'armor', sprite: 'leather', paperdollId: 'atelier-armor-01', slot: 'chest', desc: '工坊原创 · 轻装' },
-  { id: 'atelier-armor-02', name: '杉木斥候皮甲', cat: 'armor', sprite: 'leather', paperdollId: 'atelier-armor-02', slot: 'chest', desc: '工坊原创 · 巡林' },
-  { id: 'atelier-armor-03', name: '赤窑锁子甲', cat: 'armor', sprite: 'chain', paperdollId: 'atelier-armor-03', slot: 'chest', desc: '工坊原创 · 链甲' },
-  { id: 'atelier-armor-04', name: '夜织风衣短袍', cat: 'armor', sprite: 'robe', paperdollId: 'atelier-armor-04', slot: 'chest', desc: '工坊原创 · 游侠' },
-  { id: 'atelier-armor-05', name: '听潮重装胸甲', cat: 'armor', sprite: 'plate', paperdollId: 'atelier-armor-05', slot: 'chest', desc: '工坊原创 · 板甲' },
-  { id: 'atelier-armor-06', name: '金穗辉光法袍', cat: 'armor', sprite: 'robe', paperdollId: 'atelier-armor-06', slot: 'chest', desc: '工坊原创 · 丝袍' },
-
-  // 🪖 头部与战盔 (Headwear)
-  { id: 'helm', name: '十字战盔', cat: 'head', sprite: 'helm', paperdollId: 'helm', slot: 'head', desc: '全罩式钢盔' },
-  { id: 'hood', name: '暗行者兜帽', cat: 'head', sprite: 'hood', paperdollId: 'hood', slot: 'head', desc: '隐蔽织物兜帽' },
-  { id: 'crown', name: '黄金王冠', cat: 'head', sprite: 'crown', paperdollId: 'crown', slot: 'head', desc: '贵族与王者之冠' },
-  { id: 'atelier-helmet-01', name: '灯港巡卫轻盔', cat: 'head', sprite: 'helm', paperdollId: 'atelier-helmet-01', slot: 'head', desc: '工坊原创 · 巡卫' },
-  { id: 'atelier-helmet-02', name: '杉林巡守兜帽', cat: 'head', sprite: 'hood', paperdollId: 'atelier-helmet-02', slot: 'head', desc: '工坊原创 · 兜帽' },
-  { id: 'atelier-helmet-03', name: '赤窑熔铸铁盔', cat: 'head', sprite: 'helm', paperdollId: 'atelier-helmet-03', slot: 'head', desc: '工坊原创 · 铁盔' },
-  { id: 'atelier-helmet-04', name: '夜织隐匿面具', cat: 'head', sprite: 'hood', paperdollId: 'atelier-helmet-04', slot: 'head', desc: '工坊原创 · 面具' },
-  { id: 'atelier-helmet-05', name: '听潮骑士重盔', cat: 'head', sprite: 'helm', paperdollId: 'atelier-helmet-05', slot: 'head', desc: '工坊原创 · 重盔' },
-  { id: 'atelier-helmet-06', name: '金穗贤者之冠', cat: 'head', sprite: 'crown', paperdollId: 'atelier-helmet-06', slot: 'head', desc: '工坊原创 · 贤者之冠' },
-
-  // 👢 斗篷、腿足与护手 (Body)
-  { id: 'cape', name: '流浪者披风', cat: 'body', sprite: 'item-cloth', paperdollId: 'cape', slot: 'back', desc: '背部 防风长斗篷' },
-  { id: 'legs', name: '护腿铁胫', cat: 'body', sprite: 'legs', paperdollId: 'legs', slot: 'legs', desc: '腿部 铁制护腿' },
-  { id: 'boots', name: '探险皮靴', cat: 'body', sprite: 'boots', paperdollId: 'boots', slot: 'feet', desc: '足部 坚固长靴' },
-  { id: 'gloves', name: '强化护手', cat: 'body', sprite: 'gloves', paperdollId: 'gloves', slot: 'trinket1', desc: '防护手套' },
-  { id: 'atelier-boots-01', name: '灯港战靴', cat: 'body', sprite: 'boots', paperdollId: 'atelier-boots-01', slot: 'feet', desc: '工坊原创 · 巡夜靴' },
-  { id: 'atelier-boots-02', name: '霜杉轻灵短靴', cat: 'body', sprite: 'boots', paperdollId: 'atelier-boots-02', slot: 'feet', desc: '工坊原创 · 短靴' },
-  { id: 'atelier-boots-05', name: '听潮厚重钢靴', cat: 'body', sprite: 'boots', paperdollId: 'atelier-boots-05', slot: 'feet', desc: '工坊原创 · 钢靴' },
-
-  // 🎒 背包与容器 (Packs)
-  { id: 'item-bag', name: '旅行主背包', cat: 'pack', sprite: 'item-bag', paperdollId: 'atelier-pack-01', slot: 'main_bag', desc: '背包装备 · 大容量' },
-  { id: 'atelier-pouch-01', name: '皮革腰包', cat: 'pack', sprite: 'item-bag', paperdollId: 'atelier-pouch-01', slot: 'pouch_1', desc: '腰包装备 · 随手取用' },
-  { id: 'atelier-satchel-01', name: '游侠挎包', cat: 'pack', sprite: 'item-bag', paperdollId: 'atelier-satchel-01', slot: 'satchel_1', desc: '挎包装备 · 便捷容器' },
-  { id: 'item-chest', name: '收纳宝箱', cat: 'pack', sprite: 'item-chest', paperdollId: '', slot: '', desc: '坚固木质宝箱' },
-  { id: 'item-box', name: '杂物木盒', cat: 'pack', sprite: 'item-box', paperdollId: '', slot: '', desc: '小型收纳木盒' },
-
-  // 🧪 道具、药剂与战利品 (Items)
-  { id: 'item-potion', name: '高颈药剂瓶', cat: 'item', sprite: 'item-potion', paperdollId: '', slot: '', desc: '魔法灵药 / 药水' },
-  { id: 'item-health', name: '生命红药水', cat: 'item', sprite: 'item-health', paperdollId: '', slot: '', desc: '恢复生命与伤势' },
-  { id: 'item-stress', name: '镇定蓝药剂', cat: 'item', sprite: 'item-stress', paperdollId: '', slot: '', desc: '缓解压力与疲劳' },
-  { id: 'item-poison', name: '剧毒绿药水', cat: 'item', sprite: 'item-poison', paperdollId: '', slot: '', desc: '淬毒或炼金毒剂' },
-  { id: 'item-bottle', name: '棕色试剂瓶', cat: 'item', sprite: 'item-bottle', paperdollId: '', slot: '', desc: '通用药剂试剂瓶' },
-  { id: 'item-scroll', name: '羊皮纸卷轴', cat: 'item', sprite: 'item-scroll', paperdollId: '', slot: '', desc: '法术卷轴 / 契约' },
-  { id: 'item-book', name: '奥术魔典', cat: 'item', sprite: 'item-book', paperdollId: '', slot: '', desc: '施法书 / 远古典籍' },
-  { id: 'item-gem', name: '璀璨宝石', cat: 'item', sprite: 'item-gem', paperdollId: '', slot: '', desc: '高价值贵重晶石' },
-  { id: 'item-crystal', name: '共鸣水晶球', cat: 'item', sprite: 'item-crystal', paperdollId: '', slot: '', desc: '蕴含魔力的晶球' },
-  { id: 'item-ring', name: '魔法指环', cat: 'item', sprite: 'item-ring', paperdollId: 'atelier-ring-01', slot: 'ring1', desc: '附魔戒指' },
-  { id: 'item-charm', name: '庇护护符', cat: 'item', sprite: 'item-charm', paperdollId: 'atelier-charm-01', slot: 'trinket1', desc: '项链 / 吊坠 / 徽记' },
-  { id: 'item-key', name: '古旧钥匙', cat: 'item', sprite: 'item-key', paperdollId: '', slot: '', desc: '开锁道具' },
-  { id: 'item-torch', name: '照明火把', cat: 'item', sprite: 'item-torch', paperdollId: '', slot: '', desc: '地下城探索照明' },
-  { id: 'item-lantern', name: '黄铜提灯', cat: 'item', sprite: 'item-lantern', paperdollId: '', slot: '', desc: '防风长效光源' },
-  { id: 'item-map', name: '冒险地图', cat: 'item', sprite: 'item-map', paperdollId: '', slot: '', desc: '战役与地下城手绘地图' },
-  { id: 'item-bomb', name: '炼金炸弹', cat: 'item', sprite: 'item-bomb', paperdollId: '', slot: '', desc: '范围投掷爆炸物' },
-  { id: 'item-rope', name: '结实麻绳', cat: 'item', sprite: 'item-rope', paperdollId: '', slot: '', desc: '攀爬与捆缚用具' },
-  { id: 'item-gold', name: '古币金币', cat: 'item', sprite: 'item-gold', paperdollId: '', slot: '', desc: '战役流通货币' },
-  { id: 'item-food', name: '冒险口粮', cat: 'item', sprite: 'item-food', paperdollId: '', slot: '', desc: '干粮 / 食物补充' },
-  { id: 'item-seed', name: '自然种子', cat: 'item', sprite: 'item-seed', paperdollId: '', slot: '', desc: '草药与植物种子' }
-];
-
 let currentVisualCategory = 'all';
 let currentVisualSearch = '';
 let visualPickerInitialized = false;

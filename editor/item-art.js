@@ -85,6 +85,10 @@ export function itemArt(item = {}) {
 }
 
 export function spriteUrl(sprite) {
+  if (!sprite) return '';
+  if (typeof sprite === 'string' && (sprite.startsWith('/') || sprite.startsWith('./') || sprite.startsWith('../') || sprite.startsWith('http://') || sprite.startsWith('https://') || sprite.includes('/'))) {
+    return new URL(sprite, import.meta.url).href;
+  }
   if (sprite === 'cape') sprite = 'item-cloth';
   return new URL(`${sprite}.png`, art).href;
 }
