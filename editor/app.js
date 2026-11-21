@@ -2643,6 +2643,42 @@ function setupEventListeners() {
     updateWorkshopTargetSelect();
   });
 
+  // Workshop Primary Mode Navigation (一级大模式切换)
+  document.querySelectorAll('.ws-primary-mode-nav .ws-nav-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchWorkshopMode(btn.dataset.wsMode);
+    });
+  });
+
+  // Workshop XP Quick Chips (+50 / +100 / +300)
+  document.querySelectorAll('.ws-chip-btn[data-xp-chip]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const xpInput = el('ws-xp-amount');
+      if (!xpInput) return;
+      const addVal = parseInt(btn.dataset.xpChip, 10) || 0;
+      const curVal = parseInt(xpInput.value, 10) || 0;
+      xpInput.value = curVal + addVal;
+      xpInput.focus();
+    });
+  });
+
+  // Workshop Preset Status Chips
+  document.querySelectorAll('.ws-preset-chip[data-preset-eff]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const effNameInput = el('ws-effect-name');
+      if (effNameInput) {
+        effNameInput.value = btn.dataset.presetEff;
+        el('ws-effect-description')?.focus();
+      }
+    });
+  });
+
+  // Status Effect Live Preview Listeners
+  ['ws-effect-name-full', 'ws-effect-type', 'ws-effect-duration', 'ws-effect-modifiers', 'ws-effect-desc-full'].forEach(id => {
+    el(id)?.addEventListener('input', updateStatusEffectPreview);
+    el(id)?.addEventListener('change', updateStatusEffectPreview);
+  });
+
   // Workshop Workbench Tabs
   document.querySelectorAll('.ws-workbench-tabs .ws-wtab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3437,13 +3473,26 @@ function setupVisualPicker() {
 }
 
 let workshopState = {
-  currentTab: 'item',          // 'item' | 'domain-card' | 'custom-domain'
-  filter: 'all',               // 'all' | '武器' | '护甲' | '战利品' | '消耗品' | '领域卡' | '自定领域'
+  currentMode: 'dispatch',     // 'dispatch' | 'studio'
+  currentTab: 'item',          // 'item' | 'domain-card' | 'status-effect'
+  filter: 'all',               // 'all' | '武器' | '护甲' | '战利品' | '消耗品' | '领域卡' | '自定领域' | '状态效果'
   searchQuery: '',
   targetCharIndex: 0,
-  editingType: null,           // null | 'item' | 'domain-card' | 'custom-domain'
+  editingType: null,           // null | 'item' | 'domain-card' | 'status-effect'
   editingId: null
 };
+
+// 切换主持人工坊一级大模式 (dispatch: 资源库与发放中心 | studio: 资源设计工坊)
+function switchWorkshopMode(mode) {
+  workshopState.currentMode = mode;
+  document.querySelectorAll('.ws-primary-mode-nav .ws-nav-mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.wsMode === mode);
+  });
+  const pDispatch = el('ws-page-dispatch');
+  const pStudio = el('ws-page-studio');
+  if (pDispatch) pDispatch.hidden = (mode !== 'dispatch');
+  if (pStudio) pStudio.hidden = (mode !== 'studio');
+}
 
 // 初始化独立工坊页面
 function initWorkshopLayer() {
@@ -3456,6 +3505,7 @@ function initWorkshopLayer() {
   updateVisualCurrentCard();
   updateItemPreview();
   updateCardPreview();
+  updateStatusEffectPreview();
 }
 
 // 刷新全队受赐角色选择器与槽位统计
@@ -3473,7 +3523,7 @@ function updateWorkshopTargetSelect() {
     button.textContent = target ? '发放给 ' + target.avatar_name : '发放';
   }
 
-  for (const id of ['btn-ws-dispatch-item', 'btn-ws-dispatch-card']) {
+  for (const id of ['btn-ws-dispatch-item', 'btn-ws-dispatch-card', 'btn-ws-dispatch-effect']) {
     const button = el(id);
     if (!button) continue;
     button.disabled = !target?.updated_at;
@@ -4247,8 +4297,66 @@ async function sendResource(target,field,item) {
   }
 }
 
+// 状态效果所见即所得卡片实时预览
+function updateStatusEffectPreview() {
+  const name = el('ws-effect-name-full')?.value?.trim() || '状态名称';
+  const type = el('ws-effect-type')?.value || '减益';
+  const duration = el('ws-effect-duration')?.value?.trim() || '持续 1 轮';
+  const modifiers = el('ws-effect-modifiers')?.value?.trim() || '';
+  const desc = el('ws-effect-desc-full')?.value?.trim() || '状态机制说明…';
+
+  const nameEl = el('ws-prev-effect-name');
+  const typeEl = el('ws-prev-effect-type');
+  const durEl = el('ws-prev-effect-duration');
+  const modsEl = el('ws-prev-effect-mods');
+  const descEl = el('ws-prev-effect-desc');
+
+  if (nameEl) nameEl.textContent = name;
+  if (typeEl) {
+    typeEl.textContent = type;
+    typeEl.style.background = type === '减益' ? '#dc2626' : (type === '增益' ? '#16a34a' : '#8b5cf6');
+  }
+  if (durEl) durEl.textContent = duration;
+  if (modsEl) {
+    modsEl.textContent = modifiers || '无数值修正';
+    modsEl.style.opacity = modifiers ? '1' : '0.6';
+  }
+  if (descEl) descEl.innerHTML = renderMarkdown(desc);
+}
+
+// 从资源库直接施加状态至指定角色
+async function dispatchEffectToCharacter(eff, targetCharIndex) {
+  const target = characters[targetCharIndex];
+  if (!target) return alert('请先在上方选定受赐角色！');
+  const proposed = structuredClone(target);
+  if (!proposed.sheet) proposed.sheet = {};
+  proposed.sheet.specialEffects = [...(proposed.sheet.specialEffects || []), {
+    id: crypto.randomUUID(),
+    name: eff.name,
+    type: eff.type || '减益',
+    duration: eff.duration || '',
+    modifiers: eff.modifiers || '',
+    desc: eff.desc || '',
+    description: eff.description || eff.desc || ''
+  }];
+  try {
+    if (target.updated_at && currentUser?.role === 'gm') {
+      await persist(target, payload(proposed));
+    }
+    target.sheet.specialEffects = proposed.sheet.specialEffects;
+    saveLocal();
+    renderActiveCharacterEffects();
+    renderAll();
+    updateWorkshopTargetSelect();
+    alert(`已成功施加状态【${eff.name}】给【${target.avatar_name}】！`);
+  } catch (err) {
+    alert('施加状态失败：' + err.message);
+  }
+}
+
 // 回显载入物品进入编辑状态
 function loadItemToEdit(item) {
+  switchWorkshopMode('studio');
   switchWorkshopWorkbenchTab('item');
   if (el('ws-item-edit-id')) el('ws-item-edit-id').value = item.id;
   if (el('ws-item-type')) el('ws-item-type').value = item.type || '战利品';
@@ -4273,6 +4381,7 @@ function loadItemToEdit(item) {
 
 // 回显载入领域卡进入编辑状态
 function loadCardToEdit(card) {
+  switchWorkshopMode('studio');
   switchWorkshopWorkbenchTab('domain-card');
   const cId = card.id || card.ID;
   if (el('ws-card-edit-id')) el('ws-card-edit-id').value = cId;
@@ -4297,6 +4406,7 @@ function loadCardToEdit(card) {
 
 // 回显载入自定领域进入编辑状态（浓缩于领域卡表单内）
 function loadCustomDomainToEdit(cd) {
+  switchWorkshopMode('studio');
   switchWorkshopWorkbenchTab('domain-card');
   if (el('ws-card-domain')) el('ws-card-domain').value = '__custom__';
   const box = el('ws-custom-domain-box');
@@ -4324,11 +4434,18 @@ function cancelWorkshopEdit() {
   if (el('ws-card-custom-domain-name')) el('ws-card-custom-domain-name').value = '';
   if (el('ws-custom-domain-box')) el('ws-custom-domain-box').style.display = 'none';
 
+  if (el('ws-effect-edit-id')) el('ws-effect-edit-id').value = '';
+  if (el('ws-effect-name-full')) el('ws-effect-name-full').value = '';
+  if (el('ws-effect-duration')) el('ws-effect-duration').value = '';
+  if (el('ws-effect-modifiers')) el('ws-effect-modifiers').value = '';
+  if (el('ws-effect-desc-full')) el('ws-effect-desc-full').value = '';
+
   const banner = el('ws-edit-banner');
   if (banner) banner.hidden = true;
 
   updateItemPreview();
   updateCardPreview();
+  updateStatusEffectPreview();
   renderWorkshopLibrary();
 }
 
@@ -4601,6 +4718,7 @@ async function handleWorkshopEffectSubmit(isDispatch) {
 }
 
 function loadEffectToEdit(effectObj) {
+  switchWorkshopMode('studio');
   switchWorkshopWorkbenchTab('status-effect');
   if (el('ws-effect-edit-id')) el('ws-effect-edit-id').value = effectObj.id;
   if (el('ws-effect-name-full')) el('ws-effect-name-full').value = effectObj.name;
@@ -4609,10 +4727,14 @@ function loadEffectToEdit(effectObj) {
   if (el('ws-effect-modifiers')) el('ws-effect-modifiers').value = effectObj.modifiers || '';
   if (el('ws-effect-desc-full')) el('ws-effect-desc-full').value = effectObj.desc || '';
 
+  workshopState.editingType = 'status-effect';
+  workshopState.editingId = effectObj.id;
+
   const banner = el('ws-edit-banner');
   const targetLabel = el('ws-editing-target-name');
   if (banner) banner.hidden = false;
   if (targetLabel) targetLabel.textContent = `状态效果：${effectObj.name}`;
+  updateStatusEffectPreview();
 }
 
 function renderWorkshopLibrary() {
@@ -4624,7 +4746,8 @@ function renderWorkshopLibrary() {
   const cards = campaignResources.domainCards || [];
   const customDomains = campaignResources.customDomains || [];
 
-  const total = items.length + cards.length + customDomains.length;
+  const statusEffects = campaignResources.statusEffects || [];
+  const total = items.length + cards.length + customDomains.length + statusEffects.length;
   if (totalCountEl) totalCountEl.textContent = total;
 
   if (!container) return;
@@ -4813,6 +4936,46 @@ function renderWorkshopLibrary() {
         renderDomainCards();
       }
     });
+    container.appendChild(cardEl);
+  });
+
+  // 4. 渲染状态效果条目
+  matchedEffects.forEach((eff) => {
+    const isEditing = (workshopState.editingType === 'status-effect' && workshopState.editingId === eff.id);
+    const cardEl = document.createElement('div');
+    cardEl.className = `ws-card-item ws-card-effect ${isEditing ? 'editing' : ''}`;
+    const typeColor = eff.type === '减益' ? '#dc2626' : (eff.type === '增益' ? '#16a34a' : '#8b5cf6');
+    cardEl.innerHTML = `
+      <div class="ws-card-header">
+        <div class="item-left">
+          <span style="font-size:18px;">✨</span>
+          <strong>${escapeHtml(eff.name)}</strong>
+        </div>
+        <div class="ws-card-badges">
+          <span class="f-badge" style="background:${typeColor};color:#fff;">${eff.type || '状态'}</span>
+          ${eff.duration ? `<span class="f-badge">${escapeHtml(eff.duration)}</span>` : ''}
+        </div>
+      </div>
+      ${eff.modifiers ? `<div class="ws-card-stats" style="color:var(--text-gold);font-weight:bold;">${escapeHtml(eff.modifiers)}</div>` : ''}
+      <div class="ws-card-body-desc">${renderMarkdown(eff.desc || eff.description || '暂无说明')}</div>
+      <div class="ws-card-item-actions">
+        <button type="button" class="ws-btn-mini ws-btn-gold" data-action="dispatch">施加给角色</button>
+        <button type="button" class="ws-btn-mini" data-action="edit">✏️ 编辑</button>
+        <button type="button" class="ws-btn-mini ws-btn-mini-danger" data-action="del">🗑️ 删除</button>
+      </div>
+    `;
+
+    cardEl.querySelector('[data-action="dispatch"]').addEventListener('click', () => dispatchEffectToCharacter(eff, workshopState.targetCharIndex));
+    cardEl.querySelector('[data-action="edit"]').addEventListener('click', () => loadEffectToEdit(eff));
+    cardEl.querySelector('[data-action="del"]').addEventListener('click', () => {
+      if (confirm(`确定从战役储备库删除状态【${eff.name}】吗？`)) {
+        const eIdx = (campaignResources.statusEffects || []).indexOf(eff);
+        if (eIdx >= 0) campaignResources.statusEffects.splice(eIdx, 1);
+        saveCampaignResources();
+        renderWorkshopLibrary();
+      }
+    });
+
     container.appendChild(cardEl);
   });
 }

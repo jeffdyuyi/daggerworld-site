@@ -929,43 +929,104 @@
       </div>
     </header>
 
-    <!-- Global Dispatch Target Strip (全队受赐角色选择器) -->
-    <section class="ws-dispatch-strip">
-      <div class="ws-dispatch-strip-left">
-        <span class="dispatch-crown-badge">接收角色</span>
-        <button type="button" id="ws-catalog" class="dw-btn">发放原版物品</button>
-        <select id="ws-target-char-select" class="dw-select ws-target-select" title="选择受赐角色">
-          <!-- Populated with all characters -->
-        </select>
-        <label>经验 <input id="ws-xp-amount" class="dw-input" type="number" min="1" step="1"></label>
-        <span id="ws-xp-required"></span>
-        <button type="button" class="dw-btn" id="ws-grant-xp">发放经验</button>
-        <label>效果名称 <input id="ws-effect-name" maxlength="80" class="dw-input" list="effect-presets"></label>
-        <datalist id="effect-presets"><option value="脆弱"><option value="束缚"><option value="隐藏"><option value="倒下"></datalist>
-        <label>说明 <input id="ws-effect-description" maxlength="1000" class="dw-input"></label>
-        <button type="button" class="dw-btn" id="ws-grant-effect">发放效果</button>
-        <div class="ws-target-char-meta" id="ws-target-char-meta">
-          <!-- Slot count & badge -->
+    <!-- Workshop Primary Mode Navigation (一级导航：资源库与发放中心 vs 资源设计工坊) -->
+    <nav class="ws-primary-mode-nav">
+      <button type="button" class="ws-nav-mode-btn active" id="ws-nav-dispatch" data-ws-mode="dispatch">
+        <span class="mode-icon">📦</span>
+        <div class="mode-text-group">
+          <span class="mode-title">资源库与发放中心</span>
+          <span class="mode-desc">角色受赐、经验与状态分发、战役储备库物资调配</span>
+        </div>
+      </button>
+      <button type="button" class="ws-nav-mode-btn" id="ws-nav-studio" data-ws-mode="studio">
+        <span class="mode-icon">🛠️</span>
+        <div class="mode-text-group">
+          <span class="mode-title">资源设计工坊</span>
+          <span class="mode-desc">装备与战利品、领域法术卡、状态效果创制与精修</span>
+        </div>
+      </button>
+    </nav>
+
+    <!-- PAGE 1: 资源库与发放中心 (整合受赐目标、快捷赋权与全宽战役储备库) -->
+    <section id="ws-page-dispatch" class="ws-page-section">
+      <!-- 顶部控制台：受赐目标卡片 + 快捷赋权区 -->
+      <div class="ws-dispatch-dashboard">
+        <!-- 受赐角色详情卡片 -->
+        <div class="ws-target-char-card">
+          <div class="ws-target-header">
+            <span class="dispatch-crown-badge">👑 当前受赐角色</span>
+            <button type="button" id="ws-catalog" class="dw-btn dw-btn-outline ws-btn-catalog">📖 发放原版图鉴物品</button>
+          </div>
+          <div class="ws-target-select-row">
+            <select id="ws-target-char-select" class="dw-select ws-target-select-large" title="选择受赐角色">
+              <!-- 动态填充队伍所有角色 -->
+            </select>
+          </div>
+          <div class="ws-target-char-meta" id="ws-target-char-meta">
+            <!-- 槽位统计与状态信息 -->
+          </div>
+          <div class="ws-target-hint">
+            <span>💡 提示：在下方资源库中点击条目的【👑 发放给该角色】可直接送达其随身背包或秘藏</span>
+          </div>
+        </div>
+
+        <!-- 快捷赋权面板：经验发放与快速状态施加 -->
+        <div class="ws-quick-grant-panel">
+          <!-- 经验发放组 -->
+          <div class="ws-grant-card ws-xp-grant-card">
+            <div class="ws-grant-card-title">
+              <strong>⚡ 经验发放</strong>
+              <span id="ws-xp-required" class="ws-xp-required-text"></span>
+            </div>
+            <div class="ws-grant-xp-row">
+              <div class="ws-xp-input-wrap">
+                <input id="ws-xp-amount" class="dw-input ws-input-large" type="number" min="1" step="1" placeholder="经验点数">
+              </div>
+              <div class="ws-xp-chips">
+                <button type="button" class="ws-chip-btn" data-xp-chip="50">+50</button>
+                <button type="button" class="ws-chip-btn" data-xp-chip="100">+100</button>
+                <button type="button" class="ws-chip-btn" data-xp-chip="300">+300</button>
+              </div>
+              <button type="button" class="dw-btn dw-btn-gold ws-btn-grant-main" id="ws-grant-xp">发放经验</button>
+            </div>
+          </div>
+
+          <!-- 快速状态施加组 -->
+          <div class="ws-grant-card ws-effect-grant-card">
+            <div class="ws-grant-card-title">
+              <strong>✨ 快速状态施加</strong>
+              <div class="ws-status-presets">
+                <button type="button" class="ws-preset-chip" data-preset-eff="脆弱">脆弱</button>
+                <button type="button" class="ws-preset-chip" data-preset-eff="束缚">束缚</button>
+                <button type="button" class="ws-preset-chip" data-preset-eff="隐藏">隐藏</button>
+                <button type="button" class="ws-preset-chip" data-preset-eff="倒下">倒下</button>
+              </div>
+            </div>
+            <div class="ws-grant-effect-row">
+              <input id="ws-effect-name" maxlength="80" class="dw-input ws-input-large" placeholder="状态名 (如 虚弱 / 中毒)" list="effect-presets">
+              <datalist id="effect-presets">
+                <option value="脆弱"><option value="束缚"><option value="隐藏"><option value="倒下">
+                <option value="中毒"><option value="流血"><option value="点燃"><option value="眩晕">
+              </datalist>
+              <input id="ws-effect-description" maxlength="1000" class="dw-input ws-input-large ws-desc-input" placeholder="说明与数值修正 (选填)">
+              <button type="button" class="dw-btn dw-btn-gold ws-btn-grant-main" id="ws-grant-effect">施加状态</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="ws-strip-hint">
-        <span>💡 在左侧点击条目的【👑 发放】可直接送达该角色随身背包或秘藏</span>
-      </div>
-    </section>
 
-    <!-- Workshop Grid: Left Library & Right Workbench -->
-    <div class="workshop-grid-container">
-
-      <!-- Left Column: 战役储备军械库 (Storage & Inventory) -->
-      <section class="ws-col-library">
-        <div class="ws-box-header">
-          <div class="ws-box-title-row">
-            <h3>📦 资源库 (<span id="ws-lib-total-count">0</span>)</h3>
-            <span class="f-badge" id="ws-active-filter-badge">全部资源</span>
-          </div>
-          <!-- Search & Filter Bar -->
-          <div class="ws-search-wrapper">
-            <input type="text" id="ws-library-search" class="dw-input" placeholder="🔍 检索名称、子类、关键词或属性…">
+      <!-- 全宽战役储备军械库 -->
+      <div class="ws-library-section">
+        <div class="ws-library-header-bar">
+          <div class="ws-library-title-row">
+            <div class="ws-lib-title-left">
+              <h3>📦 战役储备资源库</h3>
+              <span class="ws-count-pill" id="ws-lib-total-count">0</span>
+              <span class="f-badge" id="ws-active-filter-badge">全部资源</span>
+            </div>
+            <div class="ws-search-wrapper">
+              <input type="text" id="ws-library-search" class="dw-input ws-input-large" placeholder="🔍 检索名称、子类、关键词、状态或属性…">
+            </div>
           </div>
           <div class="ws-filter-pills" id="ws-filter-pills">
             <button type="button" class="ws-pill active" data-ws-filter="all">全部</button>
@@ -975,36 +1036,36 @@
             <button type="button" class="ws-pill" data-ws-filter="消耗品">消耗品</button>
             <button type="button" class="ws-pill" data-ws-filter="领域卡">领域卡</button>
             <button type="button" class="ws-pill" data-ws-filter="自定领域">自定领域</button>
-            <button type="button" class="ws-pill" data-ws-filter="状态效果">状态效果</button>
+            <button type="button" class="ws-pill" data-ws-filter="状态效果">✨ 状态效果</button>
           </div>
         </div>
 
-        <!-- Scrollable List of Items & Cards -->
-        <div class="ws-library-scroll" id="ws-library-list">
+        <!-- 资源卡片网格 -->
+        <div class="ws-library-grid" id="ws-library-list">
           <!-- Rendered dynamically -->
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- Right Column: 创制与编辑工作台 (Creation & Edit Workbench) -->
-      <section class="ws-col-workbench">
+    <!-- PAGE 2: 资源设计工坊 (单独整页呈现，内部二级分页，大字化与实时预览) -->
+    <section id="ws-page-studio" class="ws-page-section" hidden>
+      <!-- Studio 二级设计分类页签 -->
+      <div class="ws-workbench-tabs">
+        <button type="button" class="ws-wtab-btn active" data-target-tab="item">🗡️ 装备与战利品设计</button>
+        <button type="button" class="ws-wtab-btn" data-target-tab="domain-card">📜 领域法术卡设计</button>
+        <button type="button" class="ws-wtab-btn" data-target-tab="status-effect">✨ 状态与特殊效果设计</button>
+      </div>
 
-        <!-- Workbench Navigation Tabs -->
-        <div class="ws-workbench-tabs">
-          <button type="button" class="ws-wtab-btn active" data-target-tab="item">🗡️ 装备与战利品</button>
-          <button type="button" class="ws-wtab-btn" data-target-tab="domain-card">📜 领域法术卡</button>
-          <button type="button" class="ws-wtab-btn" data-target-tab="status-effect">✨ 状态与特殊效果</button>
+      <!-- Edit Status Banner (Appears when editing existing item/card/effect) -->
+      <div class="ws-edit-state-banner" id="ws-edit-banner" hidden>
+        <div class="ws-edit-info">
+          <span class="ws-edit-badge">✏️ 编辑模式</span>
+          <span class="ws-edit-target" id="ws-editing-target-name">未选定</span>
         </div>
+        <button type="button" class="dw-btn dw-btn-outline ws-btn-cancel-edit" id="btn-cancel-edit">✕ 取消编辑</button>
+      </div>
 
-        <!-- Edit Status Banner (Appears when editing existing item/card) -->
-        <div class="ws-edit-state-banner" id="ws-edit-banner" hidden>
-          <div class="ws-edit-info">
-            <span class="ws-edit-badge">✏️ 编辑模式</span>
-            <span class="ws-edit-target" id="ws-editing-target-name">未选定</span>
-          </div>
-          <button type="button" class="dw-btn dw-btn-outline ws-btn-cancel-edit" id="btn-cancel-edit">✕ 取消编辑</button>
-        </div>
-
-        <!-- Panel 1: 创制与编辑物品/战利品/消耗品 -->
+      <!-- Panel 1: 创制与编辑物品/战利品/消耗品 -->
         <div class="ws-workbench-panel" id="ws-panel-item">
           <form id="ws-form-item" class="ws-form-grid" onsubmit="return false;">
             <input type="hidden" id="ws-item-edit-id" value="">
@@ -1312,7 +1373,7 @@
           </div>
         </div>
 
-        <!-- Panel 2: 创制与编辑领域法术卡 (支持就地输入自定义新领域) -->
+      <!-- Panel 2: 创制与编辑领域法术卡 (支持就地输入自定义新领域) -->
         <div class="ws-workbench-panel" id="ws-panel-domain-card" hidden>
           <form id="ws-form-domain-card" class="ws-form-grid" onsubmit="return false;">
             <input type="hidden" id="ws-card-edit-id" value="">
@@ -1376,38 +1437,19 @@
           </div>
         </div>
 
-        <!-- Panel 4: 创制与管理状态及特殊效果 -->
+        <!-- Panel 3: 创制与管理状态及特殊效果 -->
         <div class="ws-workbench-panel" id="ws-panel-status-effect" hidden>
-          <div class="status-manager-section">
-            <div class="ws-box-title-row">
-              <h4>⚡ 目标角色当前在身状态 (<span id="ws-active-effects-count">0</span>)</h4>
-              <button type="button" class="dw-btn dw-btn-outline ws-btn-mini ws-btn-danger" id="btn-ws-clear-all-effects" title="清除该角色全部状态">🧹 全部解除</button>
-            </div>
-            <div class="status-quick-conditions">
-              <span style="font-size:12px;color:var(--text-muted);">快速切换标准状态：</span>
-              <button type="button" class="status-quick-btn" data-cond="vulnerable">脆弱</button>
-              <button type="button" class="status-quick-btn" data-cond="restrained">束缚</button>
-              <button type="button" class="status-quick-btn" data-cond="hidden">隐藏</button>
-              <button type="button" class="status-quick-btn" data-cond="prone">倒下</button>
-            </div>
-            <div class="ws-active-effects-list" id="ws-active-effects-list">
-              <!-- Rendered dynamically with remove buttons -->
-            </div>
-          </div>
-
-          <hr style="border:none;border-top:1px solid var(--border-bo3);margin:16px 0;">
-
           <!-- Form to Create / Grant Status Effect -->
           <div class="status-create-section">
             <div class="ws-box-title-row">
-              <h4>✨ 创制状态细节与特殊效果</h4>
-              <span class="f-badge">主持人限权</span>
+              <h4>✨ 状态与特殊效果详细配置</h4>
+              <span class="f-badge">主持人专属创制</span>
             </div>
-            <form id="ws-form-effect" class="ws-form-grid" onsubmit="return false;" style="margin-top:10px;">
+            <form id="ws-form-effect" class="ws-form-grid" onsubmit="return false;" style="margin-top:12px;">
               <input type="hidden" id="ws-effect-edit-id" value="">
               <div class="f-select-group">
                 <label>状态名称</label>
-                <input type="text" id="ws-effect-name-full" class="dw-input" placeholder="例如：虚空侵蚀 / 圣洁祝福 / 中毒" required maxlength="50" list="effect-name-presets">
+                <input type="text" id="ws-effect-name-full" class="dw-input ws-input-large" placeholder="例如：虚空侵蚀 / 圣洁祝福 / 中毒" required maxlength="50" list="effect-name-presets">
                 <datalist id="effect-name-presets">
                   <option value="中毒"><option value="流血"><option value="点燃"><option value="眩晕">
                   <option value="麻痹"><option value="致盲"><option value="狂暴"><option value="虚弱">
@@ -1416,7 +1458,7 @@
               </div>
               <div class="f-select-group">
                 <label>状态分类 / 标识</label>
-                <select id="ws-effect-type" class="dw-select">
+                <select id="ws-effect-type" class="dw-select ws-input-large">
                   <option value="减益">异常减益 (Debuff)</option>
                   <option value="增益">战斗增益 (Buff)</option>
                   <option value="条件">状态条件 (Condition)</option>
@@ -1426,7 +1468,7 @@
               </div>
               <div class="f-select-group">
                 <label>持续时间 / 轮数</label>
-                <input type="text" id="ws-effect-duration" class="dw-input" placeholder="例如：持续至下回合结束 / 3轮 / 直到长休 / 永久" list="effect-duration-presets">
+                <input type="text" id="ws-effect-duration" class="dw-input ws-input-large" placeholder="例如：持续至下回合结束 / 3轮 / 直到长休 / 永久" list="effect-duration-presets">
                 <datalist id="effect-duration-presets">
                   <option value="持续至下回合结束">
                   <option value="持续 1 轮">
@@ -1439,26 +1481,61 @@
               </div>
               <div class="f-select-group">
                 <label>数值修正 / 简注 (可选)</label>
-                <input type="text" id="ws-effect-modifiers" class="dw-input" placeholder="例如：闪避 -2 · 敏捷 -1 · 受到伤害翻倍">
+                <input type="text" id="ws-effect-modifiers" class="dw-input ws-input-large" placeholder="例如：闪避 -2 · 敏捷 -1 · 受到伤害翻倍">
               </div>
               <div class="f-select-group ws-col-span-2">
                 <label>机制细节与规则说明 (支持 Markdown 粗体 **效果**)</label>
-                <textarea id="ws-effect-desc-full" class="dw-textarea" rows="3" placeholder="详细说明触发时机、豁免难度、行动限制或每回合结算机制…"></textarea>
+                <textarea id="ws-effect-desc-full" class="dw-textarea" rows="4" placeholder="详细说明触发时机、豁免难度、行动限制或每回合结算机制…"></textarea>
               </div>
               <div class="ws-col-span-2 ws-actions-row">
-                <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-effect">👑 发放至目标角色</button>
+                <button type="button" class="dw-btn dw-btn-gold" id="btn-ws-dispatch-effect">👑 保存并发放给角色</button>
                 <button type="button" class="dw-btn dw-btn-outline" id="btn-ws-save-effect">💾 保存至战役状态库</button>
               </div>
             </form>
           </div>
+
+          <!-- Status Effect Live Preview -->
+          <div class="ws-preview-box" style="margin-top:24px;">
+            <div class="preview-title">👁️ 状态效果卡片实时预览 (所见即所得)</div>
+            <div class="ws-card-item ws-effect-preview-card" id="ws-effect-preview" style="max-width:540px;margin:0 auto;box-shadow:0 6px 18px rgba(0,0,0,0.35);">
+              <div class="ws-card-header">
+                <div class="item-left">
+                  <span style="font-size:18px;" id="ws-prev-effect-icon">✨</span>
+                  <strong style="font-size:16px;" id="ws-prev-effect-name">状态名称</strong>
+                </div>
+                <div class="ws-card-badges">
+                  <span class="f-badge" id="ws-prev-effect-type" style="background:#dc2626;color:#fff;">异常减益</span>
+                  <span class="f-badge" id="ws-prev-effect-duration">持续 1 轮</span>
+                </div>
+              </div>
+              <div class="ws-card-stats" id="ws-prev-effect-mods" style="color:var(--text-gold);font-weight:bold;">无数值修正</div>
+              <div class="ws-card-body-desc" id="ws-prev-effect-desc">状态机制说明…</div>
+            </div>
+          </div>
+
+          <hr style="border:none;border-top:1px solid var(--border-bo3);margin:24px 0;">
+
+          <!-- 当前受赐角色在身状态列表与管理 -->
+          <div class="status-manager-section">
+            <div class="ws-box-title-row">
+              <h4>⚡ 目标角色当前在身状态 (<span id="ws-active-effects-count">0</span>)</h4>
+              <button type="button" class="dw-btn dw-btn-outline ws-btn-mini ws-btn-danger" id="btn-ws-clear-all-effects" title="清除该角色全部状态">🧹 全部解除</button>
+            </div>
+            <div class="status-quick-conditions" style="margin-top:8px;">
+              <span style="font-size:12px;color:var(--text-muted);">快速切换标准状态：</span>
+              <button type="button" class="status-quick-btn" data-cond="vulnerable">脆弱</button>
+              <button type="button" class="status-quick-btn" data-cond="restrained">束缚</button>
+              <button type="button" class="status-quick-btn" data-cond="hidden">隐藏</button>
+              <button type="button" class="status-quick-btn" data-cond="prone">倒下</button>
+            </div>
+            <div class="ws-active-effects-list" id="ws-active-effects-list">
+              <!-- 动态渲染在身状态 -->
+            </div>
+          </div>
         </div>
 
-      </section>
-
-    </div>
+    </section>
   </div>
-
-
 
   <!-- MODAL: Equipment / Item Picker -->
   <div class="dw-modal-backdrop" id="portrait-editor-modal" hidden>
