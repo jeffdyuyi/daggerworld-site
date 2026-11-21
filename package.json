@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest run",
-    "build": "vite build",
+    "build": "vite build --config vite.adventure.config.js",
     "test:browser": "playwright test",
     "test:live": "vitest run live-realtime.test.ts",
     "build:adventure": "vite build --config vite.adventure.config.js"
