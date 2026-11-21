@@ -570,27 +570,23 @@ nav { width: 100%; }
 </div>
 
 </main>
-<script src="news-archive.js?v=20261121d"></script>
+<script src="news-archive.js?v=20261121e"></script>
 <script>
 
 const routes=[...document.querySelectorAll('.route')], nav=[...document.querySelectorAll('[data-route]')], filters=[...document.querySelectorAll('[data-category]')];
-const originalCount=news.length;
-if(typeof daggerworldArchive!=='undefined')news.push(...daggerworldArchive);
-const newArticles=news.slice(originalCount).map((row,i)=>({row,index:i+originalCount}));
-const archiveOrder=[
-  0,1,2,
-  ...newArticles.filter(({row})=>row.length>5).map(({index})=>index),
-  ...newArticles.filter(({row})=>row.length<=5).map(({index})=>index),
-  ...news.slice(3,originalCount).map((_,i)=>i+3)
-];
+if(typeof daggerworldArchive!=='undefined'&&daggerworldArchive.length)news.push(...daggerworldArchive);
+const archiveOrder=news.map((_,i)=>i);
 const entries=document.getElementById('news-entries'), prev=document.getElementById('news-prev'), next=document.getElementById('news-next'), status=document.getElementById('news-page');
 const perPage=7;
 let category='全部', page=0, lastArticle=null;
 const era=document.getElementById('news-era');
 function articleEra(date){
- if(date.includes('首发'))return '进入匕首世界';
- if(date.includes('停服前夕'))return '月之挽歌';
- return date.startsWith('旧服档案 · ')?date.split(' · ')[1]:'重启测试';
+ if(date.includes('进入匕首世界')||date.includes('首发'))return '进入匕首世界';
+ if(date.includes('幽域崛起'))return '幽域崛起';
+ if(date.includes('烈焰战旗'))return '烈焰战旗';
+ if(date.includes('苍穹之枪'))return '苍穹之枪';
+ if(date.includes('月之挽歌')||date.includes('停服前夕'))return '月之挽歌';
+ return '重启测试';
 }
 function matching(){
  return archiveOrder.map(index=>({row:news[index],index})).filter(({row})=>
