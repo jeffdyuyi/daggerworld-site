@@ -966,6 +966,51 @@ function appearanceUrl(character) {
   return url;
 }
 
+// 纸娃娃通用与历史外观别名映射表 (主站归一化层，确保精准直达素材)
+const visualAliasMap = {
+  sword: '1fa23940-1278-50cf-82f7-830903d5b17c',       // 经典长剑
+  dagger: 'a562c7e4-1714-5cd8-81bd-177e7c03221c',      // 潜行匕首
+  axe: 'f5f34ba3-166b-53da-8353-08a8c691dc39',         // 重型战斧
+  hammer: '3a2d9e04-1381-5d6b-889d-44f73c63d952',      // 碎骨战锤
+  spear: '75ec6f53-82e0-532c-894f-04210827fde2',       // 长柄战矛
+  staff: '7a482dd5-72ee-55b4-8033-841c2985e7f8',       // 奥术法杖
+  bow: '5fbd7890-edea-556d-8151-09d41f17e69c',         // 精准长弓
+  crossbow: '33e9759b-c864-506a-8773-df36a0559619',    // 机械重弩
+  scythe: '6f1df1b8-c62a-5cff-875a-626318c636c0',      // 死神长镰
+  shield: 'a4f764a4-06af-57a8-8c8e-f420391ec417',      // 标准木盾
+  steelShield: 'atelier-offhand-03',                   // 砖窑方盾
+  leather: '9b835e9c-49c4-5d37-8f93-97369342553b',     // 经典皮甲
+  chain: '9dd09502-b0b2-5019-828b-4b33d6724bf2',       // 精密链甲
+  plate: '1c780b42-9bda-5382-85b3-cd231623b178',       // 全身板甲
+  robe: 'e7df7cee-2245-5e3a-8e49-3581260066c3',        // 施法长袍
+  tunic: 'atelier-armor-02',                            // 冒险者短衣
+  helm: 'atelier-helmet-01',                            // 十字战盔
+  hood: 'atelier-helmet-02',                            // 暗行者兜帽
+  crown: 'atelier-helmet-05',                           // 黄金王冠
+  cape: 'atelier-cape-01',                              // 披风
+  legs: 'atelier-legs-01',                              // 护腿
+  boots: 'atelier-boots-01'                             // 战靴
+};
+
+function normalizeCharacterForAvatar(charData) {
+  if (!charData || !charData.sheet) return charData;
+  const clone = structuredClone(charData);
+  const s = clone.sheet;
+  const mapVisual = item => {
+    if (!item) return;
+    if (item.avatarVisualId && visualAliasMap[item.avatarVisualId]) {
+      item.avatarVisualId = visualAliasMap[item.avatarVisualId];
+    }
+  };
+  if (s.equipment) {
+    for (const item of Object.values(s.equipment)) mapVisual(item);
+  }
+  if (Array.isArray(s.inventoryItems)) {
+    for (const item of s.inventoryItems) mapVisual(item);
+  }
+  return clone;
+}
+
 function setAppearanceFrame(id, character, download = false) {
   const target = el(id);
   if (!target) return;
@@ -979,39 +1024,46 @@ function setAppearanceFrame(id, character, download = false) {
   }
   target.classList.remove('has-custom-portrait');
 
-  // mode === 'paperdoll': 动态纸娃娃换装态（所见即所得）
+  // mode === 'paperdoll': 动态纸娃娃换装态（所见即所得，实时驱动）
   let frame = target.querySelector('iframe');
-  if (frame && frame.contentWindow?.DaggerworldAvatar?.setCharacter) {
-    frame.contentWindow.DaggerworldAvatar.setCharacter(character).catch(err => {
-      console.warn('纸娃娃实时刷新异常，降级显示轮廓:', err);
-      showCharacterOutline(target, s.ancestryId, s.bodyShape);
-    });
-    target.hidden = false;
-    return;
-  }
-
   const url = appearanceUrl(character);
   url.searchParams.set('view', 'preview');
   if (download) url.searchParams.set('download', '');
 
+  const pushCharacterToFrame = (targetFrame, charData) => {
+    if (!targetFrame) return;
+    targetFrame._pendingCharacter = charData;
+    const trySet = (attempts = 0) => {
+      const api = targetFrame.contentWindow?.DaggerworldAvatar;
+      if (api?.setCharacter) {
+        const payload = normalizeCharacterForAvatar(targetFrame._pendingCharacter || charData);
+        api.setCharacter(payload).catch(err => {
+          console.warn('纸娃娃实时刷新异常 (保持现有画布):', err);
+        });
+        targetFrame._pendingCharacter = null;
+      } else if (attempts < 20) {
+        setTimeout(() => trySet(attempts + 1), 60);
+      }
+    };
+    trySet();
+  };
+
   if (!frame) {
     frame = document.createElement('iframe');
     frame.title = '角色全身预览';
-    frame.loading = 'lazy';
+    frame.loading = 'eager';
     frame.style.cssText = 'display:block;width:100%;height:100%;border:0;background:transparent';
     frame.onload = () => {
-      if (frame.contentWindow?.DaggerworldAvatar?.setCharacter) {
-        frame.contentWindow.DaggerworldAvatar.setCharacter(character).catch(() => {});
-      }
-    };
-    frame.onerror = () => {
-      console.warn('纸娃娃加载失败，降级显示人型轮廓');
-      showCharacterOutline(target, s.ancestryId, s.bodyShape);
+      pushCharacterToFrame(frame, character);
     };
     frame.src = url.href;
     target.replaceChildren(frame);
-  } else if (frame.src !== url.href) {
-    frame.src = url.href;
+  } else {
+    // 若体型或种族变更需重设源，否则直接推送新装备换装
+    if (frame.src !== url.href) {
+      frame.src = url.href;
+    }
+    pushCharacterToFrame(frame, character);
   }
   target.hidden = false;
 }

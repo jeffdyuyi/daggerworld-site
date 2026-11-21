@@ -97,8 +97,14 @@ export function totalGearEffects(sheet, capacity = Infinity) {
   const active = new Set();
 
   for (const [slot, item] of Object.entries({ ...sheet.equipment, ...sheet.bags })) {
-    const held = owned.get(item?.ownedGearId);
-    if (!suitCoversSlot(sheet, slot) && slot !== 'weapon_spare' && held && slotMatches(held, slot)) active.add(held);
+    if (!item) continue;
+    const held = item.ownedGearId ? owned.get(item.ownedGearId) : null;
+    const effectiveItem = held || item;
+    if (!suitCoversSlot(sheet, slot) && slot !== 'weapon_spare') {
+      if (held ? slotMatches(held, slot) : true) {
+        active.add(effectiveItem);
+      }
+    }
   }
 
   for (const item of storedItems(sheet).slice(0, capacity)) {

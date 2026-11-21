@@ -22,13 +22,16 @@ export function sheetStats(character, job, capacity) {
   for (const [slot,item] of Object.entries(s.equipment ?? {})) {
     if (!item || suitCoversSlot(s,slot) || ['weapon_spare','costume'].includes(slot)) continue;
     if (item.ownedGearId) {
-      if (seen.has(item.ownedGearId) || !s.inventoryItems?.some(i => i?.ownedGearId === item.ownedGearId && slotMatches(i,slot) && (i.qty ?? 1)>0)) continue;
+      if (seen.has(item.ownedGearId)) continue;
       seen.add(item.ownedGearId);
     }
     if (slot === 'suit') suitItem = item;
-    for (const [key,field] of [['armor','护甲值'],['major','重度阈值'],['severe','严重阈值']]) {
-      gear[key] = (gear[key] || 0) + integer(item[field] ?? (key === 'armor' ? item.基础护甲 : 0));
-    }
+    const armorScore = integer(item.护甲值 ?? item.基础护甲 ?? item.armor?.score ?? item.armor?.baseArmor ?? (item.slot === 'suit' || slot === 'suit' ? 0 : 0));
+    const majorThreshold = integer(item.重度阈值 ?? item.armor?.major);
+    const severeThreshold = integer(item.严重阈值 ?? item.armor?.severe);
+    if (armorScore) gear.armor = (gear.armor || 0) + armorScore;
+    if (majorThreshold) gear.major = (gear.major || 0) + majorThreshold;
+    if (severeThreshold) gear.severe = (gear.severe || 0) + severeThreshold;
     // Only unconditional features in the original resource records.
     if (!/^(主武器|副武器|护甲):/.test(item.ID || '')) continue;
     const feature = item.描述 || '';
@@ -47,10 +50,12 @@ export function sheetStats(character, job, capacity) {
       if (seen.has(item.ownedGearId)) continue;
       seen.add(item.ownedGearId);
     }
-    for (const [key,field] of [['armor','护甲值'],['major','重度阈值'],['severe','严重阈值']]) {
-      const val = integer(item[field] ?? (key === 'armor' ? item.基础护甲 : 0));
-      if (val) gear[key] = (gear[key] || 0) + val;
-    }
+    const armorScore = integer(item.护甲值 ?? item.基础护甲 ?? item.armor?.score ?? item.armor?.baseArmor);
+    const majorThreshold = integer(item.重度阈值 ?? item.armor?.major);
+    const severeThreshold = integer(item.严重阈值 ?? item.armor?.severe);
+    if (armorScore) gear.armor = (gear.armor || 0) + armorScore;
+    if (majorThreshold) gear.major = (gear.major || 0) + majorThreshold;
+    if (severeThreshold) gear.severe = (gear.severe || 0) + severeThreshold;
   }
 
   const automatic = {}, values = {};
