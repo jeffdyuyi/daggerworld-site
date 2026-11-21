@@ -9,29 +9,55 @@ import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art
 // Global App State
 let db = null;
 let dbPromise = null;
+const RULES_CACHE_KEY = 'daggerworld.rules.database.v20261121';
 
 async function loadDatabase() {
   if (db) return db;
-  const urls = [
-    new URL('./data/database.json', import.meta.url).href,
-    './data/database.json',
-    './editor/data/database.json'
-  ];
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
-      if (res.ok) {
-        db = await res.json();
-        populateSelectOptions();
-        updateSyncStatus(true, '规则资料已就绪');
-        return db;
-      }
-    } catch (e) {
-      console.warn('加载规则资料尝试失败:', url, e);
+
+  // 1. 本地优先：若 localStorage 存在规则缓存，零延迟立即就绪并渲染
+  try {
+    const cached = localStorage.getItem(RULES_CACHE_KEY);
+    if (cached) {
+      db = JSON.parse(cached);
+      populateSelectOptions();
+      updateSyncStatus(true, '规则资料已就绪 (离线就绪)');
     }
+  } catch (e) {
+    console.warn('读取本地规则缓存失败:', e);
   }
-  updateSyncStatus(false, '规则资料加载失败');
-  return null;
+
+  // 2. 异步网络获取（后台刷新或首次冷启动加载）
+  const fetchPromise = (async () => {
+    const urls = [
+      new URL('./data/database.json', import.meta.url).href,
+      './data/database.json',
+      './editor/data/database.json'
+    ];
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+        if (res.ok) {
+          const remoteDb = await res.json();
+          db = remoteDb;
+          try { localStorage.setItem(RULES_CACHE_KEY, JSON.stringify(remoteDb)); } catch {}
+          populateSelectOptions();
+          updateSyncStatus(true, '规则资料已就绪');
+          return db;
+        }
+      } catch (e) {
+        console.warn('加载规则资料尝试失败:', url, e);
+      }
+    }
+    if (!db) updateSyncStatus(false, '规则资料离线可用');
+    return db;
+  })();
+
+  // 若本地已有缓存，直接返回已就绪的 db，让页面 0ms 秒开；后台静默刷新
+  if (db) {
+    fetchPromise.catch(() => {});
+    return db;
+  }
+  return await fetchPromise;
 }
 
 function ensureDatabaseLoaded() {
@@ -482,6 +508,68 @@ function mergeIncomingGrants(character, remote) {
   return true;
 }
 
+// 本地使用优先智能无损合并策略（确保线下现场操作不被冲掉，GM新补正无缝吸收）
+function smartMergeLocalPriority(local, remote) {
+  if (!remote || !remote.sheet) return false;
+  const ls = local.sheet;
+  const rs = remote.sheet;
+
+  // 1. GM 权威字段：以云端为增量合并进入本地
+  // GM 补正项 (adjustments)
+  if (rs.adjustments) {
+    ls.adjustments = { ...(ls.adjustments || {}), ...rs.adjustments };
+  }
+
+  // 经验值 (experience): 若云端经验更高，采用云端经验
+  if (rs.experience && (!ls.experience || (rs.experience.points ?? 0) > (ls.experience.points ?? 0))) {
+    ls.experience = structuredClone(rs.experience);
+  }
+
+  // 特权/特殊效果 (specialEffects): 按 id 或 name 并集去重
+  if (Array.isArray(rs.specialEffects)) {
+    const existingIds = new Set((ls.specialEffects || []).map(e => e.id || e.name));
+    ls.specialEffects = [...(ls.specialEffects || [])];
+    for (const eff of rs.specialEffects) {
+      if (!existingIds.has(eff.id || eff.name)) {
+        ls.specialEffects.push(eff);
+        existingIds.add(eff.id || eff.name);
+      }
+    }
+  }
+
+  // BUG 报修记录 (bugReports): 吸收云端已处理状态
+  if (Array.isArray(rs.bugReports)) {
+    const localReports = ls.bugReports || [];
+    for (const r of rs.bugReports) {
+      const match = localReports.find(l => l.id === r.id);
+      if (match) {
+        if (r.status === 'resolved') match.status = 'resolved';
+      } else {
+        localReports.push(r);
+      }
+    }
+    ls.bugReports = localReports;
+  }
+
+  // 领域卡 / 物品 (customDomainCards / inventoryItems): 并集补齐
+  if (Array.isArray(rs.customDomainCards)) {
+    const owned = new Set((ls.customDomainCards || []).map(cardKey));
+    ls.customDomainCards = [...(ls.customDomainCards || [])];
+    for (const card of rs.customDomainCards) {
+      if (!owned.has(cardKey(card))) {
+        ls.customDomainCards.push(card);
+        owned.add(cardKey(card));
+      }
+    }
+  }
+
+  // 2. 线下本地现场高频数据（hp.cur, stress.cur, hope.cur, armorPips.cur）绝对保留本地现场！
+  // 3. 更新版本时间戳与基线
+  local.updated_at = remote.updated_at;
+  baselines[local.id] = JSON.stringify(payload(local));
+  return true;
+}
+
 let refreshPending = false;
 const observedCloudVersions = new Map();
 async function refreshOpenSheet() {
@@ -499,11 +587,18 @@ async function refreshOpenSheet() {
     if (!changed) return;
     reconcileAccount(account);
     for (const row of account.characters) observedCloudVersions.set(row.id,row.updated_at);
-  } catch { /* Keep the local sheet available and retry at the next interval. */ }
+  } catch { /* 保持线下本地数据正常可用，静默等待下个时机 */ }
   finally { refreshPending = false; }
 }
 window.setInterval(refreshOpenSheet, 15000);
-window.addEventListener('focus',refreshOpenSheet);
+window.addEventListener('focus', refreshOpenSheet);
+window.addEventListener('online', () => {
+  updateSyncStatus(true, `网络已恢复 · ${currentUser?.login || '冒险者'}`);
+  refreshOpenSheet();
+});
+window.addEventListener('offline', () => {
+  updateSyncStatus(false, '离线模式 (本地正常使用)');
+});
 
 function reconcileAccount(account, interactive = false) {
   if (account.owner !== owner || readSession()?.owner !== owner) return location.reload();
@@ -516,9 +611,13 @@ function reconcileAccount(account, interactive = false) {
       const candidate = remote.get(c.id);
       if (!baselines[c.id] && candidate && c.updated_at === candidate.updated_at && JSON.stringify(payload(c)) === JSON.stringify(payload(candidate))) return false;
       const newer = remote.get(c.id);
-      if (newer && mergeIncomingGrants(c,newer)) { remote.delete(c.id); return true; }
-      if (newer && newer.updated_at !== c.updated_at && interactive && confirm('「'+c.avatar_name+'」云端已有新版。导出本地草稿并载入云端版？')) {
-        exportCharacterJson(characters.indexOf(c)); return false;
+      if (newer && newer.updated_at !== c.updated_at) {
+        // 本地使用优先智能合并：绝不弹窗打断线下跑团，无损吸收云端补正！
+        smartMergeLocalPriority(c, newer);
+        // 静默向云端推回合并后的新现场
+        persist(c, payload(c)).catch(() => {});
+        remote.delete(c.id);
+        return true;
       }
       remote.delete(c.id); return true;
     }
