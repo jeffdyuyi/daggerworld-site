@@ -17,7 +17,7 @@ async function jsonRequest(path, options, token) {
   const headers = { apikey: key, 'Content-Type': 'application/json', ...options.headers };
   if (token) headers.Authorization = 'Bearer ' + token;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
   try {
     const response = await fetch(base + path, { ...options, headers, signal: controller.signal });
     clearTimeout(timeoutId);

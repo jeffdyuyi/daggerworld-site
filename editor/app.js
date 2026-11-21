@@ -3,7 +3,7 @@ import {livePaperdollEnabled, showCharacterOutline, showCustomPortrait} from './
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, qualities, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
-import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-board1';
+import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-syncfix1';
 import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
 function escapeHtml(str) {
@@ -527,7 +527,7 @@ async function init() {
         if (retries > 0) {
           console.warn('云端同步稍有延迟，自动重试中...', err.message);
           updateSyncStatus(true, `云端重试中 · ${session.login || '冒险者'}`);
-          await new Promise(r => setTimeout(r, 1200));
+          await new Promise(r => setTimeout(r, 2500));
           return syncAccount(retries - 1);
         }
         console.warn('Background sync deferred:', err.message);
@@ -541,7 +541,13 @@ async function init() {
 }
 
 const owner = readSession()?.owner;
-const cacheKey = 'daggerworld.vault.v2.' + owner;
+// 解决 GM 离线/在线 owner 漂移：GM 统一使用固定缓存 key，彻底消除 UUID↔dw-gm-host-kid 不一致
+function resolvedCacheKey() {
+  const sess = readSession();
+  if (!sess) return 'daggerworld.vault.v2.' + owner;
+  if (sess.role === 'gm' || sess.owner === 'dw-gm-host-kid') return 'daggerworld.vault.v2.gm';
+  return 'daggerworld.vault.v2.' + (sess.owner || owner);
+}
 let baselines = {};
 function payload(c) {
   const sheet = structuredClone(c.sheet);
@@ -559,7 +565,13 @@ function payload(c) {
 }
 function loadLocalFallback() {
   try {
-    const cached = JSON.parse(localStorage.getItem(cacheKey));
+    // 旧 key 迁移：首次运行时将旧格式缓存合并到新统一 key 下
+    const newKey = resolvedCacheKey();
+    const oldKey = 'daggerworld.vault.v2.' + owner;
+    if (newKey !== oldKey && !localStorage.getItem(newKey) && localStorage.getItem(oldKey)) {
+      localStorage.setItem(newKey, localStorage.getItem(oldKey));
+    }
+    const cached = JSON.parse(localStorage.getItem(newKey));
     characters = (cached?.characters ?? []).map(normalizeCharacter);
     baselines = cached?.baselines ?? {};
     if (!cached) {
@@ -738,8 +750,11 @@ function reconcileAccount(account, interactive = false) {
   if (!characters.length && currentLayer === 'sheet') switchLayer('vault');
 }
 function saveLocal() {
-  if (owner && readSession()?.owner === owner) {
-    try { localStorage.setItem(cacheKey, JSON.stringify({characters,baselines})); }
+  const sess = readSession();
+  // GM 用固定 key，不受 owner 漂移影响；玩家验证 owner 一致再写
+  const isGm = sess?.role === 'gm' || sess?.owner === 'dw-gm-host-kid';
+  if (isGm || (owner && sess?.owner === owner)) {
+    try { localStorage.setItem(resolvedCacheKey(), JSON.stringify({characters,baselines})); }
     catch (error) { console.warn('角色缓存写入失败：',error); }
   }
   renderSaveButton();
