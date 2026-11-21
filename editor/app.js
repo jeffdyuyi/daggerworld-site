@@ -420,26 +420,36 @@ async function init() {
     switchLayer('vault');
   }
 
-  // 4. 异步后台静默同步云端，网络延时不阻塞页面操作
+  // 4. 异步后台静默同步云端，网络延时不阻塞页面操作（内置自动重试与弹性降级）
   if (session) {
     updateSyncStatus(true, `正在同步云端 · ${session.login || '冒险者'}…`);
-    loadAccount().then(account => {
-      currentUser = account;
-      try { localStorage.setItem('daggerworld.role.' + account.owner, account.role || 'player'); } catch {}
-      if (account.role === 'gm') loadCampaignResources();
-      el('btn-open-workshop').hidden = account.role !== 'gm';
-      reconcileAccount(account);
-      if (currentLayer === 'sheet') renderAll();
-      if (openAdventure && currentLayer === 'vault' && characters.length) {
-        switchLayer('sheet',activeCharIndex);
-        document.querySelector('[data-page="adventure"]')?.click();
+    const syncAccount = async (retries = 2) => {
+      try {
+        const account = await loadAccount();
+        currentUser = account;
+        try { localStorage.setItem('daggerworld.role.' + account.owner, account.role || 'player'); } catch {}
+        if (account.role === 'gm') loadCampaignResources();
+        el('btn-open-workshop').hidden = account.role !== 'gm';
+        reconcileAccount(account);
+        if (currentLayer === 'sheet') renderAll();
+        if (openAdventure && currentLayer === 'vault' && characters.length) {
+          switchLayer('sheet', activeCharIndex);
+          document.querySelector('[data-page="adventure"]')?.click();
+        }
+        if (currentHash === '#workshop' && account.role === 'gm') switchLayer('workshop');
+        updateSyncStatus(true, `云端已载入 · ${currentUser.login || '冒险者'}`);
+      } catch (err) {
+        if (retries > 0) {
+          console.warn('云端同步稍有延迟，自动重试中...', err.message);
+          updateSyncStatus(true, `云端重试中 · ${session.login || '冒险者'}`);
+          await new Promise(r => setTimeout(r, 1200));
+          return syncAccount(retries - 1);
+        }
+        console.warn('Background sync deferred:', err.message);
+        updateSyncStatus(false, `本地就绪 · ${session.login || '冒险者'}`);
       }
-      if (currentHash === '#workshop' && account.role === 'gm') switchLayer('workshop');
-      updateSyncStatus(true, `云端已载入 · ${currentUser.login || '冒险者'}`);
-    }).catch(err => {
-      console.warn('Background sync deferred:', err.message);
-      updateSyncStatus(false, `本地模式 · ${session.login || '冒险者'}`);
-    });
+    };
+    syncAccount();
   } else {
     updateSyncStatus(false, '本地离线模式');
   }
@@ -611,7 +621,8 @@ window.addEventListener('offline', () => {
 });
 
 function reconcileAccount(account, interactive = false) {
-  if (account.owner !== owner || readSession()?.owner !== owner) return location.reload();
+  const currentOwner = readSession()?.owner;
+  if (currentOwner && account.owner !== currentOwner) return location.reload();
   const selected = curChar()?.id;
   const remote = new Map(account.characters.map(c => [c.id, normalizeCharacter(c)]));
   characters = characters.filter(c => {
@@ -738,7 +749,7 @@ function populateSelectOptions() {
   if (newCls && db.classes) {
     newCls.innerHTML = db.classes.map(c => `<option value="${c.ID}">${c.名称}</option>`).join('');
   }
-  newCls.refreshStartingCards?.();
+  newCls?.refreshStartingCards?.();
   updateCreatorSubclassOptions();
   updateCreatorAncestryPreview();
   updateCreatorClassPreview();
@@ -747,6 +758,7 @@ function populateSelectOptions() {
 function updateSubclassOptions() {
   if (!db || !db.subclasses) return;
   const c = curChar();
+  if (!c || !c.sheet) return;
   const classObj = db.classes?.find(cls => cls.ID === c.sheet?.classId || cls.名称 === c.sheet?.classId);
   const className = classObj ? classObj.名称 : '战士';
 
@@ -913,7 +925,7 @@ async function deleteCharacterByIndex(idx) {
 // 创角向导 (Character Creation Wizard) 控制器
 // ==========================================================================
 function appearanceUrl(character) {
-  const url = new URL('../fantasy-paperdoll/bridge/preview.html', window.location.href);
+  const url = new URL('../fantasy-paperdoll/bridge/preview.html', import.meta.url);
   if (character?.sheet?.ancestryId) url.searchParams.set('ancestry', character.sheet.ancestryId);
   if (character?.sheet?.bodyShape) url.searchParams.set('bodyShape', character.sheet.bodyShape);
   if (character?.updated_at && character?.owner_id === currentUser?.owner) {
@@ -926,7 +938,7 @@ function setAppearanceFrame(id, character, download = false) {
   const target = el(id);
   if (!target) return;
   const s = character?.sheet || {};
-  const mode = s.portraitMode || 'paperdoll';
+  const mode = s.portraitMode === 'custom' ? 'custom' : 'paperdoll';
 
   if (mode === 'custom' && s.customPortrait?.dataUrl) {
     target.classList.add('has-custom-portrait');
@@ -934,11 +946,6 @@ function setAppearanceFrame(id, character, download = false) {
     return;
   }
   target.classList.remove('has-custom-portrait');
-
-  if (mode === 'silhouette') {
-    showCharacterOutline(target, s.ancestryId, s.bodyShape);
-    return;
-  }
 
   // mode === 'paperdoll': 动态纸娃娃换装态（所见即所得）
   let frame = target.querySelector('iframe');
@@ -4476,14 +4483,12 @@ let portraitDragStart = { x: 0, y: 0 };
 let portraitDragInitial = { x: 0, y: 0 };
 
 function updatePortraitModeButtons(character = curChar()) {
-  const mode = character?.sheet?.portraitMode || 'paperdoll';
+  const mode = character?.sheet?.portraitMode === 'custom' ? 'custom' : 'paperdoll';
   const hasCustom = Boolean(character?.sheet?.customPortrait?.dataUrl);
   
   const btnDoll = el('btn-mode-paperdoll');
-  const btnSil = el('btn-mode-silhouette');
   const btnCus = el('btn-mode-custom');
   if (btnDoll) btnDoll.classList.toggle('active', mode === 'paperdoll');
-  if (btnSil) btnSil.classList.toggle('active', mode === 'silhouette');
   if (btnCus) {
     btnCus.classList.toggle('active', mode === 'custom');
     btnCus.title = hasCustom ? '已配置自定义立绘（点击切换）' : '点击上传自定义立绘';
@@ -4511,8 +4516,6 @@ function switchPortraitMode(targetMode) {
       return;
     }
     c.sheet.portraitMode = 'custom';
-  } else if (targetMode === 'silhouette') {
-    c.sheet.portraitMode = 'silhouette';
   } else {
     c.sheet.portraitMode = 'paperdoll';
   }
@@ -4655,7 +4658,6 @@ function initPortraitListeners() {
   hasInitPortraitListeners = true;
 
   el('btn-mode-paperdoll')?.addEventListener('click', () => switchPortraitMode('paperdoll'));
-  el('btn-mode-silhouette')?.addEventListener('click', () => switchPortraitMode('silhouette'));
   el('btn-mode-custom')?.addEventListener('click', () => switchPortraitMode('custom'));
   el('btn-open-portrait-setting')?.addEventListener('click', openPortraitEditorModal);
   el('portrait-modal-close')?.addEventListener('click', closePortraitEditorModal);
@@ -4755,4 +4757,10 @@ function initPortraitListeners() {
 // ==========================================
 // 启动应用入口（确保所有模块、变量与监听器完全就绪后安全点火）
 // ==========================================
-await init();
+try {
+  await init();
+} catch (err) {
+  console.error('角色库启动异常，已自动进入本地安全模式:', err);
+  updateSyncStatus(false, '本地就绪');
+  try { switchLayer('vault'); } catch {}
+}
