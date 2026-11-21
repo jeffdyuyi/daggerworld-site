@@ -385,13 +385,22 @@ function curChar() {
 
 // Application Initialization
 async function init() {
-  if (!readSession()?.owner) { location.replace("../account.html"); return; }
+  const session = readSession();
+  if (!session?.owner) { location.replace("../account.html"); return; }
+
+  // 0. 本地角色身份预先激活：若曾为主持人，首毫秒即识别 GM 并就地亮起管理控件
+  try {
+    const cachedRole = localStorage.getItem('daggerworld.role.' + session.owner);
+    if (cachedRole) {
+      currentUser = { owner: session.owner, login: session.login, role: cachedRole };
+    }
+  } catch {}
+
   setupTabs(setupAdventureBoard());
   setupSlotIcons();
   setupCreationWizard();
   setupEventListeners();
   initPortraitListeners();
-
 
   // 只加载当前账号的缓存。
   loadLocalFallback();
@@ -412,14 +421,15 @@ async function init() {
   }
 
   // 4. 异步后台静默同步云端，网络延时不阻塞页面操作
-  const session = readSession();
   if (session) {
     updateSyncStatus(true, `正在同步云端 · ${session.login || '冒险者'}…`);
     loadAccount().then(account => {
       currentUser = account;
+      try { localStorage.setItem('daggerworld.role.' + account.owner, account.role || 'player'); } catch {}
       if (account.role === 'gm') loadCampaignResources();
       el('btn-open-workshop').hidden = account.role !== 'gm';
       reconcileAccount(account);
+      if (currentLayer === 'sheet') renderAll();
       if (openAdventure && currentLayer === 'vault' && characters.length) {
         switchLayer('sheet',activeCharIndex);
         document.querySelector('[data-page="adventure"]')?.click();
@@ -3158,6 +3168,11 @@ function applySlotPreset(preset) {
   if (el('ws-item-slot')) el('ws-item-slot').value = selected[0] || '';
 }
 
+// 实时更新卡牌表单预览（安全空函数实现）
+function updateCardPreview() {
+  // 目前工坊卡牌预览保留安全接口，防止事件绑定或跨层切换时抛出空引用
+}
+
 // 实时更新物品表单预览
 function updateItemPreview() {
   const name = el('ws-item-name')?.value?.trim() || '未命名物品';
@@ -4359,9 +4374,6 @@ function importCharacterJson(e) {
   reader.readAsText(file);
 }
 
-// Boot application
-await init();
-
 // ==========================================
 // 角色立绘自定义与轮廓切换控制模块
 // ==========================================
@@ -4647,3 +4659,8 @@ function initPortraitListeners() {
     window.addEventListener('touchend', handleDragEnd);
   }
 }
+
+// ==========================================
+// 启动应用入口（确保所有模块、变量与监听器完全就绪后安全点火）
+// ==========================================
+await init();
