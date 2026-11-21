@@ -3949,14 +3949,24 @@ function dispatchCardToCharacter(card, charIndex) {
 
 async function deliver(index,field,item) {
   const target = characters[index];
-  if (currentUser?.role !== 'gm' || !target?.updated_at) {
-    alert('请选择已经保存到云端的角色。'); return false;
+  if (!target) {
+    alert('未找到目标角色！'); return false;
+  }
+  if (!isGmUser()) {
+    alert('当前操作需要主持人权限。'); return false;
   }
   try {
-    await sendResource(target,field,item);
+    if (target.updated_at && target.id) {
+      await sendResource(target,field,item);
+    } else {
+      // 离线单机跑团或本地就绪模式：直接赋予本地角色
+      if (!Array.isArray(target.sheet[field])) target.sheet[field] = [];
+      target.sheet[field].push(item);
+      saveLocal();
+    }
     updateWorkshopTargetSelect();
     if (currentLayer === 'sheet') renderAll();
-    alert('已发放至 '+target.avatar_name+'。');
+    alert('已成功发放至【' + (target.avatar_name || '无名角色') + '】！');
     return true;
   } catch (error) {
     alert('未确认发放结果，请刷新核对：'+error.message);
@@ -4412,7 +4422,7 @@ function renderWorkshopLibrary() {
   }
 
   // 4. 过滤状态效果
-  let matchedEffects = statusEffects;
+  let matchedEffects = campaignResources.statusEffects || [];
   if (filter !== 'all' && filter !== '状态效果') {
     matchedEffects = [];
   }

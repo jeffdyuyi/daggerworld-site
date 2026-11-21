@@ -2852,6 +2852,92 @@ body.dw-theme {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+  transition: all 0.25s ease;
+}
+
+/* ==========================================================================
+   六大品质外框与渐变底色 (普通/优秀/精良/史诗/传说/神器)
+   支持: 实时预览卡、战役军械库卡、背包格子、装备槽
+   ========================================================================== */
+.ws-item-preview-card[data-quality="white"],
+.ws-card-item[data-quality="white"],
+.grid-cell.occupied[data-quality="white"],
+.slot-btn[data-quality="white"] {
+  border-color: #a89677 !important;
+  background: linear-gradient(135deg, rgba(255, 248, 231, 0.08), rgba(168, 150, 119, 0.18)) !important;
+  box-shadow: inset 0 0 8px rgba(168, 150, 119, 0.15) !important;
+}
+
+.ws-item-preview-card[data-quality="green"],
+.ws-card-item[data-quality="green"],
+.grid-cell.occupied[data-quality="green"],
+.slot-btn[data-quality="green"] {
+  border-color: #648051 !important;
+  background: linear-gradient(135deg, rgba(100, 128, 81, 0.12), rgba(60, 95, 45, 0.25)) !important;
+  box-shadow: inset 0 0 10px rgba(100, 128, 81, 0.3), 0 0 6px rgba(100, 128, 81, 0.2) !important;
+}
+
+.ws-item-preview-card[data-quality="blue"],
+.ws-card-item[data-quality="blue"],
+.grid-cell.occupied[data-quality="blue"],
+.slot-btn[data-quality="blue"] {
+  border-color: #3b82f6 !important;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(29, 78, 216, 0.28)) !important;
+  box-shadow: inset 0 0 12px rgba(59, 130, 246, 0.35), 0 0 8px rgba(59, 130, 246, 0.25) !important;
+}
+
+.ws-item-preview-card[data-quality="purple"],
+.ws-card-item[data-quality="purple"],
+.grid-cell.occupied[data-quality="purple"],
+.slot-btn[data-quality="purple"] {
+  border-color: #a855f7 !important;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.16), rgba(107, 33, 168, 0.32)) !important;
+  box-shadow: inset 0 0 14px rgba(168, 85, 247, 0.4), 0 0 10px rgba(168, 85, 247, 0.3) !important;
+}
+
+.ws-item-preview-card[data-quality="orange"],
+.ws-card-item[data-quality="orange"],
+.grid-cell.occupied[data-quality="orange"],
+.slot-btn[data-quality="orange"] {
+  border-color: #f97316 !important;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(194, 65, 12, 0.35)) !important;
+  box-shadow: inset 0 0 16px rgba(249, 115, 22, 0.45), 0 0 12px rgba(249, 115, 22, 0.35) !important;
+}
+
+.ws-item-preview-card[data-quality="red"],
+.ws-card-item[data-quality="red"],
+.grid-cell.occupied[data-quality="red"],
+.slot-btn[data-quality="red"] {
+  border-color: #ef4444 !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.4)) !important;
+  box-shadow: inset 0 0 18px rgba(239, 68, 68, 0.55), 0 0 14px rgba(239, 68, 68, 0.45) !important;
+}
+
+/* ==========================================================================
+   匕首心四大位阶制式套装专属鎏金发光边框 (黑铁/黄铜/白银/黄金)
+   ========================================================================== */
+[data-suit-tier="1"] {
+  outline: 2px solid #575c66 !important;
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px #8a909d, 0 0 8px rgba(95, 102, 118, 0.55) !important;
+}
+
+[data-suit-tier="2"] {
+  outline: 2px solid #b87333 !important;
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px #e59866, 0 0 10px rgba(184, 115, 51, 0.65) !important;
+}
+
+[data-suit-tier="3"] {
+  outline: 2px solid #94a3b8 !important;
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px #e2e8f0, 0 0 12px rgba(148, 163, 184, 0.75) !important;
+}
+
+[data-suit-tier="4"] {
+  outline: 2px solid #f59e0b !important;
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px #fef08a, 0 0 16px rgba(245, 158, 11, 0.85) !important;
 }
 .ws-item-preview-card .preview-icon {
   font-size: 28px;
