@@ -914,8 +914,8 @@ nav { width: 100%; }
       <span class="fog-seal-badge">先行资料片绝密封印</span>
       <h3>《遗忘国度》位面迷雾</h3>
       <p>
-        次世代资料片《遗忘国度》全景档案正被上古秘法迷雾笼罩。<br>
-        该先行探索档案仅面向已激活《匕首世界》重启测试资格的冒险者开放。请输入内测激活码破除迷雾：
+        资料片《遗忘国度》先行档案处于未解密状态。<br>
+        当前内容面向已激活测试资格的冒险者开放。请输入激活码解除迷雾：
       </p>
       <div class="fog-input-group">
         <input type="text" id="fog-passcode-input" placeholder="输入测试资格激活码..." autocomplete="off" />
@@ -973,10 +973,10 @@ nav { width: 100%; }
   <div class="preview-hero-box">
     <div class="preview-hero-content">
       <div class="wiki-badge-tag">资料片核心设定集</div>
-      <h2>从剑湾启航：跨越位面的史诗浩卷</h2>
+      <h2>从剑湾启航：托瑞尔世界观概览</h2>
       <p>
         随着《匕首世界》全新资料片的临近，沉睡于多元宇宙深处的古老大陆——<strong>托瑞尔（Toril）</strong>正式向所有冒险者敞开大门。
-        在这片被称作<strong>「被遗忘的国度」</strong>的瑰丽世界中，上古魔法的洪流贯穿物质界与星界，数百个璀璨城邦沿着剑湾星罗棋布，正神与邪神的神圣选民在暗潮中角逐命运。
+        在这片被称作<strong>「被遗忘的国度」</strong>的世界中，魔法网络贯穿物质界与外层位面，众多城邦沿着剑湾星罗棋布，各方势力与信仰在历史长河中交织更迭。
       </p>
       <p class="byline">资料片测试时间与区域开放计划，请密切关注官方前瞻更新。</p>
     </div>
@@ -1002,7 +1002,7 @@ nav { width: 100%; }
       <article class="wiki-card">
         <div class="wiki-card-badge">文明核心</div>
         <h4>费伦大陆 (Faerûn)</h4>
-        <p>托瑞尔的文明与战火中心。数十个强盛王国、数百座自治城邦与无垠荒野散布其间。西临剑湾商道，东接月之海群山，南达古老绿洲，是英雄与史诗诞生的温床。</p>
+        <p>托瑞尔的文明与贸易核心。诸多王国、自治城邦与未开拓荒野散布其间。西临剑湾商道，东接月之海群山，南抵古老内陆，是诸多经典传奇的起源地。</p>
       </article>
 
       <article class="wiki-card">
@@ -1035,7 +1035,7 @@ nav { width: 100%; }
   <div class="wiki-section-box">
     <div class="wiki-section-header">
       <span class="wiki-sec-num">02 / CHRONICLES &amp; HISTORY</span>
-      <h3>纪年历法与史诗编年</h3>
+      <h3>纪年历法与历史大事记</h3>
       <p>由古代预言家撰写的岁月名录，记录着凡人、帝国与诸神在岁月中的兴衰。</p>
     </div>
     <div class="wiki-grid-2">
@@ -1156,7 +1156,7 @@ nav { width: 100%; }
     <div class="wiki-section-header">
       <span class="wiki-sec-num">05 / SWORD COAST METROPOLIS ATLAS</span>
       <h3>剑湾核心城邦与探险疆界</h3>
-      <p>每一座城邦都拥有一部波澜壮阔的独立史诗，等待冒险者用脚步丈量。</p>
+      <p>各城邦均拥有独立的政治结构与历史沿革，构成了丰富的探索舞台。</p>
     </div>
     <div class="wiki-grid-3">
       <article class="wiki-card">
@@ -1299,7 +1299,7 @@ nav { width: 100%; }
 </div>
 
 </main>
-<script src="news-archive.js?v=20261122d"></script>
+<script src="news-archive.js?v=20261122e"></script>
 <script>
 
 const routes=[...document.querySelectorAll('.route')], nav=[...document.querySelectorAll('[data-route]')], filters=[...document.querySelectorAll('[data-category]')];
@@ -1752,7 +1752,7 @@ function isDaggerworldActivated() {
     const rawSession = localStorage.getItem('daggerworld.session.v1');
     if (rawSession) {
       const session = JSON.parse(rawSession);
-      if (session && (session.user || session.access_token || session.player_name || session.account)) {
+      if (session && session.access_token && session.access_token !== 'gm-offline-access-token') {
         return true;
       }
     }
