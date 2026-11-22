@@ -3537,16 +3537,17 @@ body.dw-theme {
 .ws-passive-card {
   display: flex;
   align-items: center;
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.12) 0%, rgba(30, 25, 20, 0.5) 100%);
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: #fbf7ee;
+  border: 1px solid #d4c3b0;
   border-radius: 6px;
   padding: 10px 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .ws-passive-card:hover {
-  border-color: var(--border-gold);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
+  border-color: #8c6239;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(60, 40, 20, 0.08);
 }
 .ws-passive-card label {
   display: flex;
@@ -3554,79 +3555,82 @@ body.dw-theme {
   gap: 10px;
   width: 100%;
   font-size: 13px;
-  color: var(--text-main);
+  font-weight: 600;
+  color: #2b170e;
   cursor: pointer;
 }
 .ws-passive-card input[type="checkbox"] {
-  accent-color: var(--border-gold);
+  accent-color: #8c6239;
   width: 16px;
   height: 16px;
   cursor: pointer;
 }
 .ws-passive-card span {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 11.5px;
+  color: #5c4436;
   margin-left: auto;
+  font-weight: normal;
 }
 
-/* 装备工坊四大数值计算块重构 */
+/* 装备工坊四大数值计算块重构 (朴素扎实羊皮纸风格，杜绝反色割裂) */
 .ws-calc-block {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  background: rgba(20, 18, 24, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 14px 16px;
-  transition: all 0.25s ease;
-  backdrop-filter: blur(4px);
+  gap: 10px;
+  background: #faf6ef;
+  border: 1px solid #d8cab8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .ws-calc-block:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: #bfa892;
+  background: #fdfbf7;
+}
+.ws-calc-block:has(input.ws-block-toggle:checked) {
+  background: #ffffff;
+  border-color: #b89f82;
+  box-shadow: 0 2px 8px rgba(60, 40, 20, 0.06);
 }
 
-/* 4大模块专属主题色 */
+/* 4大模块专属左侧 4px 状态标色线 (收起时微淡，激活时沉稳扎实) */
 .ws-calc-block-weapon {
-  border-left: 4px solid #a855f7;
+  border-left: 4px solid #b87b7a;
 }
 .ws-calc-block-weapon:has(input.ws-block-toggle:checked) {
-  border-color: rgba(168, 85, 247, 0.5);
-  border-left-color: #a855f7;
-  box-shadow: 0 4px 18px rgba(168, 85, 247, 0.15);
-  background: linear-gradient(135deg, rgba(35, 18, 48, 0.65) 0%, rgba(18, 14, 24, 0.9) 100%);
+  border-left: 4px solid #8b1e19;
+  border-color: #c9b4a4;
+  border-left-color: #8b1e19;
 }
 
 .ws-calc-block-armor {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #7c9ebc;
 }
 .ws-calc-block-armor:has(input.ws-block-toggle:checked) {
-  border-color: rgba(59, 130, 246, 0.5);
-  border-left-color: #3b82f6;
-  box-shadow: 0 4px 18px rgba(59, 130, 246, 0.15);
-  background: linear-gradient(135deg, rgba(16, 28, 52, 0.65) 0%, rgba(14, 18, 26, 0.9) 100%);
+  border-left: 4px solid #1e4a78;
+  border-color: #c9b4a4;
+  border-left-color: #1e4a78;
 }
 
 .ws-calc-block-modifiers {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #cca16e;
 }
 .ws-calc-block-modifiers:has(input.ws-block-toggle:checked) {
-  border-color: rgba(245, 158, 11, 0.5);
-  border-left-color: #f59e0b;
-  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.15);
-  background: linear-gradient(135deg, rgba(42, 28, 12, 0.65) 0%, rgba(22, 18, 14, 0.9) 100%);
+  border-left: 4px solid #a35d10;
+  border-color: #c9b4a4;
+  border-left-color: #a35d10;
 }
 
 .ws-calc-block-usage {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid #7eb596;
 }
 .ws-calc-block-usage:has(input.ws-block-toggle:checked) {
-  border-color: rgba(16, 185, 129, 0.5);
-  border-left-color: #10b981;
-  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.15);
-  background: linear-gradient(135deg, rgba(14, 38, 28, 0.65) 0%, rgba(14, 20, 18, 0.9) 100%);
+  border-left: 4px solid #1c683b;
+  border-color: #c9b4a4;
+  border-left-color: #1c683b;
 }
 
-/* 优雅的 Switch 开关组件与高对比度排版 */
+/* 质朴扎实的 Switch 开关组件与高对比度排版 */
 .ws-calc-header {
   display: flex;
   align-items: center;
@@ -3650,11 +3654,12 @@ body.dw-theme {
 }
 .ws-switch-slider {
   position: relative;
-  width: 38px;
+  width: 36px;
   height: 20px;
-  background-color: rgba(255, 255, 255, 0.18);
+  background-color: #d1c4b4;
+  border: 1px solid #b8a692;
   border-radius: 20px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
 .ws-switch-slider::before {
@@ -3662,55 +3667,75 @@ body.dw-theme {
   content: "";
   height: 14px;
   width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: #e5e7eb;
+  left: 2px;
+  bottom: 2px;
+  background-color: #ffffff;
   border-radius: 50%;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .ws-calc-block-weapon input.ws-block-toggle:checked + .ws-switch-slider {
-  background-color: #9333ea;
+  background-color: #8b1e19;
+  border-color: #6b1410;
 }
 .ws-calc-block-armor input.ws-block-toggle:checked + .ws-switch-slider {
-  background-color: #2563eb;
+  background-color: #1e4a78;
+  border-color: #143658;
 }
 .ws-calc-block-modifiers input.ws-block-toggle:checked + .ws-switch-slider {
-  background-color: #d97706;
+  background-color: #a35d10;
+  border-color: #7d4508;
 }
 .ws-calc-block-usage input.ws-block-toggle:checked + .ws-switch-slider {
-  background-color: #059669;
+  background-color: #1c683b;
+  border-color: #134e2b;
 }
 input.ws-block-toggle:checked + .ws-switch-slider::before {
-  transform: translateX(18px);
+  transform: translateX(16px);
   background-color: #ffffff;
 }
 
 .ws-calc-title {
   font-size: 14px;
-  font-weight: 600;
-  color: #f9fafb;
+  font-weight: 700;
+  color: #23160f;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 .ws-calc-badge {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-muted);
+  letter-spacing: 0.02em;
 }
-.ws-calc-block-weapon .ws-calc-badge { background: rgba(168, 85, 247, 0.25); color: #e9d5ff; }
-.ws-calc-block-armor .ws-calc-badge { background: rgba(59, 130, 246, 0.25); color: #bfdbfe; }
-.ws-calc-block-modifiers .ws-calc-badge { background: rgba(245, 158, 11, 0.25); color: #fef08a; }
-.ws-calc-block-usage .ws-calc-badge { background: rgba(16, 185, 129, 0.25); color: #bbf7d0; }
+.ws-calc-block-weapon .ws-calc-badge {
+  background: #fee2e2;
+  color: #8b1e19;
+  border: 1px solid #fca5a5;
+}
+.ws-calc-block-armor .ws-calc-badge {
+  background: #e0f2fe;
+  color: #1e4a78;
+  border: 1px solid #bae6fd;
+}
+.ws-calc-block-modifiers .ws-calc-badge {
+  background: #fef3c7;
+  color: #8d4f0b;
+  border: 1px solid #fde68a;
+}
+.ws-calc-block-usage .ws-calc-badge {
+  background: #dcfce7;
+  color: #1c683b;
+  border: 1px solid #bbf7d0;
+}
 
 .ws-calc-subhint {
-  font-size: 11.5px;
-  color: #d1d5db;
+  font-size: 12px;
+  color: #5c4436;
   margin-left: auto;
+  font-weight: 500;
 }
 
 /* 护甲与阈值四列对齐网格 */
@@ -4351,28 +4376,45 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
    ========================================================================== */
 .gear-effect-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-  gap: 10px;
-  padding: 8px 0 2px 0;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 12px 0 4px 0;
+  border-top: 1px solid #ebd9c8;
+  margin-top: 6px;
 }
 .gear-effect-fields label,
 .gear-effect-fields .ws-field-col {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-muted);
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b2219 !important; /* 彻底杜绝暗色字体看不清的问题，扎实深墨褐 */
 }
 .gear-effect-fields input,
 .gear-effect-fields select {
   width: 100%;
-  font-size: 12px;
+  font-size: 13px;
+  background: #fffdf9 !important;
+  border: 1px solid #c9b7a4 !important;
+  border-radius: 5px;
+  padding: 7px 10px;
+  color: #1e130c !important;
+  box-shadow: inset 0 1px 2px rgba(60, 40, 20, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gear-effect-fields input:focus,
+.gear-effect-fields select:focus {
+  border-color: #8c6239 !important;
+  background: #ffffff !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(140, 98, 57, 0.18) !important;
 }
 #ws-usage-fields {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
-/* 常用伤害骰快捷点选按钮 */
+/* 常用伤害骰快捷点选按钮 (质朴纸质古铜样式) */
 .ws-dice-quick-row {
   display: flex;
   align-items: center;
@@ -4381,35 +4423,35 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   margin-top: 6px;
 }
 .ws-dice-quick-label {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5c4436;
 }
 .ws-dice-pill {
-  padding: 2px 8px;
+  padding: 3px 8px;
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
-  background: rgba(45, 33, 27, 0.85);
-  border: 1px solid var(--border-bo3);
-  color: var(--text-gold);
+  background: #fbf7ee;
+  border: 1px solid #c9b7a4;
+  color: #4a3224;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
 }
 .ws-dice-pill:hover {
-  background: var(--bo3-primary);
-  border-color: var(--bo3-gold);
-  color: #fff;
-  transform: translateY(-1px);
+  background: #eedcc9;
+  border-color: #8c6239;
+  color: #1f140e;
 }
 .ws-dice-pill.ws-dice-clear {
-  color: var(--text-muted);
-  background: rgba(30, 20, 18, 0.6);
+  color: #8b1e19;
+  background: #fef2f2;
+  border-color: #fca5a5;
 }
 .ws-dice-pill.ws-dice-clear:hover {
-  background: rgba(170, 78, 74, 0.4);
-  color: #f89694;
-  border-color: #aa4e4a;
+  background: #fee2e2;
+  border-color: #ef4444;
 }
 
 /* 物品表单外观网格与图标行 */
