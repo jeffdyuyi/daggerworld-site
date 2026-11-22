@@ -2684,36 +2684,56 @@ function renderPlayerInfoExperiences() {
   experiences.forEach((exp, idx) => {
     const card = document.createElement('div');
     card.className = 'player-info-exp-card';
+    const currentBonus = typeof exp.bonus === 'number' ? exp.bonus : (parseInt(exp.bonus, 10) || 1);
     card.innerHTML = `
       <div class="exp-card-header">
         <div class="exp-index-badge">经历 #${idx + 1}</div>
-        <div class="exp-bonus-selector">
-          <label style="font-size:12px;color:var(--text-muted);margin-right:6px;">检定加值：</label>
-          <button type="button" class="exp-bonus-chip ${exp.bonus === 1 ? 'active' : ''}" data-bonus="1">+1</button>
-          <button type="button" class="exp-bonus-chip ${exp.bonus === 2 ? 'active' : ''}" data-bonus="2">+2</button>
-          <button type="button" class="exp-bonus-chip ${exp.bonus === 3 ? 'active' : ''}" data-bonus="3">+3</button>
+        <div class="exp-bonus-stepper-wrap">
+          <label class="exp-bonus-label">检定加值：</label>
+          <div class="exp-bonus-stepper">
+            <button type="button" class="exp-step-btn exp-step-minus" title="降低加值">−</button>
+            <input type="number" class="exp-bonus-input" min="0" max="99" step="1" value="${currentBonus}">
+            <button type="button" class="exp-step-btn exp-step-plus" title="提升加值">＋</button>
+          </div>
         </div>
         <button type="button" class="exp-remove-btn" data-action="remove" title="删除该经历条目">🗑️ 移除</button>
       </div>
       <div class="exp-card-body">
         <div class="f-select-group">
-          <label>经历名称 / 身份特长</label>
-          <input type="text" class="dw-input exp-name-input" value="${escapeHtml(exp.name || '')}" placeholder="例如：深水城港口老工头 / 前盗贼公会斥候" maxlength="50">
+          <label>现实经历 / 人格特长名称</label>
+          <input type="text" class="dw-input exp-name-input" value="${escapeHtml(exp.name || '')}" placeholder="例如：机械设计制造及其自动化 / 社交恐怖分子 / 恋爱脑 / 急救常识" maxlength="50">
         </div>
         <div class="f-select-group">
-          <label>触发情境与背景故事说明 (可选)</label>
-          <textarea class="dw-textarea exp-desc-input" rows="2" placeholder="说明该经历在何种判定、行动或剧情互动中发挥作用…">${escapeHtml(exp.desc || '')}</textarea>
+          <label>触发情境与现实映射说明 (可选)</label>
+          <textarea class="dw-textarea exp-desc-input" rows="2" placeholder="说明这项现实生活中的能力、习惯、专业知识或个性，在何种检定或情境中能发挥效力…">${escapeHtml(exp.desc || '')}</textarea>
         </div>
       </div>
     `;
 
-    // 绑定加值选择
-    card.querySelectorAll('.exp-bonus-chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        card.querySelectorAll('.exp-bonus-chip').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        exp.bonus = parseInt(btn.dataset.bonus, 10) || 1;
-      });
+    // 绑定加值 Stepper (支持自由微调与直接键盘输入，满足后续成长升级)
+    const bonusInput = card.querySelector('.exp-bonus-input');
+    const minusBtn = card.querySelector('.exp-step-minus');
+    const plusBtn = card.querySelector('.exp-step-plus');
+
+    const updateBonusVal = (newVal) => {
+      const clamped = Math.max(0, Math.min(99, newVal));
+      bonusInput.value = clamped;
+      exp.bonus = clamped;
+    };
+
+    minusBtn.addEventListener('click', () => {
+      const cur = parseInt(bonusInput.value, 10) || 0;
+      updateBonusVal(cur - 1);
+    });
+
+    plusBtn.addEventListener('click', () => {
+      const cur = parseInt(bonusInput.value, 10) || 0;
+      updateBonusVal(cur + 1);
+    });
+
+    bonusInput.addEventListener('change', () => {
+      const val = parseInt(bonusInput.value, 10);
+      updateBonusVal(isNaN(val) ? 1 : val);
     });
 
     // 绑定输入同步
@@ -2760,14 +2780,15 @@ async function savePlayerInfo() {
   // 1. 保存选定的社群
   proposed.sheet.communityId = playerInfoCurrentCommunityId || '';
 
-  // 2. 收集经历栏位数据
+  // 2. 收集经历栏位数据 (提取自由加值输入框中的数值)
   const expCards = document.querySelectorAll('.player-info-exp-card');
   const exps = [];
   expCards.forEach((card, idx) => {
     const name = card.querySelector('.exp-name-input')?.value?.trim() || '';
     const desc = card.querySelector('.exp-desc-input')?.value?.trim() || '';
-    const activeBonusBtn = card.querySelector('.exp-bonus-chip.active');
-    const bonus = activeBonusBtn ? parseInt(activeBonusBtn.dataset.bonus, 10) || 1 : 1;
+    const bonusInput = card.querySelector('.exp-bonus-input');
+    const bonusVal = bonusInput ? parseInt(bonusInput.value, 10) : 1;
+    const bonus = isNaN(bonusVal) ? 1 : Math.max(0, bonusVal);
     if (name || desc) {
       exps.push({
         id: `exp_${idx + 1}_${Date.now()}`,
