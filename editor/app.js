@@ -1300,16 +1300,16 @@ function setAppearanceFrame(id, character, download = false) {
   if (!target) return;
   const s = character?.sheet || {};
 
-  // 纯立绘模式：纸娃娃捏脸全面屏蔽，仅展示自主上传立绘或优雅的种族剪影
+  // 纯立绘模式：纸娃娃捏脸全面屏蔽，仅展示自主上传立绘或留空引导上传
   if (s.customPortrait?.dataUrl) {
     target.classList.add('has-custom-portrait');
     showCustomPortrait(target, s.customPortrait);
     return;
   }
 
-  // 尚未上传立绘：呈现纯净的人形/种族轮廓剪影
+  // 尚未上传立绘：完全清空剪影，框体留空并引导点击上传
   target.classList.remove('has-custom-portrait');
-  showCharacterOutline(target, s.ancestryId, s.bodyShape);
+  showCharacterOutline(target);
 }
 
 let creatorCustomPortrait = null;

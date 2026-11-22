@@ -1,32 +1,17 @@
 export const livePaperdollEnabled = false;
 
-const shapes = {
-  tall: { label: '高大型', ancestries: ['巨人', '费尔博格', '费尔伯格', '龙人', '龙裔', '兽人'] },
-  short: { label: '矮小型', ancestries: ['矮人', '半身人', '哥布林', '地精', '蛙裔', '蛙人'] },
-  slender: { label: '纤细型', ancestries: ['精灵', '仙灵'] },
-  medium: { label: '中型', ancestries: [] },
-};
-
-export function showCharacterOutline(target, ancestryId, bodyShape) {
+export function showCharacterOutline(target) {
   if (!target) return;
-  const ancestry = typeof ancestryId === 'string' ? ancestryId.split(':').at(-1) : '';
-  const id = Object.hasOwn(shapes, bodyShape) ? bodyShape : Object.keys(shapes).find(key => shapes[key].ancestries.includes(ancestry)) ?? 'medium';
-  const shape = shapes[id];
-  const url = new URL('./assets/silhouettes/' + id + '.webp', import.meta.url);
-
   target.classList?.remove('has-custom-portrait');
-  let picture = target.querySelector('img');
-  if (!picture || picture.classList?.contains('custom-portrait-img')) {
-    picture = document.createElement('img');
-    picture.width = 320;
-    picture.height = 440;
-    picture.decoding = 'async';
-    target.replaceChildren(picture);
-  }
-  picture.className = 'silhouette-img';
-  picture.alt = shape.label + '人体轮廓';
-  picture.style.transform = '';
-  if (picture.src !== url.href) picture.src = url.href;
+  target.replaceChildren();
+  const guide = document.createElement('div');
+  guide.className = 'empty-portrait-guide';
+  guide.innerHTML = `
+    <span class="empty-portrait-icon">📷</span>
+    <span class="empty-portrait-text">点击上传立绘</span>
+    <span class="empty-portrait-sub">支持本地图片与拖拽</span>
+  `;
+  target.appendChild(guide);
   target.hidden = false;
 }
 
