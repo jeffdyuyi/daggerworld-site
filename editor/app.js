@@ -3074,8 +3074,6 @@ function setupEventListeners() {
   // Player Info Navigation Listeners
   el('btn-open-player-info')?.addEventListener('click', () => switchLayer('player-info', activeCharIndex));
   el('menu-open-player-info')?.addEventListener('click', () => switchLayer('player-info', activeCharIndex));
-  el('btn-info-to-vault')?.addEventListener('click', () => switchLayer('vault'));
-  el('btn-info-to-sheet')?.addEventListener('click', () => switchLayer('sheet', playerInfoSelectedCharIndex));
   el('btn-save-player-info')?.addEventListener('click', savePlayerInfo);
   el('btn-add-player-exp')?.addEventListener('click', addPlayerInfoExperienceSlot);
   el('player-info-target-select')?.addEventListener('change', (e) => {
@@ -3140,9 +3138,6 @@ function setupEventListeners() {
     if (el('more-dropdown')) el('more-dropdown').hidden = true;
     handleOpenWorkshop();
   });
-  // Workshop Return Navigation
-  el('btn-ws-to-sheet')?.addEventListener('click', () => switchLayer('sheet'));
-  el('btn-ws-to-vault')?.addEventListener('click', () => switchLayer('vault'));
 
   // Target Character Selector
   el('ws-target-char-select')?.addEventListener('change', (e) => {
@@ -3339,16 +3334,6 @@ function setupEventListeners() {
   ['ws-card-name', 'ws-card-domain', 'ws-card-type', 'ws-card-level', 'ws-card-recall', 'ws-card-desc'].forEach(id => {
     el(id)?.addEventListener('input', updateCardPreview);
     el(id)?.addEventListener('change', updateCardPreview);
-  });
-
-  // Color Preset Dots
-  document.querySelectorAll('.preset-colors .color-preset-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      const color = dot.dataset.color;
-      if (color && el('ws-cd-color')) {
-        el('ws-cd-color').value = color;
-      }
-    });
   });
 
   // Workshop PbDH Pack Operations
@@ -4006,7 +3991,6 @@ function initWorkshopLayer() {
   workshopState.targetCharIndex = (activeCharIndex >= 0 && activeCharIndex < characters.length) ? activeCharIndex : 0;
   updateWorkshopTargetSelect();
   populateWorkshopDomainDropdown();
-  renderCustomDomainsManager();
   renderWorkshopLibrary();
   setupVisualPicker();
   updateVisualCurrentCard();
@@ -4627,7 +4611,7 @@ function handleWorkshopItemSubmit(isDispatch) {
   if (isDispatch) {
     dispatchItemToCharacter(item, workshopState.targetCharIndex);
   } else {
-    alert(editId ? `已更新物品【${name}】！` : `已保存物品【${name}】至战役军械库！`);
+    alert(editId ? `已更新物品【${name}】！` : `已保存物品【${name}】至资源库！`);
   }
 
   cancelWorkshopEdit();
@@ -4834,7 +4818,7 @@ function updateStatusEffectPreview() {
 // 从资源库直接施加状态至指定角色
 async function dispatchEffectToCharacter(eff, targetCharIndex) {
   const target = characters[targetCharIndex];
-  if (!target) return alert('请先在上方选定受赐角色！');
+  if (!target) return alert('请先在上方选择接收角色！');
   const proposed = structuredClone(target);
   if (!proposed.sheet) proposed.sheet = {};
   proposed.sheet.specialEffects = [...(proposed.sheet.specialEffects || []), {
@@ -4962,54 +4946,6 @@ function cancelCustomDomainEdit() {
   if (el('ws-card-custom-domain-color')) el('ws-card-custom-domain-color').value = '#8b5cf6';
   if (el('ws-custom-domain-box')) el('ws-custom-domain-box').style.display = 'none';
 }
-
-// 渲染自定领域管理器
-function renderCustomDomainsManager() {
-  const container = el('ws-custom-domains-list');
-  const countEl = el('ws-custom-domains-count');
-  const list = campaignResources.customDomains || [];
-
-  if (countEl) countEl.textContent = list.length;
-  if (!container) return;
-
-  if (!list.length) {
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:12px;grid-column:1/-1;">战役暂无自定领域，可在上方登记注册。</div>';
-    return;
-  }
-
-  container.innerHTML = '';
-  list.forEach((cd, idx) => {
-    const card = document.createElement('div');
-    card.className = 'custom-domain-badge-card';
-    card.innerHTML = `
-      <div class="custom-domain-header">
-        <span class="domain-tag-pill" style="background:${cd.color}">🌌 ${cd.name}</span>
-        <div style="display:flex;gap:4px;">
-          <button class="ws-btn-mini" data-action="edit-cd" title="编辑领域理念与主题色">✏️</button>
-          <button class="ws-btn-mini ws-btn-mini-danger" data-action="del-cd" title="注销此领域">✕</button>
-        </div>
-      </div>
-      <div class="domain-desc-text">${cd.desc || '暂无风味理念描述'}</div>
-    `;
-
-    card.querySelector('[data-action="edit-cd"]').addEventListener('click', () => loadCustomDomainToEdit(cd));
-    card.querySelector('[data-action="del-cd"]').addEventListener('click', () => {
-      if (confirm(`确定注销自定领域【${cd.name}】吗？已有的卡牌将保留，但新建卡牌时不再显示。`)) {
-        campaignResources.customDomains.splice(idx, 1);
-        delete domainColors[cd.name];
-        saveCampaignResources();
-        populateWorkshopDomainDropdown();
-        renderCustomDomainsManager();
-        renderWorkshopLibrary();
-        renderDomainCards();
-      }
-    });
-
-    container.appendChild(card);
-  });
-}
-
-// 渲染战役储备军械库列表 (带实时多维度过滤与检索)
 
 // ==========================================================================
 // 主持人状态细节与特殊效果控制中枢 (Status & Special Effects Engine)
@@ -5650,7 +5586,6 @@ function importPbDHPack(e) {
 
       saveCampaignResources();
       populateWorkshopDomainDropdown();
-      renderCustomDomainsManager();
       renderWorkshopLibrary();
       renderDomainCards();
       alert(`成功导入卡包【${pack.name || '外部卡包'}】：包含 ${domainCount} 张领域卡，${variantCount} 件物品，${customDomainCount} 个自定领域！`);
@@ -5670,7 +5605,6 @@ function clearWorkshopLibrary() {
     campaignResources.customDomains = [];
     saveCampaignResources();
     populateWorkshopDomainDropdown();
-    renderCustomDomainsManager();
     renderWorkshopLibrary();
     renderDomainCards();
   }
