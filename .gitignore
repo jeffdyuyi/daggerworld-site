@@ -19,3 +19,6 @@
 /fantasy-paperdoll/
 /pixel-paperdoll/
 node_modules
+
+# Temporary scratch scripts
+/scratch/
