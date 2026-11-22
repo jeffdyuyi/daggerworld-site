@@ -305,6 +305,8 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
         knowledge: -1
       },
       advancements: [],
+      lockAppearance: false,
+      paperdoll: { atelier: {}, skin: '' },
       equipment: {
         head: null,
         chest: null,
@@ -357,6 +359,8 @@ function normalizeCharacter(char) {
   s.communityId = s.communityId || defaultSheet.communityId;
   s.classId = s.classId || defaultSheet.classId;
   s.subclassId = s.subclassId || defaultSheet.subclassId;
+  s.lockAppearance = Boolean(s.lockAppearance);
+  s.paperdoll = (s.paperdoll && typeof s.paperdoll === 'object') ? s.paperdoll : { atelier: {}, skin: '' };
 
   s.hp = {
     cur: typeof s.hp?.cur === 'number' ? s.hp.cur : defaultSheet.hp.cur,
@@ -1327,8 +1331,17 @@ function setAppearanceFrame(id, character, download = false) {
   target.hidden = false;
 }
 
+let creatorAtelier = null;
+let creatorSkin = '';
+
 function previewAppearance() {
-  setAppearanceFrame('creator-paperdoll', {sheet:{ancestryId:el('new-char-ancestry').value,bodyShape:el('new-char-body-shape').value}});
+  const ancestryId = el('new-char-ancestry')?.value || '种族:人类';
+  const bodyShape = el('new-char-body-shape')?.value || '';
+  const paperdoll = (creatorAtelier || creatorSkin) ? {
+    atelier: creatorAtelier || {},
+    skin: creatorSkin || ''
+  } : undefined;
+  setAppearanceFrame('creator-paperdoll', { sheet: { ancestryId, bodyShape, paperdoll } });
 }
 
 function startingCards(job) {
@@ -1558,6 +1571,12 @@ function setupCreationWizard() {
     const character = createDefaultCharacter(name,genderHidden.value,ancestry.ID,job.ID,subclass.ID);
     const bodyShape = el('new-char-body-shape').value;
     if (bodyShape) character.sheet.bodyShape = bodyShape;
+    if (creatorAtelier || creatorSkin) {
+      character.sheet.paperdoll = {
+        atelier: creatorAtelier ? structuredClone(creatorAtelier) : {},
+        skin: creatorSkin || ''
+      };
+    }
     const selectedCards = startingCards(job).filter(card => selectedKeys.has(cardKey(card)));
     if (selectedCards.length !== requiredCards()) {
       error.textContent = '请选择 '+requiredCards()+' 张不同的 1 级职业领域卡。';
@@ -1574,6 +1593,9 @@ function setupCreationWizard() {
     saveLocal();
     nameInput.value = '';
     el('new-char-body-shape').value = '';
+    creatorAtelier = null;
+    creatorSkin = '';
+    if (el('creator-appearance-summary')) el('creator-appearance-summary').style.display = 'none';
     allocation.reset();
     error.textContent = '';
     el('vault-creator-section').hidden = true;
@@ -1887,6 +1909,13 @@ function renderFoundations(clsObj) {
     btn.classList.toggle('active', btn.dataset.gender === currentGender);
     btn.disabled = !isGmOverrideActive;
   });
+
+  const apprBadge = el('fn-appearance-lock-badge');
+  if (apprBadge) {
+    apprBadge.textContent = s.lockAppearance ? '🔒 形象已锁定' : '🔓 自由定制形象';
+    apprBadge.style.color = s.lockAppearance ? '#f87171' : '#4ade80';
+    apprBadge.title = s.lockAppearance ? '主持人已关闭该角色的自由更换形象权限' : '玩家可自由定制五官与外貌';
+  }
 
   // 主持人特权调整 (GM Override) 状态与表单控制
   const lockStatusEl = el('fn-lock-status');
@@ -5726,6 +5755,7 @@ function updatePortraitModeButtons(character = curChar()) {
     btnCus.classList.toggle('active', mode === 'custom');
     btnCus.title = hasCustom ? '已配置自定义立绘（点击切换）' : '点击上传自定义立绘';
   }
+  updateAppearanceCustomControls(character);
 }
 
 function promptUploadCustomPortrait() {
@@ -5926,6 +5956,7 @@ let hasInitPortraitListeners = false;
 function initPortraitListeners() {
   if (hasInitPortraitListeners) return;
   hasInitPortraitListeners = true;
+  initAppearanceCustomizerListeners();
 
   el('btn-mode-paperdoll')?.addEventListener('click', () => switchPortraitMode('paperdoll'));
   el('btn-mode-custom')?.addEventListener('click', () => switchPortraitMode('custom'));
@@ -6049,6 +6080,307 @@ function initPortraitListeners() {
     }, { passive: true });
     window.addEventListener('touchend', handleDragEnd);
   }
+}
+
+
+// ==========================================
+// 角色形象定制（捏人）与权限管理模块
+// ==========================================
+let currentApprMode = 'sheet'; // 'sheet' or 'creator'
+let tempLook = {};
+let tempCharForAppr = null;
+
+function updateAppearanceCustomControls(character = curChar()) {
+  if (!character || !character.sheet) return;
+  const isGm = isGmUser();
+  const locked = Boolean(character.sheet.lockAppearance);
+
+  const btnOpen = el('btn-open-appearance-modal');
+  if (btnOpen) {
+    if (locked && !isGm) {
+      btnOpen.classList.add('is-locked');
+      btnOpen.title = '主持人已锁定角色形象变更，装备穿戴换装不受影响';
+      btnOpen.innerHTML = '🔒 形象已锁定';
+    } else {
+      btnOpen.classList.remove('is-locked');
+      btnOpen.title = '定制角色五官、发型、肤色与解剖部位';
+      btnOpen.innerHTML = '🎨 形象定制';
+    }
+  }
+
+  const btnGmLock = el('btn-gm-lock-appearance');
+  if (btnGmLock) {
+    btnGmLock.hidden = !isGm;
+    btnGmLock.classList.toggle('active', locked);
+    btnGmLock.title = locked ? '当前：已锁定玩家自定形象（点击允许自定）' : '当前：允许玩家自由自定形象（点击锁定）';
+    const icon = el('gm-lock-appearance-icon');
+    const text = el('gm-lock-appearance-text');
+    if (icon) icon.textContent = locked ? '🔒' : '🔓';
+    if (text) text.textContent = locked ? '形象锁定中' : '允许自定形象';
+  }
+
+  const badge = el('fn-appearance-lock-badge');
+  if (badge) {
+    badge.textContent = locked ? '🔒 形象已锁定' : '🔓 自由定制形象';
+    badge.style.color = locked ? '#f87171' : '#4ade80';
+    badge.title = locked ? '主持人已关闭角色形象自由更换权限' : '玩家可自由更换形象';
+  }
+}
+
+function openAppearanceCustomizerModal(mode = 'sheet') {
+  currentApprMode = mode;
+  const modal = el('appearance-customizer-modal');
+  if (!modal) return;
+
+  let ancestryId = '种族:人类';
+  let bodyShape = '';
+  let existingAtelier = {};
+  let existingSkin = '';
+  let equipment = null;
+
+  if (mode === 'creator') {
+    ancestryId = el('new-char-ancestry')?.value || '种族:人类';
+    bodyShape = el('new-char-body-shape')?.value || '';
+    existingAtelier = creatorAtelier ? structuredClone(creatorAtelier) : {};
+    existingSkin = creatorSkin || '';
+    tempCharForAppr = {
+      sheet: {
+        ancestryId,
+        bodyShape,
+        paperdoll: {
+          atelier: existingAtelier,
+          skin: existingSkin
+        }
+      }
+    };
+  } else {
+    const c = curChar();
+    if (!c || !c.sheet) return;
+    ancestryId = c.sheet.ancestryId || '种族:人类';
+    bodyShape = c.sheet.bodyShape || '';
+    existingAtelier = c.sheet.paperdoll?.atelier ? structuredClone(c.sheet.paperdoll.atelier) : {};
+    existingSkin = c.sheet.paperdoll?.skin || '';
+    equipment = c.sheet.equipment ? structuredClone(c.sheet.equipment) : null;
+    tempCharForAppr = {
+      sheet: {
+        ancestryId,
+        bodyShape,
+        equipment,
+        paperdoll: {
+          atelier: existingAtelier,
+          skin: existingSkin
+        }
+      }
+    };
+  }
+
+  tempLook = {
+    body: bodyShape || existingAtelier.body || 'medium',
+    hair: existingAtelier.hair || 'native',
+    ears: existingAtelier.ears || 'native',
+    brows: existingAtelier.brows || 'original',
+    eyes: existingAtelier.eyes || 'original',
+    nose: existingAtelier.nose || 'original',
+    mouth: existingAtelier.mouth || 'original',
+    horns: existingAtelier.horns || 'none',
+    shell: existingAtelier.shell || 'none',
+    tail: existingAtelier.tail || 'none',
+    antennae: existingAtelier.antennae || 'none',
+    skin: existingSkin || existingAtelier.skin || ''
+  };
+
+  if (el('appr-select-body')) el('appr-select-body').value = tempLook.body || 'medium';
+  if (el('appr-select-hair')) el('appr-select-hair').value = tempLook.hair || 'native';
+  if (el('appr-select-ears')) el('appr-select-ears').value = tempLook.ears || 'native';
+  if (el('appr-select-brows')) el('appr-select-brows').value = tempLook.brows || 'original';
+  if (el('appr-select-eyes')) el('appr-select-eyes').value = tempLook.eyes || 'original';
+  if (el('appr-select-nose')) el('appr-select-nose').value = tempLook.nose || 'original';
+  if (el('appr-select-mouth')) el('appr-select-mouth').value = tempLook.mouth || 'original';
+  if (el('appr-select-horns')) el('appr-select-horns').value = tempLook.horns || 'none';
+  if (el('appr-select-shell')) el('appr-select-shell').value = tempLook.shell || 'none';
+  if (el('appr-select-tail')) el('appr-select-tail').value = tempLook.tail || 'none';
+  if (el('appr-select-antennae')) el('appr-select-antennae').value = tempLook.antennae || 'none';
+  if (el('appr-color-skin')) el('appr-color-skin').value = tempLook.skin || '#b88361';
+
+  modal.hidden = false;
+
+  const iframe = el('appearance-preview-iframe');
+  if (iframe) {
+    const url = appearanceUrl(tempCharForAppr);
+    url.searchParams.set('view', 'preview');
+    if (iframe.src !== url.href) {
+      iframe.src = url.href;
+      iframe.onload = () => pushAppearancePreviewToFrame();
+    } else {
+      pushAppearancePreviewToFrame();
+    }
+  }
+}
+
+function pushAppearancePreviewToFrame() {
+  const iframe = el('appearance-preview-iframe');
+  if (!iframe || !tempCharForAppr) return;
+  tempCharForAppr.sheet.bodyShape = tempLook.body;
+  tempCharForAppr.sheet.paperdoll = {
+    atelier: structuredClone(tempLook),
+    skin: tempLook.skin || ''
+  };
+  const push = (attempts = 0) => {
+    const api = iframe.contentWindow?.DaggerworldAvatar;
+    if (api?.setCharacter) {
+      api.setCharacter(normalizeCharacterForAvatar(tempCharForAppr)).catch(() => {});
+    } else if (attempts < 25) {
+      setTimeout(() => push(attempts + 1), 40);
+    }
+  };
+  push();
+}
+
+function closeAppearanceCustomizerModal() {
+  const modal = el('appearance-customizer-modal');
+  if (modal) modal.hidden = true;
+}
+
+function saveAppearanceCustomization() {
+  if (currentApprMode === 'creator') {
+    creatorAtelier = structuredClone(tempLook);
+    creatorSkin = tempLook.skin || '';
+    if (tempLook.body && el('new-char-body-shape')) {
+      el('new-char-body-shape').value = tempLook.body === 'medium' ? '' : tempLook.body;
+    }
+    const summary = el('creator-appearance-summary');
+    if (summary) {
+      summary.style.display = 'block';
+      summary.textContent = '✨ 已定制角色形象特征';
+    }
+    previewAppearance();
+    closeAppearanceCustomizerModal();
+  } else {
+    const c = curChar();
+    if (!c || !c.sheet) return;
+    if (c.sheet.lockAppearance && !isGmUser()) {
+      alert('主持人已锁定该角色的形象自定义功能，无法保存。');
+      return;
+    }
+    c.sheet.paperdoll = {
+      atelier: structuredClone(tempLook),
+      skin: tempLook.skin || ''
+    };
+    if (tempLook.body) {
+      c.sheet.bodyShape = tempLook.body;
+    }
+    c.sheet.portraitMode = 'paperdoll'; // 捏人后切回纸娃娃模式展示
+    saveLocal();
+    renderAppearance(c);
+    renderVaultLobby();
+    closeAppearanceCustomizerModal();
+  }
+}
+
+function resetAppearanceCustomization() {
+  const raceName = String(tempCharForAppr?.sheet?.ancestryId || '').replace(/^种族:/, '');
+  const isInfernisOrFaun = ['魔裔', '羊蹄人'].includes(raceName);
+  const isGalapa = raceName === '龟人';
+  const isDrakonaOrKatari = ['龙人', '龙裔', '猫族', '猫人'].includes(raceName);
+
+  tempLook.hair = (raceName === '人类') ? 'short' : 'native';
+  tempLook.ears = 'native';
+  tempLook.brows = 'original';
+  tempLook.eyes = 'original';
+  tempLook.nose = 'original';
+  tempLook.mouth = 'original';
+  tempLook.horns = isInfernisOrFaun ? 'native' : 'none';
+  tempLook.shell = isGalapa ? 'native' : 'none';
+  tempLook.tail = isDrakonaOrKatari ? 'native' : 'none';
+  tempLook.antennae = 'none';
+  tempLook.skin = '';
+  tempLook.body = tempCharForAppr?.sheet?.bodyShape || 'medium';
+
+  if (el('appr-select-body')) el('appr-select-body').value = tempLook.body || 'medium';
+  if (el('appr-select-hair')) el('appr-select-hair').value = tempLook.hair;
+  if (el('appr-select-ears')) el('appr-select-ears').value = tempLook.ears;
+  if (el('appr-select-brows')) el('appr-select-brows').value = tempLook.brows;
+  if (el('appr-select-eyes')) el('appr-select-eyes').value = tempLook.eyes;
+  if (el('appr-select-nose')) el('appr-select-nose').value = tempLook.nose;
+  if (el('appr-select-mouth')) el('appr-select-mouth').value = tempLook.mouth;
+  if (el('appr-select-horns')) el('appr-select-horns').value = tempLook.horns;
+  if (el('appr-select-shell')) el('appr-select-shell').value = tempLook.shell;
+  if (el('appr-select-tail')) el('appr-select-tail').value = tempLook.tail;
+  if (el('appr-select-antennae')) el('appr-select-antennae').value = tempLook.antennae;
+  if (el('appr-color-skin')) el('appr-color-skin').value = '#b88361';
+
+  pushAppearancePreviewToFrame();
+}
+
+function initAppearanceCustomizerListeners() {
+  el('btn-creator-custom-appearance')?.addEventListener('click', () => {
+    openAppearanceCustomizerModal('creator');
+  });
+
+  el('btn-open-appearance-modal')?.addEventListener('click', () => {
+    const c = curChar();
+    if (!c || !c.sheet) return;
+    if (c.sheet.lockAppearance && !isGmUser()) {
+      alert('主持人已锁定该角色的形象自定义功能。\n注意：装备穿戴与换装不受影响，仍可正常使用。');
+      return;
+    }
+    openAppearanceCustomizerModal('sheet');
+  });
+
+  el('btn-gm-lock-appearance')?.addEventListener('click', () => {
+    if (!isGmUser()) return;
+    const c = curChar();
+    if (!c || !c.sheet) return;
+    c.sheet.lockAppearance = !c.sheet.lockAppearance;
+    saveLocal();
+    updateAppearanceCustomControls(c);
+  });
+
+  // Modal controls
+  el('appearance-modal-close')?.addEventListener('click', closeAppearanceCustomizerModal);
+  el('btn-cancel-appearance')?.addEventListener('click', closeAppearanceCustomizerModal);
+  el('btn-save-appearance')?.addEventListener('click', saveAppearanceCustomization);
+  el('btn-reset-appearance')?.addEventListener('click', resetAppearanceCustomization);
+
+  el('appearance-customizer-modal')?.addEventListener('click', e => {
+    if (e.target === el('appearance-customizer-modal')) closeAppearanceCustomizerModal();
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !el('appearance-customizer-modal')?.hidden) closeAppearanceCustomizerModal();
+  });
+
+  // Option change listeners
+  const fieldMap = [
+    ['appr-select-body', 'body'],
+    ['appr-select-hair', 'hair'],
+    ['appr-select-ears', 'ears'],
+    ['appr-select-brows', 'brows'],
+    ['appr-select-eyes', 'eyes'],
+    ['appr-select-nose', 'nose'],
+    ['appr-select-mouth', 'mouth'],
+    ['appr-select-horns', 'horns'],
+    ['appr-select-shell', 'shell'],
+    ['appr-select-tail', 'tail'],
+    ['appr-select-antennae', 'antennae']
+  ];
+
+  fieldMap.forEach(([id, prop]) => {
+    el(id)?.addEventListener('change', e => {
+      tempLook[prop] = e.target.value;
+      pushAppearancePreviewToFrame();
+    });
+  });
+
+  el('appr-color-skin')?.addEventListener('input', e => {
+    tempLook.skin = e.target.value;
+    pushAppearancePreviewToFrame();
+  });
+
+  el('appr-btn-reset-skin')?.addEventListener('click', () => {
+    tempLook.skin = '';
+    if (el('appr-color-skin')) el('appr-color-skin').value = '#b88361';
+    pushAppearancePreviewToFrame();
+  });
 }
 
 // ==========================================
