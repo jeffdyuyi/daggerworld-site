@@ -1,4 +1,4 @@
-export const livePaperdollEnabled = true;
+export const livePaperdollEnabled = false;
 
 const shapes = {
   tall: { label: '高大型', ancestries: ['巨人', '费尔博格', '费尔伯格', '龙人', '龙裔', '兽人'] },

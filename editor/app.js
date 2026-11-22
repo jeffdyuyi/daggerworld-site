@@ -1299,70 +1299,32 @@ function setAppearanceFrame(id, character, download = false) {
   const target = el(id);
   if (!target) return;
   const s = character?.sheet || {};
-  const mode = s.portraitMode === 'custom' ? 'custom' : 'paperdoll';
 
-  if (mode === 'custom' && s.customPortrait?.dataUrl) {
+  // 纯立绘模式：纸娃娃捏脸全面屏蔽，仅展示自主上传立绘或优雅的种族剪影
+  if (s.customPortrait?.dataUrl) {
     target.classList.add('has-custom-portrait');
     showCustomPortrait(target, s.customPortrait);
     return;
   }
+
+  // 尚未上传立绘：呈现纯净的人形/种族轮廓剪影
   target.classList.remove('has-custom-portrait');
-
-  // mode === 'paperdoll': 动态纸娃娃换装态（所见即所得，实时驱动）
-  let frame = target.querySelector('iframe');
-  const url = appearanceUrl(character);
-  url.searchParams.set('view', 'preview');
-  if (download) url.searchParams.set('download', '');
-
-  const pushCharacterToFrame = (targetFrame, charData) => {
-    if (!targetFrame) return;
-    targetFrame._pendingCharacter = charData;
-    const trySet = (attempts = 0) => {
-      const api = targetFrame.contentWindow?.DaggerworldAvatar;
-      if (api?.setCharacter) {
-        const payload = normalizeCharacterForAvatar(targetFrame._pendingCharacter || charData);
-        api.setCharacter(payload).catch(err => {
-          console.warn('纸娃娃实时刷新异常 (保持现有画布):', err);
-        });
-        targetFrame._pendingCharacter = null;
-      } else if (attempts < 30) {
-        setTimeout(() => trySet(attempts + 1), 30);
-      }
-    };
-    trySet();
-  };
-
-  frame = target.querySelector('iframe');
-  if (!frame) {
-    frame = document.createElement('iframe');
-    frame.title = '角色全身预览';
-    frame.loading = 'eager';
-    frame.style.cssText = 'display:block;width:100%;height:100%;border:0;background:transparent';
-    frame._pendingCharacter = character;
-    frame.onload = () => {
-      pushCharacterToFrame(frame, frame._pendingCharacter);
-    };
-    frame.src = url.href;
-    target.replaceChildren(frame);
-  } else {
-    // 关键优化：iframe 已经就绪时，绝不通过修改 frame.src 触发页面重载！
-    // 直接向已有 iframe 的 DaggerworldAvatar API 推送最新角色，单次点击秒速切换！
-    pushCharacterToFrame(frame, character);
-  }
-  target.hidden = false;
+  showCharacterOutline(target, s.ancestryId, s.bodyShape);
 }
 
-let creatorAtelier = null;
-let creatorSkin = '';
+let creatorCustomPortrait = null;
 
 function previewAppearance() {
   const ancestryId = el('new-char-ancestry')?.value || '种族:人类';
   const bodyShape = el('new-char-body-shape')?.value || '';
-  const paperdoll = (creatorAtelier || creatorSkin) ? {
-    atelier: creatorAtelier || {},
-    skin: creatorSkin || ''
-  } : undefined;
-  setAppearanceFrame('creator-paperdoll', { sheet: { ancestryId, bodyShape, paperdoll } });
+  setAppearanceFrame('creator-paperdoll', {
+    sheet: {
+      ancestryId,
+      bodyShape,
+      customPortrait: creatorCustomPortrait,
+      portraitMode: creatorCustomPortrait ? 'custom' : 'silhouette'
+    }
+  });
 }
 
 function startingCards(job) {
@@ -1592,11 +1554,9 @@ function setupCreationWizard() {
     const character = createDefaultCharacter(name,genderHidden.value,ancestry.ID,job.ID,subclass.ID);
     const bodyShape = el('new-char-body-shape').value;
     if (bodyShape) character.sheet.bodyShape = bodyShape;
-    if (creatorAtelier || creatorSkin) {
-      character.sheet.paperdoll = {
-        atelier: creatorAtelier ? structuredClone(creatorAtelier) : {},
-        skin: creatorSkin || ''
-      };
+    if (creatorCustomPortrait) {
+      character.sheet.customPortrait = structuredClone(creatorCustomPortrait);
+      character.sheet.portraitMode = 'custom';
     }
     const selectedCards = startingCards(job).filter(card => selectedKeys.has(cardKey(card)));
     if (selectedCards.length !== requiredCards()) {
@@ -1614,8 +1574,7 @@ function setupCreationWizard() {
     saveLocal();
     nameInput.value = '';
     el('new-char-body-shape').value = '';
-    creatorAtelier = null;
-    creatorSkin = '';
+    creatorCustomPortrait = null;
     if (el('creator-appearance-summary')) el('creator-appearance-summary').style.display = 'none';
     allocation.reset();
     error.textContent = '';
@@ -1900,13 +1859,8 @@ function itemImage(item) {
 }
 
 function renderAppearance(character) {
-  const link = el('fantasy-paperdoll-link');
-  if (link) {
-    link.hidden = !livePaperdollEnabled;
-    if (livePaperdollEnabled) link.href = appearanceUrl(character).href;
-  }
   setAppearanceFrame('paperdoll', character, true);
-  updatePortraitModeButtons(character);
+  updateAppearanceCustomControls(character);
 }
 
 function renderFoundations(clsObj) {
@@ -5861,9 +5815,21 @@ function switchPortraitMode(targetMode) {
   renderVaultLobby();
 }
 
-function openPortraitEditorModal() {
-  const c = curChar();
-  const existing = c?.sheet?.customPortrait || {};
+let currentPortraitEditTarget = 'sheet';
+
+function openPortraitEditorModal(targetMode = 'sheet') {
+  currentPortraitEditTarget = targetMode;
+  let existing = {};
+  if (targetMode === 'creator') {
+    existing = creatorCustomPortrait || {};
+  } else {
+    const c = curChar();
+    if (c?.sheet?.lockAppearance && !isGmUser()) {
+      showToast('主持人已锁定该角色的立绘更换权限。', 'warn');
+      return;
+    }
+    existing = c?.sheet?.customPortrait || {};
+  }
   tempPortrait = {
     dataUrl: existing.dataUrl || '',
     zoom: Number(existing.zoom) || 1.0,
@@ -6003,12 +5969,35 @@ function compressAndScaleImage(dataUrl, maxWidth, maxHeight, quality, callback) 
 
 function savePortraitCustomization() {
   if (!tempPortrait.dataUrl) {
-    alert('请先选择并上传一张本地图片！');
+    showToast('请先选择并上传一张本地图片！', 'warn');
+    return;
+  }
+
+  if (currentPortraitEditTarget === 'creator') {
+    creatorCustomPortrait = {
+      dataUrl: tempPortrait.dataUrl,
+      zoom: tempPortrait.zoom,
+      offsetX: tempPortrait.offsetX,
+      offsetY: tempPortrait.offsetY
+    };
+    const summary = el('creator-appearance-summary');
+    if (summary) {
+      summary.style.display = 'block';
+      summary.textContent = '✅ 已成功配置专属立绘';
+    }
+    previewAppearance();
+    closePortraitEditorModal();
+    showToast('创角专属立绘已就绪！', 'success');
     return;
   }
 
   const c = curChar();
   if (!c || !c.sheet) return;
+
+  if (c.sheet.lockAppearance && !isGmUser()) {
+    showToast('主持人已锁定该角色的立绘自定义权限，无法保存。', 'error');
+    return;
+  }
 
   c.sheet.customPortrait = {
     dataUrl: tempPortrait.dataUrl,
@@ -6022,6 +6011,7 @@ function savePortraitCustomization() {
   renderAppearance(c);
   renderVaultLobby();
   closePortraitEditorModal();
+  showToast('角色专属立绘已成功保存！', 'success');
 }
 
 let hasInitPortraitListeners = false;
@@ -6030,21 +6020,31 @@ function initPortraitListeners() {
   hasInitPortraitListeners = true;
   initAppearanceCustomizerListeners();
 
-  el('btn-mode-paperdoll')?.addEventListener('click', () => switchPortraitMode('paperdoll'));
-  el('btn-mode-custom')?.addEventListener('click', () => switchPortraitMode('custom'));
-  el('btn-open-portrait-setting')?.addEventListener('click', openPortraitEditorModal);
+  el('btn-open-portrait-setting')?.addEventListener('click', () => openPortraitEditorModal('sheet'));
   el('portrait-modal-close')?.addEventListener('click', closePortraitEditorModal);
   el('btn-cancel-portrait')?.addEventListener('click', closePortraitEditorModal);
   el('btn-save-portrait')?.addEventListener('click', savePortraitCustomization);
 
+  // 创角向导中上传立绘
+  el('btn-creator-upload-portrait')?.addEventListener('click', () => openPortraitEditorModal('creator'));
+  el('creator-paperdoll')?.addEventListener('click', () => openPortraitEditorModal('creator'));
+
   // 点击空立绘提示区直接打开选图
   el('portrait-crop-empty')?.addEventListener('click', promptUploadCustomPortrait);
-  // 点击纸娃娃舞台区域（若已是自定义立绘）直接打开调整模态框
+  // 点击角色卡立绘舞台区域直接打开上传/调整模态框
   el('paperdoll')?.addEventListener('click', () => {
+    openPortraitEditorModal('sheet');
+  });
+
+  // 主持人锁定立绘开关
+  el('btn-gm-lock-appearance')?.addEventListener('click', () => {
+    if (!isGmUser()) return;
     const c = curChar();
-    if (c?.sheet?.portraitMode === 'custom' || c?.sheet?.customPortrait?.dataUrl) {
-      openPortraitEditorModal();
-    }
+    if (!c || !c.sheet) return;
+    c.sheet.lockAppearance = !c.sheet.lockAppearance;
+    saveLocal();
+    updateAppearanceCustomControls(c);
+    showToast(c.sheet.lockAppearance ? '已锁定角色立绘，普通玩家将无法更换' : '已解锁角色立绘，玩家可自主上传更换', 'info');
   });
 
   // 点击遮罩空白区域或按 ESC 退出弹窗
@@ -6167,16 +6167,18 @@ function updateAppearanceCustomControls(character = curChar()) {
   const isGm = isGmUser();
   const locked = Boolean(character.sheet.lockAppearance);
 
-  const btnOpen = el('btn-open-appearance-modal');
-  if (btnOpen) {
+  const btnSetting = el('btn-open-portrait-setting');
+  if (btnSetting) {
     if (locked && !isGm) {
-      btnOpen.classList.add('is-locked');
-      btnOpen.title = '主持人已锁定角色形象变更，装备穿戴换装不受影响';
-      btnOpen.innerHTML = '🔒 形象已锁定';
+      btnSetting.classList.add('is-locked');
+      btnSetting.title = '主持人已锁定角色立绘，暂无法更换';
+      btnSetting.innerHTML = '🔒 立绘已锁定';
+      btnSetting.style.opacity = '0.6';
     } else {
-      btnOpen.classList.remove('is-locked');
-      btnOpen.title = '定制角色五官、发型、肤色与解剖部位';
-      btnOpen.innerHTML = '🎨 形象定制';
+      btnSetting.classList.remove('is-locked');
+      btnSetting.title = '上传或裁剪调整角色立绘';
+      btnSetting.innerHTML = '🖼️ 上传 / 调整立绘';
+      btnSetting.style.opacity = '1';
     }
   }
 
@@ -6184,18 +6186,18 @@ function updateAppearanceCustomControls(character = curChar()) {
   if (btnGmLock) {
     btnGmLock.hidden = !isGm;
     btnGmLock.classList.toggle('active', locked);
-    btnGmLock.title = locked ? '当前：已锁定玩家自定形象（点击允许自定）' : '当前：允许玩家自由自定形象（点击锁定）';
+    btnGmLock.title = locked ? '当前：已锁定玩家自定立绘（点击允许更换）' : '当前：允许玩家自由更换立绘（点击锁定）';
     const icon = el('gm-lock-appearance-icon');
     const text = el('gm-lock-appearance-text');
     if (icon) icon.textContent = locked ? '🔒' : '🔓';
-    if (text) text.textContent = locked ? '形象锁定中' : '允许自定形象';
+    if (text) text.textContent = locked ? '立绘已锁定' : '允许更换立绘';
   }
 
   const badge = el('fn-appearance-lock-badge');
   if (badge) {
-    badge.textContent = locked ? '🔒 形象已锁定' : '🔓 自由定制形象';
+    badge.textContent = locked ? '🔒 立绘已锁定' : '🔓 自由更换立绘';
     badge.style.color = locked ? '#f87171' : '#4ade80';
-    badge.title = locked ? '主持人已关闭角色形象自由更换权限' : '玩家可自由更换形象';
+    badge.title = locked ? '主持人已关闭角色立绘自由更换权限' : '玩家可自主上传与调整角色立绘';
   }
 }
 

@@ -5359,3 +5359,27 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   cursor: pointer;
   user-select: none;
 }
+
+.appearance-frame:not(.has-custom-portrait)::after {
+  content: "📷 点击上传专属立绘";
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #fbbf24;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  pointer-events: none;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+.appearance-frame:not(.has-custom-portrait):hover::after {
+  background: rgba(212, 175, 55, 0.95);
+  color: #111827;
+  font-weight: 600;
+  border-color: #f59e0b;
+}

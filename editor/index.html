@@ -132,10 +132,10 @@
               <div class="preview-card-mini" id="preview-ancestry-card"></div>
             </div>
 
-            <fieldset class="creator-appearance"><legend>种族外观与形象定制</legend>
+            <fieldset class="creator-appearance"><legend>角色立绘定制</legend>
               <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
                 <div style="flex:1;min-width:140px;">
-                  <label for="new-char-body-shape">体型</label>
+                  <label for="new-char-body-shape">体型基准</label>
                   <select id="new-char-body-shape" class="creator-select">
                     <option value="">种族默认</option>
                     <option value="tall">高大型</option>
@@ -144,13 +144,13 @@
                     <option value="short">矮小型</option>
                   </select>
                   <div style="margin-top:10px;">
-                    <button type="button" class="dw-btn dw-btn-gold" id="btn-creator-custom-appearance" style="width:100%;font-size:12px;padding:6px 10px;">
-                      🎨 定制五官与特征（捏人）
+                    <button type="button" class="dw-btn dw-btn-gold" id="btn-creator-upload-portrait" style="width:100%;font-size:12px;padding:8px 10px;">
+                      📁 上传并制作专属立绘
                     </button>
-                    <div id="creator-appearance-summary" style="margin-top:6px;font-size:11px;color:#f59e0b;display:none;"></div>
+                    <div id="creator-appearance-summary" style="margin-top:6px;font-size:11px;color:#10b981;display:none;"></div>
                   </div>
                 </div>
-                <div id="creator-paperdoll" class="appearance-frame" style="margin:0 auto;"></div>
+                <div id="creator-paperdoll" class="appearance-frame" style="margin:0 auto;cursor:pointer;" title="点击上传或调整立绘"></div>
               </div>
             </fieldset>
 
@@ -407,31 +407,16 @@
               </div>
             </div>
             <div class="paperdoll-stage">
-              <div id="paperdoll" class="appearance-frame appearance-frame-sheet" title="点击可查看或调整立绘"></div>
-              <div class="portrait-mode-bar">
-                <div class="portrait-switch-group">
-                  <button type="button" class="portrait-switch-btn active" id="btn-mode-paperdoll" title="动态纸娃娃：换装所见即所得">👤 纸娃娃</button>
-                  <button type="button" class="portrait-switch-btn" id="btn-mode-custom" title="自定义上传立绘">🖼️ 立绘</button>
-                </div>
-                <button type="button" class="portrait-setting-btn" id="btn-open-portrait-setting" title="上传或裁剪调整立绘">⚙️ 立绘设置</button>
-              </div>
-              <div class="appearance-custom-bar">
-                <button type="button" class="dw-btn dw-btn-outline dw-btn-sm" id="btn-open-appearance-modal" title="定制角色五官、发型、肤色与解剖特征">
-                  🎨 形象定制
+              <div id="paperdoll" class="appearance-frame appearance-frame-sheet" style="cursor:pointer;" title="点击可上传或调整角色立绘"></div>
+              <div class="portrait-mode-bar" style="width:100%;display:flex;justify-content:center;gap:8px;margin-top:6px;">
+                <button type="button" class="dw-btn dw-btn-gold dw-btn-sm" id="btn-open-portrait-setting" title="上传或裁剪调整角色立绘">
+                  🖼️ 上传 / 调整立绘
                 </button>
-                <button type="button" class="gm-lock-appearance-btn" id="btn-gm-lock-appearance" title="主持人开关：控制玩家是否可自由更换形象" hidden>
+                <button type="button" class="gm-lock-appearance-btn" id="btn-gm-lock-appearance" title="主持人开关：控制玩家是否可自由更换立绘" hidden>
                   <span id="gm-lock-appearance-icon">🔓</span>
-                  <span id="gm-lock-appearance-text">允许自定形象</span>
+                  <span id="gm-lock-appearance-text">允许更换立绘</span>
                 </button>
               </div>
-              <div class="gear-slot costume-slot-highlight" data-slot="costume" title="时装：独立视觉外观">
-                <div class="slot-icon-box" id="slot-icon-costume"></div>
-                <div class="slot-info">
-                  <span class="slot-name">时装</span>
-                  <span class="slot-item" id="slot-name-costume">空置</span>
-                </div>
-              </div>
-              <a class="dw-btn dw-btn-outline" id="fantasy-paperdoll-link" hidden>编辑外观</a>
             </div>
             <div class="gear-slot-col right-col">
               <div class="gear-slot" data-slot="back">
