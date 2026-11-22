@@ -948,7 +948,7 @@ nav { width: 100%; }
       </div>
     </div>
     <div class="atlas-map-wrapper">
-      <img id="faerun-atlas-img" src="./assets/Book-FRAiF-218-map-faerun.webp" alt="费伦大陆全景大地图" loading="eager" onerror="handleAtlasMapError(this)" />
+      <img id="faerun-atlas-img" src="https://huiji-public.huijistatic.com/dnd/uploads/5/5f/Book-FRAiF-218-map-faerun.webp" alt="费伦大陆全景大地图" loading="eager" referrerpolicy="no-referrer" onerror="handleAtlasMapError(this)" />
       <div id="atlas-fallback-box" class="atlas-map-fallback" style="display:none;">
         <div class="fallback-card">
           <div class="fallback-icon">🗺️</div>
@@ -961,7 +961,7 @@ nav { width: 100%; }
       </div>
       <div class="atlas-map-toolbar">
         <div>
-          <a href="./assets/Book-FRAiF-218-map-faerun.webp" target="_blank" class="atlas-btn" id="atlas-zoom-link">🔍 打开全屏高清图卷</a>
+          <a href="https://huiji-public.huijistatic.com/dnd/uploads/5/5f/Book-FRAiF-218-map-faerun.webp" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="atlas-btn" id="atlas-zoom-link">🔍 查看全屏超清大图</a>
         </div>
         <div>
           <a href="https://dnd.huijiwiki.com/wiki/%E6%96%87%E4%BB%B6:Book-FRAiF-218-map-faerun.webp" target="_blank" rel="noopener noreferrer" class="atlas-btn secondary">灰机 Wiki 原图词条 ↗</a>
@@ -1761,6 +1761,11 @@ function isDaggerworldActivated() {
 }
 
 function handleAtlasMapError(img) {
+  if (!img.dataset.fallbackTried) {
+    img.dataset.fallbackTried = 'true';
+    img.src = './assets/Book-FRAiF-218-map-faerun.webp';
+    return;
+  }
   img.style.display = 'none';
   const fallback = document.getElementById('atlas-fallback-box');
   if (fallback) fallback.style.display = 'block';
