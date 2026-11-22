@@ -4833,3 +4833,66 @@ body.dw-theme {
   flex-direction: column;
   gap: 6px;
 }
+
+
+/* 符文与宝石插槽样式 */
+.gear-socket-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: rgba(15, 8, 7, 0.75);
+  border: 1px solid rgba(229, 179, 88, 0.25);
+  border-radius: 6px;
+}
+.socket-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: bold;
+}
+.socket-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: .05em;
+}
+.socket-pill.rune {
+  background: rgba(163, 230, 53, 0.12);
+  color: #bef264;
+  border: 1px dashed rgba(163, 230, 53, 0.5);
+}
+.socket-pill.gem {
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  border: 1px dashed rgba(56, 189, 248, 0.5);
+}
+
+/* 隐藏成长词条样式 */
+.gear-growth-display {
+  margin: 8px 0;
+}
+.gm-hidden-growth-tag {
+  background: linear-gradient(135deg, rgba(80, 20, 15, 0.35) 0%, rgba(30, 15, 12, 0.6) 100%);
+  border: 1px dashed #f59e0b;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #fde68a;
+  line-height: 1.6;
+}
+.player-awakened-growth-tag {
+  background: rgba(229, 179, 88, 0.12);
+  border: 1px solid rgba(229, 179, 88, 0.4);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #fef08a;
+  line-height: 1.6;
+}
+

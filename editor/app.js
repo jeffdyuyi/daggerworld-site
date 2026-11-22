@@ -938,6 +938,7 @@ async function switchLayer(layer, targetIndex) {
     }
     if (brandLink) brandLink.style.display = 'flex';
     initWorkshopLayer();
+  initGmGearEditorListeners();
     try { history.replaceState(null, '', '#workshop'); } catch {}
   } else if (layer === 'player-info') {
     if (vaultLayer) vaultLayer.hidden = true;
@@ -3987,6 +3988,69 @@ function switchWorkshopMode(mode) {
 }
 
 // 初始化独立工坊页面
+
+// ==========================================
+// 主持人就地装备再编辑、授名与成长觉醒系统
+// ==========================================
+let activeGmEditItem = null;
+let activeGmEditIndex = null;
+
+function openGmGearEditor(item, index) {
+  if (!item) return;
+  activeGmEditItem = item;
+  activeGmEditIndex = index;
+
+  if (el('gm-ge-name')) el('gm-ge-name').value = item.name || '';
+  if (el('gm-ge-desc')) el('gm-ge-desc').value = item.desc || '';
+  if (el('gm-ge-rune-sockets')) el('gm-ge-rune-sockets').value = item.runeSockets ?? 0;
+  if (el('gm-ge-gem-sockets')) el('gm-ge-gem-sockets').value = item.gemSockets ?? 0;
+  if (el('gm-ge-growth-text')) el('gm-ge-growth-text').value = item.hiddenGrowth || '';
+  if (el('gm-ge-hidden-active')) el('gm-ge-hidden-active').checked = item.hiddenGrowthActive ?? true;
+
+  el('gm-gear-edit-modal').hidden = false;
+}
+
+function closeGmGearEditor() {
+  if (el('gm-gear-edit-modal')) el('gm-gear-edit-modal').hidden = true;
+  activeGmEditItem = null;
+  activeGmEditIndex = null;
+}
+
+function saveGmGearEdit() {
+  if (!activeGmEditItem) return;
+  const c = curChar();
+  if (!c || !c.sheet) return;
+
+  const newName = el('gm-ge-name')?.value?.trim();
+  if (!newName) return alert('装备名称不可为空！');
+
+  activeGmEditItem.name = newName;
+  activeGmEditItem.desc = el('gm-ge-desc')?.value?.trim() || '';
+  activeGmEditItem.runeSockets = Math.max(0, parseInt(el('gm-ge-rune-sockets')?.value) || 0);
+  activeGmEditItem.gemSockets = Math.max(0, parseInt(el('gm-ge-gem-sockets')?.value) || 0);
+  activeGmEditItem.hiddenGrowth = el('gm-ge-growth-text')?.value?.trim() || '';
+  activeGmEditItem.hiddenGrowthActive = Boolean(el('gm-ge-hidden-active')?.checked);
+
+  // 若该装备已穿戴于 equipment 槽位中，同步更新槽位数据
+  if (activeGmEditItem.ownedGearId && c.sheet.equipment) {
+    for (const [slotKey, slotItem] of Object.entries(c.sheet.equipment)) {
+      if (slotItem && slotItem.ownedGearId === activeGmEditItem.ownedGearId) {
+        c.sheet.equipment[slotKey] = { ...slotItem, ...activeGmEditItem };
+      }
+    }
+  }
+
+  saveLocal();
+  renderAll();
+  closeGmGearEditor();
+}
+
+function initGmGearEditorListeners() {
+  el('gm-gear-edit-close')?.addEventListener('click', closeGmGearEditor);
+  el('gm-gear-edit-cancel')?.addEventListener('click', closeGmGearEditor);
+  el('gm-gear-edit-save')?.addEventListener('click', saveGmGearEdit);
+}
+
 function initWorkshopLayer() {
   workshopState.targetCharIndex = (activeCharIndex >= 0 && activeCharIndex < characters.length) ? activeCharIndex : 0;
   updateWorkshopTargetSelect();
