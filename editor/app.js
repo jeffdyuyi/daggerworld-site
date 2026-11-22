@@ -993,6 +993,7 @@ function renderVaultLobby() {
     return row;
   });
   function select(index) {
+    activeCharIndex = index;
     const character = characters[index];
     const sheet = character.sheet;
     rows.forEach((row, rowIndex) => row.setAttribute('aria-pressed', String(rowIndex === index)));
@@ -1148,22 +1149,28 @@ function setAppearanceFrame(id, character, download = false) {
     trySet();
   };
 
+  frame = target.querySelector('iframe');
   if (!frame) {
     frame = document.createElement('iframe');
     frame.title = '角色全身预览';
     frame.loading = 'eager';
     frame.style.cssText = 'display:block;width:100%;height:100%;border:0;background:transparent';
+    frame._pendingCharacter = character;
     frame.onload = () => {
-      pushCharacterToFrame(frame, character);
+      pushCharacterToFrame(frame, frame._pendingCharacter);
     };
     frame.src = url.href;
     target.replaceChildren(frame);
   } else {
-    // 若体型或种族变更需重设源，否则直接推送新装备换装
+    frame._pendingCharacter = character;
+    frame.onload = () => {
+      pushCharacterToFrame(frame, frame._pendingCharacter);
+    };
     if (frame.src !== url.href) {
       frame.src = url.href;
+    } else {
+      pushCharacterToFrame(frame, character);
     }
-    pushCharacterToFrame(frame, character);
   }
   target.hidden = false;
 }
