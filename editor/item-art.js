@@ -1,5 +1,8 @@
 import { resourceArt } from './resource-art.js';
+
 const art = new URL('./assets/paperdoll/', import.meta.url);
+const equipArt = new URL('./assets/equipment/', import.meta.url);
+
 export const itemAppearances = {
   cape: '披风', sword: '剑', dagger: '匕首', axe: '斧', hammer: '锤', spear: '长矛', staff: '法杖',
   bow: '弓', crossbow: '弩', scythe: '镰刀', shield: '木盾', steelShield: '铁盾',
@@ -13,9 +16,61 @@ export const itemAppearances = {
   'item-seed': '叶片', 'item-food': '食物', 'item-box': '匣',
 };
 
+// 优质手绘高精度装备道具图标映射表（源自纸娃娃原创装备库）
+export const highResEquipmentMap = {
+  // 武器
+  sword: 'weapon-01',
+  axe: 'weapon-03',
+  hammer: 'weapon-04',
+  dagger: 'weapon-05',
+  spear: 'weapon-02',
+  bow: 'weapon-06',
+  crossbow: 'weapon-06',
+  staff: 'weapon-04',
+  scythe: 'weapon-03',
+
+  // 护甲与服装
+  plate: 'armor-01',
+  chain: 'armor-02',
+  leather: 'armor-03',
+  robe: 'armor-05',
+  tunic: 'armor-06',
+
+  // 防具配件
+  shield: 'offhand-01',
+  steelShield: 'offhand-02',
+  helm: 'helmet-01',
+  hood: 'helmet-03',
+  crown: 'helmet-04',
+  cape: 'cape-01',
+  boots: 'boots-01',
+  legs: 'legs-01',
+  gloves: 'belt-01',
+
+  // 饰品与消耗品
+  'item-ring': 'ring-01',
+  'item-charm': 'charm-01',
+  'item-gem': 'charm-02',
+  'item-crystal': 'charm-04',
+  'item-health': 'consumable-01',
+  'item-stress': 'consumable-02',
+  'item-poison': 'consumable-03',
+  'item-potion': 'consumable-04',
+  'item-food': 'consumable-05',
+  'item-bottle': 'consumable-06',
+  'item-scroll': 'satchel-01',
+  'item-book': 'satchel-02',
+  'item-bag': 'pack-01',
+  'item-chest': 'pack-02',
+  'item-pouch': 'pouch-01',
+  'item-box': 'pack-03',
+  'item-gold': 'ring-03'
+};
+
 export function validAppearance(value) {
   return Object.hasOwn(itemAppearances, value) ? value : '';
 }
+
 const iconRules = [
   [/配方|卷轴|契约|羊皮纸/, 'item-scroll'],
   [/生命药水|治疗药/, 'item-health'],
@@ -79,7 +134,6 @@ export function itemArt(item = {}) {
   const type = item.类型 ?? item.type;
   if (match) return match[1];
 
-
   if (type === '消耗品') return 'item-potion';
   return item.ID?.startsWith('战利品:') || type === '战利品' ? 'item-charm' : 'item-box';
 }
@@ -88,6 +142,11 @@ export function spriteUrl(sprite) {
   if (!sprite) return '';
   if (typeof sprite === 'string' && (sprite.startsWith('/') || sprite.startsWith('./') || sprite.startsWith('../') || sprite.startsWith('http://') || sprite.startsWith('https://') || sprite.includes('/'))) {
     return new URL(sprite, import.meta.url).href;
+  }
+  // 优先匹配纸娃娃高清手绘道具图标
+  const highRes = highResEquipmentMap[sprite] || (typeof sprite === 'string' && sprite.includes('-0') ? sprite : null);
+  if (highRes) {
+    return new URL(`${highRes}.png`, equipArt).href;
   }
   if (sprite === 'cape') sprite = 'item-cloth';
   return new URL(`${sprite}.png`, art).href;

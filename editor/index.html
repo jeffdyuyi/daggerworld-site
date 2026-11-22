@@ -638,10 +638,10 @@
         <section class="wallet-section" aria-label="财富">
           <h3>财富</h3>
           <div class="currency-panel">
-            <label class="currency-card">把 <input type="number" id="coin-handfuls" class="coin-input" value="0" min="0" step="1"></label>
-            <label class="currency-card">袋 <input type="number" id="coin-bags" class="coin-input" value="0" min="0" step="1"></label>
-            <label class="currency-card">箱 <input type="number" id="coin-chests" class="coin-input" value="0" min="0" step="1"></label>
-            <label class="currency-card">钻石 <input type="number" id="coin-diamonds" class="coin-input" value="0" min="0" step="1"></label>
+            <label class="currency-card currency-card-gold"><span class="currency-icon">🪙</span> 金币 <input type="number" id="coin-gold" class="coin-input" value="0" min="0" step="1"></label>
+            <label class="currency-card currency-card-silver"><span class="currency-icon">🥈</span> 银币 <input type="number" id="coin-silver" class="coin-input" value="0" min="0" step="1"></label>
+            <label class="currency-card currency-card-copper"><span class="currency-icon">🥉</span> 铜币 <input type="number" id="coin-copper" class="coin-input" value="0" min="0" step="1"></label>
+            <label class="currency-card currency-card-essence"><span class="currency-icon">✨</span> 璀璨精华 <input type="number" id="coin-essence" class="coin-input" value="0" min="0" step="1"></label>
           </div>
           <small id="legacy-wealth" hidden></small>
         </section>
@@ -970,7 +970,11 @@
             <span class="dispatch-crown-badge">👑 接收角色</span>
             <button type="button" id="ws-catalog" class="dw-btn dw-btn-outline ws-btn-catalog">📖 发放原版图鉴物品</button>
           </div>
-          <div class="ws-target-select-row">
+          <!-- 直选头像胶囊容器 (直选点击无查找成本) -->
+          <div class="ws-target-capsules-wrap" id="ws-target-char-capsules" role="radiogroup" aria-label="快捷直选接收角色">
+            <!-- 动态渲染角色头像/姓名/等级直选胶囊 -->
+          </div>
+          <div class="ws-target-select-row" style="display:none;">
             <select id="ws-target-char-select" class="dw-select ws-target-select-large" title="选择接收角色">
               <!-- 动态填充队伍所有角色 -->
             </select>
@@ -979,7 +983,7 @@
             <!-- 槽位统计与状态信息 -->
           </div>
           <div class="ws-target-hint">
-            <span>💡 提示：在下方资源库条目点击【发放】即可送入该角色随身背包或秘藏</span>
+            <span>💡 提示：在上方角色卡直选目标；在下方资源库条目点击【发放】即可送入背包或秘藏</span>
           </div>
         </div>
 
@@ -1262,13 +1266,14 @@
             <div class="f-select-group ws-col-span-2" style="display:flex;flex-direction:column;gap:12px;">
 
               <!-- 数值块 1: ⚔️ 武器战斗数值块 (Weapon Block) -->
-              <div class="ws-calc-block" id="ws-block-weapon">
+              <div class="ws-calc-block ws-calc-block-weapon" id="ws-block-weapon">
                 <div class="ws-calc-header">
-                  <label>
+                  <label class="ws-switch-label">
                     <input type="checkbox" id="ws-toggle-weapon-block" class="ws-block-toggle">
-                    ⚔️ <strong>武器战斗属性 (Weapon)</strong>
-                    <span class="ws-calc-subhint">设置攻击属性、射程与伤害骰；留空则不作为武器结算</span>
+                    <span class="ws-switch-slider"></span>
+                    <span class="ws-calc-title">⚔️ <strong>武器战斗属性</strong> <span class="ws-calc-badge">Weapon</span></span>
                   </label>
+                  <span class="ws-calc-subhint">设置攻击属性、射程与伤害；留空则不作为武器结算</span>
                 </div>
                 <div class="gear-effect-fields" id="ws-weapon-fields" hidden>
                   <label>攻击判定属性
@@ -1297,7 +1302,7 @@
                       <button type="button" class="ws-dice-pill" data-dice="+2">+2</button>
                       <button type="button" class="ws-dice-pill ws-dice-clear" data-action="clear-dice" title="清空伤害骰">清空</button>
                     </div>
-                  </label>
+                  </div>
                   <label>射程范围 (Range)
                     <select id="ws-weapon-range" class="dw-select">
                       <option value="近战">近战 (Melee)</option>
@@ -1327,55 +1332,58 @@
               </div>
 
               <!-- 数值块 2: 🛡️ 护甲防御与伤害阈值数值块 (Armor & Thresholds Block) -->
-              <div class="ws-calc-block" id="ws-block-armor">
+              <div class="ws-calc-block ws-calc-block-armor" id="ws-block-armor">
                 <div class="ws-calc-header">
-                  <label>
+                  <label class="ws-switch-label">
                     <input type="checkbox" id="ws-toggle-armor-block" class="ws-block-toggle">
-                    🛡️ <strong>护甲与伤害阈值 (Armor & Thresholds)</strong>
-                    <span class="ws-calc-subhint">设置基础护甲值与伤害阈值；留空或为 0 的项不显示</span>
+                    <span class="ws-switch-slider"></span>
+                    <span class="ws-calc-title">🛡️ <strong>护甲与伤害阈值</strong> <span class="ws-calc-badge">Armor</span></span>
                   </label>
+                  <span class="ws-calc-subhint">基础护甲值与伤害阈值；留空或为 0 的项不显示</span>
                 </div>
-                <div class="gear-effect-fields" id="ws-armor-fields" hidden>
-                  <label>基础护甲值 (Base Armor)
+                <div class="gear-effect-fields ws-armor-grid-fields" id="ws-armor-fields" hidden>
+                  <label>基础护甲值 (Base)
                     <input id="ws-armor-value" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
                   </label>
-                  <label>轻度伤害阈值 (+Minor)
+                  <label>轻度阈值 (+Minor)
                     <input id="ws-armor-minor" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
                   </label>
-                  <label>重度伤害阈值 (+Major)
+                  <label>重度阈值 (+Major)
                     <input id="ws-armor-major" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
                   </label>
-                  <label>严重伤害阈值 (+Severe)
+                  <label>严重阈值 (+Severe)
                     <input id="ws-armor-severe" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
                   </label>
-                  <label>护甲特性名 (Feature Name)
+                  <label class="ws-col-span-2">护甲特性名 (Feature Name)
                     <input id="ws-armor-feature-name" class="dw-input" placeholder="例如: 沉稳 / 轻盈 (选填)">
                   </label>
                 </div>
               </div>
 
               <!-- 数值块 3: 📊 角色属性与状态上限修正块 (Modifier Contributions) -->
-              <div class="ws-calc-block" id="ws-block-modifiers">
+              <div class="ws-calc-block ws-calc-block-modifiers" id="ws-block-modifiers">
                 <div class="ws-calc-header">
-                  <label>
+                  <label class="ws-switch-label">
                     <input type="checkbox" id="ws-toggle-modifiers-block" class="ws-block-toggle">
-                    📊 <strong>属性与上限修正 (Modifiers)</strong>
-                    <span class="ws-calc-subhint">调整六维属性与资源上限；留空或为 0 的项不显示</span>
+                    <span class="ws-switch-slider"></span>
+                    <span class="ws-calc-title">📊 <strong>属性与上限修正</strong> <span class="ws-calc-badge">Modifiers</span></span>
                   </label>
+                  <span class="ws-calc-subhint">调整六维属性与资源上限；留空或为 0 的项不显示</span>
                 </div>
                 <div class="gear-effect-fields" id="ws-gear-fields" hidden></div>
               </div>
 
               <!-- 数值块 4: 🧪 使用触发、消耗代价与充能块 (Usage & Charges) -->
-              <div class="ws-calc-block" id="ws-block-usage">
+              <div class="ws-calc-block ws-calc-block-usage" id="ws-block-usage">
                 <div class="ws-calc-header">
-                  <label>
+                  <label class="ws-switch-label">
                     <input type="checkbox" id="ws-toggle-usage-block" class="ws-block-toggle">
-                    🧪 <strong>使用触发与消耗 (Usage / Charges)</strong>
-                    <span class="ws-calc-subhint">适用于药剂、卷轴与奇物等；未填写的项不显示</span>
+                    <span class="ws-switch-slider"></span>
+                    <span class="ws-calc-title">🧪 <strong>使用触发与消耗</strong> <span class="ws-calc-badge">Usage</span></span>
                   </label>
+                  <span class="ws-calc-subhint">适用于药剂、卷轴与奇物等；未填写的项不显示</span>
                 </div>
-                <div class="gear-effect-fields" id="ws-usage-fields" hidden>
+                <div class="gear-effect-fields ws-usage-grid-fields" id="ws-usage-fields" hidden>
                   <label>使用触发时机 (Trigger)
                     <input id="ws-usage-trigger" class="dw-input" placeholder="例如: 饮用时 / 行动 / 反应 / 自由动作 / 长休 (选填)">
                   </label>
@@ -2116,5 +2124,7 @@
     </div>
   </div>
 
+  <!-- 全局平滑 Toast 提示浮层容器 -->
+  <div id="toast-container" class="dw-toast-container" aria-live="polite"></div>
 </body>
 </html>

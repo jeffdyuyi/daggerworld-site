@@ -1,3 +1,23 @@
+
+// 全局平滑 Toast 浮层提示系统
+function showToast(message, type = 'info') {
+  const container = el('toast-container');
+  if (!container) {
+    console.log(`[${type}] ${message}`);
+    return;
+  }
+  const toast = document.createElement('div');
+  toast.className = `dw-toast dw-toast-${type}`;
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
+  toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-text">${message}</span>`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('dw-toast-visible'));
+  setTimeout(() => {
+    toast.classList.remove('dw-toast-visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    setTimeout(() => toast.remove(), 400);
+  }, 2800);
+}
 import { visualCatalog } from './visual-catalog.js';
 import {setupAdventureBoard} from './adventure-board.js?v=20261121-layout2';
 import {livePaperdollEnabled, showCharacterOutline, showCustomPortrait} from './appearance-preview.js?v=20261121-body2';
@@ -332,7 +352,7 @@ function createDefaultCharacter(name = '新晋冒险者', gender = '男', ancest
         satchel_2: null
       },
       inventoryItems: [],
-      currency: { handfuls: 0, bags: 0, chests: 0, diamonds: 0 },
+      currency: { gold: 0, silver: 0, copper: 0, essence: 0 },
       equippedDomainCards: [],
       vaultDomainCards: [],
       customDomainCards: []
@@ -360,6 +380,15 @@ function normalizeCharacter(char) {
   s.classId = s.classId || defaultSheet.classId;
   s.subclassId = s.subclassId || defaultSheet.subclassId;
   s.lockAppearance = Boolean(s.lockAppearance);
+  if (!s.currency || typeof s.currency !== 'object') {
+    s.currency = { gold: 0, silver: 0, copper: 0, essence: 0 };
+  } else {
+    // 兼容迁移：旧档把/袋/箱/钻石 -> 铜/银/金/璀璨精华
+    if (s.currency.gold === undefined) s.currency.gold = s.currency.chests ?? 0;
+    if (s.currency.silver === undefined) s.currency.silver = s.currency.bags ?? 0;
+    if (s.currency.copper === undefined) s.currency.copper = s.currency.handfuls ?? 0;
+    if (s.currency.essence === undefined) s.currency.essence = s.currency.diamonds ?? 0;
+  }
   s.paperdoll = (s.paperdoll && typeof s.paperdoll === 'object') ? s.paperdoll : { atelier: {}, skin: '' };
 
   s.hp = {
@@ -1259,18 +1288,10 @@ function normalizeCharacterForAvatar(charData) {
   if (!charData || !charData.sheet) return charData;
   const clone = structuredClone(charData);
   const s = clone.sheet;
-  const mapVisual = item => {
-    if (!item) return;
-    if (item.avatarVisualId && visualAliasMap[item.avatarVisualId]) {
-      item.avatarVisualId = visualAliasMap[item.avatarVisualId];
-    }
-  };
-  if (s.equipment) {
-    for (const item of Object.values(s.equipment)) mapVisual(item);
-  }
-  if (Array.isArray(s.inventoryItems)) {
-    for (const item of s.inventoryItems) mapVisual(item);
-  }
+  // 屏蔽纸娃娃动态穿装在躯干上的装备图层，杜绝装备贴合拉伸畸变；
+  // 纯粹专注于角色素体捏人形象（发型、面容五官、角尾龟壳特征与肤色体型）
+  s.equipment = {};
+  s.inventoryItems = [];
   return clone;
 }
 
@@ -2227,10 +2248,22 @@ function renderInventory(stats) {
 
   // Currency
   const curr = c.sheet.currency;
-  for (const unit of ['handfuls', 'bags', 'chests', 'diamonds']) el('coin-' + unit).value = curr[unit] ?? 0;
+  for (const unit of ['gold', 'silver', 'copper', 'essence']) {
+    const input = el('coin-' + unit);
+    if (input) input.value = curr[unit] ?? 0;
+  }
   const legacyWealth = el('legacy-wealth');
-  legacyWealth.hidden = !curr.gold && !curr.dust;
-  legacyWealth.textContent = '旧档记录：' + [curr.gold && `${curr.gold} 枚金币`, curr.dust && `${curr.dust} 粉末`].filter(Boolean).join(' · ');
+  const hasLegacy = (curr.chests || curr.bags || curr.handfuls || curr.diamonds || curr.dust);
+  legacyWealth.hidden = !hasLegacy;
+  if (hasLegacy) {
+    legacyWealth.textContent = '历史旧币：' + [
+      curr.chests && `${curr.chests} 箱`,
+      curr.bags && `${curr.bags} 袋`,
+      curr.handfuls && `${curr.handfuls} 把`,
+      curr.diamonds && `${curr.diamonds} 钻石`,
+      curr.dust && `${curr.dust} 粉末`
+    ].filter(Boolean).join(' · ');
+  }
 
   // Armor Formula Breakdown Readout
   const fb = el('armor-formula-breakdown');
@@ -2277,13 +2310,13 @@ async function grantExperience() {
   if (currentUser?.role !== 'gm' || !target?.updated_at || target.level >= lastLevel) return;
   const button = el('ws-grant-xp');
   const amount = el('ws-xp-amount').valueAsNumber;
-  if (!Number.isSafeInteger(amount) || amount < 1) return alert('经验须为正整数。');
+  if (!Number.isSafeInteger(amount) || amount < 1) return showToast('经验须为正整数。', 'warn');
   button.disabled = true;
   try {
     await sendResource(target,'experience',amount);
     el('ws-xp-amount').value = '';
-    alert('已发放给 '+target.avatar_name);
-  } catch (error) { alert('未确认发放结果，请刷新核对：'+error.message); }
+    showToast('已成功发放经验给 ' + target.avatar_name, 'success');
+  } catch (error) { showToast('发放经验异常：' + error.message, 'error'); }
   finally { updateWorkshopTargetSelect(); }
 }
 
@@ -2865,7 +2898,7 @@ function setupEventListeners() {
       saveLocal();
       el('ws-effect-name').value = '';
       el('ws-effect-description').value = '';
-      alert('已发放给 '+target.avatar_name);
+      showToast('已成功发放经验给 ' + target.avatar_name, 'success');
     } catch(error) { alert('发放失败：'+error.message); }
     finally { button.disabled = false; }
   };
@@ -3091,8 +3124,8 @@ function setupEventListeners() {
     } catch (error) { alert(error.message); }
   };
   // Currency Inputs
-  ['handfuls', 'bags', 'chests', 'diamonds'].forEach(type => {
-    el(`coin-${type}`).addEventListener('change', e => {
+  ['gold', 'silver', 'copper', 'essence'].forEach(type => {
+    el(`coin-${type}`)?.addEventListener('change', e => {
       const c = curChar();
       c.sheet.currency[type] = Math.max(0, Math.trunc(Number(e.target.value)) || 0);
       e.target.value = c.sheet.currency[type];
@@ -4092,15 +4125,16 @@ function initWorkshopLayer() {
   updateStatusEffectPreview();
 }
 
-// 刷新全队受赐角色选择器与槽位统计
+// 刷新全队受赐角色选择器与槽位统计 (支持头像直选胶囊与平滑交互)
 function updateWorkshopTargetSelect() {
   const sel = el('ws-target-char-select');
   const meta = el('ws-target-char-meta');
-  if (!sel) return;
+  const capsulesWrap = el('ws-target-char-capsules');
+  if (!sel && !capsulesWrap) return;
 
   const target = characters[workshopState.targetCharIndex] ?? characters[0];
-  el('ws-grant-xp').disabled = !target?.updated_at || target.level >= lastLevel;
-  el('ws-xp-required').textContent = target && target.level < lastLevel ? '下一级 '+experience(target).required.toLocaleString('zh-CN')+' 经验' : '';
+  if (el('ws-grant-xp')) el('ws-grant-xp').disabled = !target?.updated_at || target.level >= lastLevel;
+  if (el('ws-xp-required')) el('ws-xp-required').textContent = target && target.level < lastLevel ? '下一级 '+experience(target).required.toLocaleString('zh-CN')+' 经验' : '';
 
   for (const button of document.querySelectorAll('[data-action="dispatch"]')) {
     button.disabled = !target?.updated_at;
@@ -4113,23 +4147,61 @@ function updateWorkshopTargetSelect() {
     button.disabled = !target?.updated_at;
     button.textContent = target ? `👑 保存并发放给 ${target.avatar_name}` : '👑 保存并发放给角色';
   }
-  // 确保存入战役军械库/储备库按钮随时可用，无需选定或保存角色即可自由储备原创内容
   if (el('btn-ws-save-item')) el('btn-ws-save-item').disabled = false;
   if (el('btn-ws-save-card')) el('btn-ws-save-card').disabled = false;
-  sel.innerHTML = '';
-  if (!characters.length) {
-    sel.innerHTML = '<option value="0">暂无角色（请先创角）</option>';
-    if (meta) meta.innerHTML = '<span class="f-badge">暂无角色</span>';
-    return;
+
+  // 1. 渲染直选头像胶囊（直选点击无查找成本）
+  if (capsulesWrap) {
+    capsulesWrap.replaceChildren();
+    if (!characters.length) {
+      capsulesWrap.innerHTML = '<span class="f-badge">暂无角色（请先创角）</span>';
+    } else {
+      characters.forEach((char, idx) => {
+        const isSelected = idx === workshopState.targetCharIndex;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `ws-char-capsule ${isSelected ? 'active' : ''}`;
+        btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        
+        let avatarInner = `<span class="capsule-avatar-fallback">${(char.avatar_name || '冒')[0]}</span>`;
+        if (char.sheet?.customPortrait?.dataUrl) {
+          avatarInner = `<img src="${char.sheet.customPortrait.dataUrl}" class="capsule-avatar-img" alt="${char.avatar_name}">`;
+        }
+        
+        btn.innerHTML = `
+          <div class="capsule-avatar-box">${avatarInner}</div>
+          <div class="capsule-info">
+            <span class="capsule-name">${char.avatar_name || '未命名'}</span>
+            <span class="capsule-lvl">Lv.${char.level || 1} ${char.sheet?.classId || '冒险者'}</span>
+          </div>
+        `;
+        btn.onclick = () => {
+          workshopState.targetCharIndex = idx;
+          if (sel) sel.value = idx;
+          updateWorkshopTargetSelect();
+        };
+        capsulesWrap.appendChild(btn);
+      });
+    }
   }
 
-  characters.forEach((char, idx) => {
-    const opt = document.createElement('option');
-    opt.value = idx;
-    opt.textContent = `${char.avatar_name || '未命名'} (Lv.${char.level || 1} ${char.sheet.classId || '冒险者'})`;
-    if (idx === workshopState.targetCharIndex) opt.selected = true;
-    sel.appendChild(opt);
-  });
+  // 2. 同步保持隐藏 select 内容与选中项（API向后兼容）
+  if (sel) {
+    sel.innerHTML = '';
+    if (!characters.length) {
+      sel.innerHTML = '<option value="0">暂无角色（请先创角）</option>';
+      if (meta) meta.innerHTML = '<span class="f-badge">暂无角色</span>';
+      return;
+    }
+
+    characters.forEach((char, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${char.avatar_name || '未命名'} (Lv.${char.level || 1} ${char.sheet.classId || '冒险者'})`;
+      if (idx === workshopState.targetCharIndex) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
 
   if (!characters[workshopState.targetCharIndex]) workshopState.targetCharIndex = 0;
   const c = characters[workshopState.targetCharIndex];
@@ -4856,10 +4928,10 @@ async function deliver(index,field,item) {
     }
     updateWorkshopTargetSelect();
     if (currentLayer === 'sheet') renderAll();
-    alert('已成功发放至【' + (target.avatar_name || '无名角色') + '】！');
+    showToast('已成功发放至【' + (target.avatar_name || '无名角色') + '】随身物品！', 'success');
     return true;
   } catch (error) {
-    alert('未确认发放结果，请刷新核对：'+error.message);
+    showToast('发放未确认：' + error.message, 'error');
     return false;
   }
 }
@@ -5235,12 +5307,12 @@ async function handleWorkshopEffectSubmit(isDispatch) {
       saveLocal();
       renderActiveCharacterEffects();
       renderAll();
-      alert(`已成功发放状态【${name}】给【${target.avatar_name}】！`);
+      showToast(`已成功发放状态【${name}】给【${target.avatar_name}】！`, 'success');
     } catch (err) {
-      return alert('发放状态失败：' + err.message);
+      return showToast('发放状态失败：' + err.message, 'error');
     }
   } else {
-    alert(editId ? `已更新战役状态【${name}】！` : `已保存状态【${name}】至战役状态库！`);
+    showToast(editId ? `已更新战役状态【${name}】！` : `已保存状态【${name}】至战役状态库！`, 'success');
   }
 
   // Reset form
