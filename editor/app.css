@@ -720,11 +720,11 @@ body.dw-theme {
   gap: 12px;
 }
 
-.appearance-frame { display:block; width:min(100%,192px); height:230px; border:0; margin:auto; }
+
 .appearance-frame[hidden] { display:none; }
 .appearance-frame-sheet { height:270px; }
 .appearance-frame img { display:block; width:100%; height:100%; object-fit:contain; }
-.appearance-frame iframe { display:block; width:100%; height:100%; border:0; }
+
 #fantasy-paperdoll-link[hidden] { display:none; }
 .pixel-item, .pixel-item-image { image-rendering: pixelated; }
 .pixel-item-image { display: inline-block; width: 24px; height: 24px; object-fit: contain; vertical-align: middle; }
@@ -3908,36 +3908,6 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   width: min(100%, 200px);
   gap: 6px;
   margin-top: -4px;
-}
-.portrait-switch-group {
-  display: flex;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 2px;
-  flex: 1;
-}
-.portrait-switch-btn {
-  flex: 1;
-  font-size: 11px;
-  padding: 3px 6px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: 4px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-  text-align: center;
-}
-.portrait-switch-btn:hover {
-  color: var(--text-main);
-}
-.portrait-switch-btn.active {
-  background: var(--bo3-gold);
-  color: #1a120b;
-  font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 .portrait-setting-btn {
   font-size: 11px;
