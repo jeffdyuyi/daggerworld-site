@@ -44,6 +44,7 @@
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
+          <button type="button" class="dropdown-link" id="menu-open-player-info" style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:var(--text-gold,#f59e0b);font-weight:600;">📜 玩家信息</button>
           <button type="button" class="dropdown-link" id="menu-open-workshop" hidden style="text-align:left;width:100%;background:none;border:none;cursor:pointer;color:var(--text-gold,#f59e0b);font-weight:600;">🛠️ 主持人工坊</button>
           <a href="https://forum.bo3studio.com/" target="_blank" rel="noopener noreferrer" class="dropdown-link">🏢 代理商社区：三局两胜 ↗</a>
           <a href="../account.html" class="dropdown-link">游戏入口</a>
@@ -64,6 +65,7 @@
         <h1>角色库</h1>
       </div>
       <div class="vault-hero-actions">
+        <button type="button" class="dw-btn dw-btn-gold" id="btn-open-player-info" title="查看与配置战役社群及经历加值">📜 玩家信息</button>
         <button type="button" class="dw-btn dw-btn-outline" id="btn-open-workshop" hidden title="主持人工坊：创制装备、战利品、领域卡与战役储备">🛠️ 主持人工坊</button>
         <button class="dw-btn dw-btn-outline" id="btn-vault-refresh">🔄 刷新云端</button>
         <button class="dw-btn dw-btn-outline" id="btn-hero-import">📥 导入角色卡 JSON</button>
@@ -1535,6 +1537,84 @@
         </div>
 
     </section>
+  </div>
+
+    <!-- LAYER 4: 玩家信息 (Player Info - 社群与经历加值) -->
+  <div id="layer-player-info" class="app-layer layer-player-info" hidden>
+    <!-- Player Info Hero Banner -->
+    <header class="player-info-hero">
+      <div class="player-info-hero-left">
+        <div class="player-info-nav">
+          <button type="button" class="dw-btn dw-btn-gold" id="btn-info-to-vault" title="返回第一层角色库大厅">
+            <span>‹</span> 角色库
+          </button>
+          <button type="button" class="dw-btn dw-btn-outline" id="btn-info-to-sheet" title="返回角色卡调适">
+            <span>‹</span> 角色调适
+          </button>
+        </div>
+        <div class="player-info-title-group">
+          <h2>📜 玩家信息</h2>
+          <p class="player-info-desc">战役社群归属与角色经历特长配置，支持主持人与玩家实时查看与编写。</p>
+        </div>
+      </div>
+      <div class="player-info-hero-right">
+        <!-- GM 专属角色切换器：主持人可切换查看和编写任意角色 -->
+        <div class="player-info-target-selector" id="player-info-gm-switcher" hidden>
+          <span class="player-info-badge-gm">👑 主持人视点</span>
+          <select id="player-info-target-select" class="dw-select" title="选择要查看/编辑的角色化身">
+            <!-- 动态填充队伍角色 -->
+          </select>
+        </div>
+        <div class="player-info-current-tag" id="player-info-user-tag">
+          <span class="player-info-user-badge">当前化身</span>
+          <strong id="player-info-char-name">冒险者</strong>
+        </div>
+        <button type="button" class="dw-btn dw-btn-gold" id="btn-save-player-info">
+          💾 保存玩家信息
+        </button>
+      </div>
+    </header>
+
+    <!-- 主体容器 -->
+    <div class="player-info-layout-container">
+
+      <!-- 战役社群选择区域 -->
+      <section class="player-info-section player-info-community-section">
+        <div class="player-info-section-header">
+          <div class="header-title-wrap">
+            <h3>🏛️ 战役社群</h3>
+            <span class="player-info-subhint">选择你的化身在《重返//匕首世界》中所依附的社群身份，获取专属社群特性能力</span>
+          </div>
+          <div class="selected-community-pill" id="player-info-active-comm-pill">
+            当前已选：<strong id="player-info-active-comm-name">未选择</strong>
+          </div>
+        </div>
+
+        <!-- 社群卡片网格 (9大官方变体社群) -->
+        <div class="player-info-communities-grid" id="player-info-comm-list">
+          <!-- 动态注入 9 大社群卡片 -->
+        </div>
+      </section>
+
+      <!-- 经历特长与加值配置区域 -->
+      <section class="player-info-section player-info-exp-section">
+        <div class="player-info-section-header">
+          <div class="header-title-wrap">
+            <h3>⭐ 经历特长与加值</h3>
+            <span class="player-info-subhint">记录化身在游戏世界或现实中的关键经历。掷骰检定中可消耗希望调用该加值</span>
+          </div>
+          <button type="button" class="dw-btn dw-btn-outline ws-btn-mini" id="btn-add-player-exp">
+            ➕ 添加经历栏位
+          </button>
+        </div>
+
+        <!-- 经历卡片列表 -->
+        <div class="player-info-exp-list" id="player-info-exp-list">
+          <!-- 动态渲染各条经历 -->
+        </div>
+      </section>
+
+    </div>
   </div>
 
   <!-- MODAL: Equipment / Item Picker -->

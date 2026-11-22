@@ -813,12 +813,94 @@ function calculateStats(char) {
 // Main Render Function
 
 // ==========================================================================
+
+// ==========================================================================
+// 《重返//匕首世界》战役专属变体社群定义 (100% 规则原文)
+// ==========================================================================
+const CAMPAIGN_COMMUNITIES = [
+  {
+    id: 'crafter',
+    name: '巧手匠 （Crafter）',
+    shortName: '巧手匠',
+    intro: '在这个圈子里，电子规划表和时间表可不是什么见不得人的词。当真正的乐趣可以来自于 亲手做出 那些该死的装备时，何必在迷宫和怪物的包围中瞎转好几个小时，只为了微乎其微的几率去拿到那些稀有掉落——还得忍受一群半大孩子在那互相对喷呢？',
+    featureName: '背包槽',
+    featureDesc: '为你的物品栏增加背包槽。每场游戏一次，你可以花费 1 希望点，伸手从背包槽里掏出一件对当前处境有用的普通物品。与GM商议决定你掏出了什么。'
+  },
+  {
+    id: 'glitcher',
+    name: '漏洞猎人 （Glitcher）',
+    shortName: '漏洞猎人',
+    intro: '没有游戏是完美的，所有软件都有漏洞。你不过是掌握了知识和技巧，能利用游戏那屎山代码罢了。他们今天可能修掉一个漏洞，结果几个小时后你又找到一个。也许你是个速通玩家、死忠粉，又或者你只是喜欢往数字帷幕背后探头探脑。',
+    featureName: '边缘行者',
+    featureDesc: '你在翻越危险的悬崖和岩壁、穿越严酷环境，以及运用你的游戏漏洞知识时，掷骰具有优势。'
+  },
+  {
+    id: 'gold_farmer',
+    name: '淘金者 （Gold Farmer）',
+    shortName: '淘金者',
+    intro: '这些话你早就听腻了——但你不是什么作弊者，你的金币全都是堂堂正正赚来的！别人不过是嫉妒你那漂亮的公会房屋、稀有的定制时装，还有那只限量发售的骗局坐骑。你”当然不知道”怎么复制材料、又利用市场漏洞抹掉交易痕迹啦。',
+    featureName: '恶棍',
+    featureDesc: '你在与化身和NPC谈判、识破谎言，或寻找安全的藏身之处时，掷骰具有优势。'
+  },
+  {
+    id: 'guilder',
+    name: '公会领袖 （Guilder）',
+    shortName: '公会领袖',
+    intro: '公会是MMO体验的重要一环，这全都归功于公会领袖们不辞辛劳的付出。作为一名公会领袖，你可能曾是某个公会的会长或负责人。也许你的风格是事必躬亲，也许更随性一些。无论哪种风格，对你的公会成员来说，你都是一位领袖和组织者。说到底，不齐心协力，谁也走不远嘛！',
+    featureName: '领导力',
+    featureDesc: '你在与化身交涉、谈判价格，或向NPC下达指令时，掷骰具有优势。'
+  },
+  {
+    id: 'lorefiend',
+    name: '世设达人 （Lorefiend）',
+    shortName: '世设达人',
+    intro: '也许你是开服第一天就在的老粉，又或者你在为期一个月的过激专注型狂补中，把所有匕首世界里值得了解的东西全都吸收了。这个世界的历史对你发出了呼唤，而你已将其中的千丝万缕、包括那些剧情漏洞和未解之谜深深地刻进了你的脑子里。',
+    featureName: '博览群书',
+    featureDesc: '你在涉及游戏中某个显赫人物或地点的历史、文化、政治时，掷骰具有优势。'
+  },
+  {
+    id: 'newbie',
+    name: '新手 （Newbie）',
+    shortName: '新手',
+    intro: '你听说了匕首世界的种种酷事，但直到现在才真正上手玩。也许是这个游戏当年和你擦肩而过，也许你当时没有合适的电脑配置，或者游戏首发的时候你压根还没出生呢！所有人都想带你入门，你也有不少东西要证明——不过，论打游戏你可不菜。一旦掌握了操作，就给他们好好露两手！',
+    featureName: '新人运气',
+    featureDesc: '游戏对新手网开一面。当你掷出恐惧结果时，在你的社群卡上放置一个指示物。你可持有的指示物上限等于你的等级。在你进行一次动作掷骰之前，你可以花费任意数量的这些指示物，每花费1个便使该次掷骰获得+1加值。每场游戏结束时，清除所有未花费的指示物。'
+  },
+  {
+    id: 'pvper',
+    name: 'PVP玩家 （PVPER）',
+    shortName: 'PVP玩家',
+    intro: 'NPC？无聊透顶。你的目标是那最危险的猎物：一个低级法师正慌乱施法，而你从灌木丛中现身，手中匕首在月光下闪着寒光。和同级别的对手较量，那更是稀有的享受。战斗的刺激、胜利的甜美、或是失败的苦涩——这世上确实没有第二种感觉能与之相比。',
+    featureName: '轻捷步伐',
+    featureDesc: '你天生行动无声。你在不被察觉地移动时，掷骰具有优势。'
+  },
+  {
+    id: 'roleplayer',
+    name: '角色扮演者 （Roleplayer）',
+    shortName: '角色扮演者',
+    intro: '在一个在线奇幻世界里玩，要是不去 活出那个幻想 ，那还有什么意义？别人也许是在”玩”游戏，但你是活在游戏里。你把故事、表演和戏剧编织进了你的骨血之中，所有人都对你那投入的精神肃然起敬。',
+    featureName: '入戏',
+    featureDesc: '记录三句对你的化身背景故事很重要的格言或信条。每次休息一次，当你描述当前行动如何体现了其中一项准则时，你可以投一颗d20作为你的希望骰。'
+  },
+  {
+    id: 'solo',
+    name: '独行者 （SOLO）',
+    shortName: '独行者',
+    intro: '听着，你就是跟大多数人合不来，这又不是什么罪过。你已经学会了尽量靠自己一个人在匕首世界里生存，全都靠你自己咬牙坚持。只要有那么一点自律，谁都做得到。而回报就是——不必掺合别人的鸡毛蒜皮。',
+    featureName: '地城专家',
+    featureDesc: '你在处于光线微弱或阴影浓重的区域中进行躲藏、调查或感知细节时，掷骰具有优势。'
+  }
+];
+
+let playerInfoSelectedCharIndex = 0;
+let playerInfoCurrentCommunityId = '';
+
 // 核心两层架构控制器 (Two-Tier Layer Controller)
 // ==========================================================================
 async function switchLayer(layer, targetIndex) {
   if (layer === 'workshop' && !isGmUser()) return;
   if (layer === 'sheet' && !characters.length) layer = 'vault';
-  if (layer === 'sheet' && !db) {
+  if ((layer === 'sheet' || layer === 'player-info') && !db) {
     updateSyncStatus(true, '正在加载规则资料…');
     await ensureDatabaseLoaded();
     if (!db) { alert('规则资料尚未加载完成，请检查网络或刷新后重试。'); return; }
@@ -830,7 +912,8 @@ async function switchLayer(layer, targetIndex) {
   const vaultLayer = el('layer-vault');
   const sheetLayer = el('layer-sheet');
   const workshopLayer = el('layer-workshop');
-  el('sync-status').hidden = layer === 'sheet';
+  const playerInfoLayer = el('layer-player-info');
+  el('sync-status').hidden = (layer === 'sheet' || layer === 'player-info');
   const backBtn = el('btn-back-vault');
   const brandLink = el('brand-link');
 
@@ -838,6 +921,7 @@ async function switchLayer(layer, targetIndex) {
     if (vaultLayer) vaultLayer.hidden = false;
     if (sheetLayer) sheetLayer.hidden = true;
     if (workshopLayer) workshopLayer.hidden = true;
+    if (playerInfoLayer) playerInfoLayer.hidden = true;
     if (backBtn) backBtn.style.display = 'none';
     if (brandLink) brandLink.style.display = 'flex';
     renderVaultLobby();
@@ -846,6 +930,7 @@ async function switchLayer(layer, targetIndex) {
     if (vaultLayer) vaultLayer.hidden = true;
     if (sheetLayer) sheetLayer.hidden = true;
     if (workshopLayer) workshopLayer.hidden = false;
+    if (playerInfoLayer) playerInfoLayer.hidden = true;
     if (backBtn) {
       backBtn.style.display = 'inline-flex';
       backBtn.textContent = '返回角色库';
@@ -854,6 +939,19 @@ async function switchLayer(layer, targetIndex) {
     if (brandLink) brandLink.style.display = 'flex';
     initWorkshopLayer();
     try { history.replaceState(null, '', '#workshop'); } catch {}
+  } else if (layer === 'player-info') {
+    if (vaultLayer) vaultLayer.hidden = true;
+    if (sheetLayer) sheetLayer.hidden = true;
+    if (workshopLayer) workshopLayer.hidden = true;
+    if (playerInfoLayer) playerInfoLayer.hidden = false;
+    if (backBtn) {
+      backBtn.style.display = 'inline-flex';
+      backBtn.textContent = '返回角色库';
+      backBtn.title = '返回角色库';
+    }
+    if (brandLink) brandLink.style.display = 'flex';
+    initPlayerInfoLayer(targetIndex);
+    try { history.replaceState(null, '', '#player-info'); } catch {}
   } else {
     // sheet
     if (targetIndex !== undefined && targetIndex >= 0 && targetIndex < characters.length) {
@@ -862,6 +960,7 @@ async function switchLayer(layer, targetIndex) {
     if (vaultLayer) vaultLayer.hidden = true;
     if (sheetLayer) sheetLayer.hidden = false;
     if (workshopLayer) workshopLayer.hidden = true;
+    if (playerInfoLayer) playerInfoLayer.hidden = true;
     if (backBtn) {
       backBtn.style.display = 'inline-flex';
       backBtn.innerHTML = '<span>‹</span> 角色库';
@@ -2321,6 +2420,223 @@ function renderInlineAdjustments(character, stats) {
     }
   }
 }
+
+// ==========================================================================
+// 玩家信息管理逻辑 (Player Info Module)
+// ==========================================================================
+
+function initPlayerInfoLayer(targetIndex) {
+  if (targetIndex !== undefined && targetIndex >= 0 && targetIndex < characters.length) {
+    playerInfoSelectedCharIndex = targetIndex;
+  } else if (activeCharIndex >= 0 && activeCharIndex < characters.length) {
+    playerInfoSelectedCharIndex = activeCharIndex;
+  } else {
+    playerInfoSelectedCharIndex = 0;
+  }
+
+  const isGm = isGmUser();
+  const gmSwitcher = el('player-info-gm-switcher');
+  const gmSelect = el('player-info-target-select');
+  const userTag = el('player-info-user-tag');
+  const nameLabel = el('player-info-char-name');
+
+  if (gmSwitcher) gmSwitcher.hidden = !isGm;
+  if (isGm && gmSelect) {
+    gmSelect.innerHTML = '';
+    characters.forEach((char, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${char.avatar_name || '未命名'} (Lv.${char.level || 1} ${char.sheet?.classId || '冒险者'})`;
+      if (idx === playerInfoSelectedCharIndex) opt.selected = true;
+      gmSelect.appendChild(opt);
+    });
+  }
+
+  const c = characters[playerInfoSelectedCharIndex];
+  if (nameLabel) {
+    nameLabel.textContent = c ? `${c.avatar_name} (Lv.${c.level || 1})` : '暂无角色';
+  }
+
+  if (!c) {
+    el('player-info-comm-list').innerHTML = '<div style="color:var(--text-muted);padding:30px;text-align:center;">暂无角色，请先在角色库中创建化身。</div>';
+    el('player-info-exp-list').innerHTML = '';
+    return;
+  }
+
+  // 获取当前社群与经历
+  playerInfoCurrentCommunityId = c.sheet?.communityId || '';
+  renderPlayerInfoCommunities();
+  renderPlayerInfoExperiences();
+}
+
+function renderPlayerInfoCommunities() {
+  const container = el('player-info-comm-list');
+  const activeLabel = el('player-info-active-comm-name');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const matched = CAMPAIGN_COMMUNITIES.find(comm => comm.id === playerInfoCurrentCommunityId || comm.shortName === playerInfoCurrentCommunityId || comm.name.includes(playerInfoCurrentCommunityId));
+  if (activeLabel) {
+    activeLabel.textContent = matched ? matched.name : (playerInfoCurrentCommunityId || '未选择');
+  }
+
+  CAMPAIGN_COMMUNITIES.forEach(comm => {
+    const isSelected = matched && matched.id === comm.id;
+    const card = document.createElement('div');
+    card.className = `player-info-comm-card ${isSelected ? 'active' : ''}`;
+    card.innerHTML = `
+      <div class="comm-card-top">
+        <div class="comm-name-row">
+          <strong>${escapeHtml(comm.name)}</strong>
+          ${isSelected ? '<span class="comm-selected-badge">✓ 已选定</span>' : ''}
+        </div>
+      </div>
+      <div class="comm-card-intro">${escapeHtml(comm.intro)}</div>
+      <div class="comm-card-feature">
+        <div class="feature-title">■ 社群特性 ${escapeHtml(comm.featureName)}：</div>
+        <div class="feature-desc">${escapeHtml(comm.featureDesc)}</div>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      playerInfoCurrentCommunityId = comm.shortName;
+      renderPlayerInfoCommunities();
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function renderPlayerInfoExperiences() {
+  const container = el('player-info-exp-list');
+  if (!container) return;
+
+  const c = characters[playerInfoSelectedCharIndex];
+  let experiences = c?.sheet?.experiences;
+  if (!Array.isArray(experiences) || experiences.length === 0) {
+    experiences = [
+      { id: 'exp_1', name: '', bonus: 2, desc: '' },
+      { id: 'exp_2', name: '', bonus: 1, desc: '' }
+    ];
+  }
+
+  container.innerHTML = '';
+
+  experiences.forEach((exp, idx) => {
+    const card = document.createElement('div');
+    card.className = 'player-info-exp-card';
+    card.innerHTML = `
+      <div class="exp-card-header">
+        <div class="exp-index-badge">经历 #${idx + 1}</div>
+        <div class="exp-bonus-selector">
+          <label style="font-size:12px;color:var(--text-muted);margin-right:6px;">检定加值：</label>
+          <button type="button" class="exp-bonus-chip ${exp.bonus === 1 ? 'active' : ''}" data-bonus="1">+1</button>
+          <button type="button" class="exp-bonus-chip ${exp.bonus === 2 ? 'active' : ''}" data-bonus="2">+2</button>
+          <button type="button" class="exp-bonus-chip ${exp.bonus === 3 ? 'active' : ''}" data-bonus="3">+3</button>
+        </div>
+        <button type="button" class="exp-remove-btn" data-action="remove" title="删除该经历条目">🗑️ 移除</button>
+      </div>
+      <div class="exp-card-body">
+        <div class="f-select-group">
+          <label>经历名称 / 身份特长</label>
+          <input type="text" class="dw-input exp-name-input" value="${escapeHtml(exp.name || '')}" placeholder="例如：深水城港口老工头 / 前盗贼公会斥候" maxlength="50">
+        </div>
+        <div class="f-select-group">
+          <label>触发情境与背景故事说明 (可选)</label>
+          <textarea class="dw-textarea exp-desc-input" rows="2" placeholder="说明该经历在何种判定、行动或剧情互动中发挥作用…">${escapeHtml(exp.desc || '')}</textarea>
+        </div>
+      </div>
+    `;
+
+    // 绑定加值选择
+    card.querySelectorAll('.exp-bonus-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        card.querySelectorAll('.exp-bonus-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        exp.bonus = parseInt(btn.dataset.bonus, 10) || 1;
+      });
+    });
+
+    // 绑定输入同步
+    const nameInput = card.querySelector('.exp-name-input');
+    const descInput = card.querySelector('.exp-desc-input');
+    nameInput.addEventListener('input', (e) => { exp.name = e.target.value.trim(); });
+    descInput.addEventListener('input', (e) => { exp.desc = e.target.value.trim(); });
+
+    // 删除条目
+    card.querySelector('[data-action="remove"]').addEventListener('click', () => {
+      experiences.splice(idx, 1);
+      if (experiences.length === 0) {
+        experiences.push({ id: `exp_${Date.now()}`, name: '', bonus: 1, desc: '' });
+      }
+      if (c && c.sheet) c.sheet.experiences = experiences;
+      renderPlayerInfoExperiences();
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function addPlayerInfoExperienceSlot() {
+  const c = characters[playerInfoSelectedCharIndex];
+  if (!c) return;
+  if (!c.sheet) c.sheet = {};
+  if (!Array.isArray(c.sheet.experiences)) c.sheet.experiences = [];
+  c.sheet.experiences.push({
+    id: `exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    name: '',
+    bonus: 2,
+    desc: ''
+  });
+  renderPlayerInfoExperiences();
+}
+
+async function savePlayerInfo() {
+  const c = characters[playerInfoSelectedCharIndex];
+  if (!c) return alert('当前没有选定的角色！');
+
+  const proposed = structuredClone(c);
+  if (!proposed.sheet) proposed.sheet = {};
+
+  // 1. 保存选定的社群
+  proposed.sheet.communityId = playerInfoCurrentCommunityId || '';
+
+  // 2. 收集经历栏位数据
+  const expCards = document.querySelectorAll('.player-info-exp-card');
+  const exps = [];
+  expCards.forEach((card, idx) => {
+    const name = card.querySelector('.exp-name-input')?.value?.trim() || '';
+    const desc = card.querySelector('.exp-desc-input')?.value?.trim() || '';
+    const activeBonusBtn = card.querySelector('.exp-bonus-chip.active');
+    const bonus = activeBonusBtn ? parseInt(activeBonusBtn.dataset.bonus, 10) || 1 : 1;
+    if (name || desc) {
+      exps.push({
+        id: `exp_${idx + 1}_${Date.now()}`,
+        name,
+        bonus,
+        desc
+      });
+    }
+  });
+
+  proposed.sheet.experiences = exps;
+
+  try {
+    if (proposed.updated_at && (proposed.owner_id === currentUser?.owner || currentUser?.role === 'gm')) {
+      await persist(proposed, payload(proposed));
+    }
+    c.sheet.communityId = proposed.sheet.communityId;
+    c.sheet.experiences = proposed.sheet.experiences;
+    saveLocal();
+    renderAll();
+    alert(`已成功保存【${c.avatar_name || '角色'}】的玩家信息！`);
+    initPlayerInfoLayer(playerInfoSelectedCharIndex);
+  } catch (err) {
+    alert('保存玩家信息失败：' + err.message);
+  }
+}
+
 function setupEventListeners() {
   // Steppers: Level
   el('ws-grant-effect').onclick = async () => {
@@ -2576,6 +2892,18 @@ function setupEventListeners() {
   });
 
   // Top Bar Actions & Two-Tier Layer Switching
+  // Player Info Navigation Listeners
+  el('btn-open-player-info')?.addEventListener('click', () => switchLayer('player-info', activeCharIndex));
+  el('menu-open-player-info')?.addEventListener('click', () => switchLayer('player-info', activeCharIndex));
+  el('btn-info-to-vault')?.addEventListener('click', () => switchLayer('vault'));
+  el('btn-info-to-sheet')?.addEventListener('click', () => switchLayer('sheet', playerInfoSelectedCharIndex));
+  el('btn-save-player-info')?.addEventListener('click', savePlayerInfo);
+  el('btn-add-player-exp')?.addEventListener('click', addPlayerInfoExperienceSlot);
+  el('player-info-target-select')?.addEventListener('change', (e) => {
+    playerInfoSelectedCharIndex = Number(e.target.value) || 0;
+    initPlayerInfoLayer(playerInfoSelectedCharIndex);
+  });
+
   el('btn-back-vault')?.addEventListener('click', () => {
     switchLayer('vault');
   });
