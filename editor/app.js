@@ -933,8 +933,8 @@ async function switchLayer(layer, targetIndex) {
     if (playerInfoLayer) playerInfoLayer.hidden = true;
     if (backBtn) {
       backBtn.style.display = 'inline-flex';
-      backBtn.textContent = '返回角色库';
-      backBtn.title = '返回角色库';
+      backBtn.innerHTML = '<span>‹</span> 角色库';
+      backBtn.title = '返回第一层角色库大厅';
     }
     if (brandLink) brandLink.style.display = 'flex';
     initWorkshopLayer();
@@ -946,8 +946,8 @@ async function switchLayer(layer, targetIndex) {
     if (playerInfoLayer) playerInfoLayer.hidden = false;
     if (backBtn) {
       backBtn.style.display = 'inline-flex';
-      backBtn.textContent = '返回角色库';
-      backBtn.title = '返回角色库';
+      backBtn.innerHTML = '<span>‹</span> 角色库';
+      backBtn.title = '返回第一层角色库大厅';
     }
     if (brandLink) brandLink.style.display = 'flex';
     initPlayerInfoLayer(targetIndex);
