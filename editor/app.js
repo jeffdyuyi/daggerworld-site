@@ -6110,6 +6110,44 @@ function initPortraitListeners() {
 
 
 // ==========================================
-// 角色形象定制（捏人）与权限管理模块
+// 角色立绘锁定与主持人权限管理模块
 // ==========================================
-let currentApprMode = 'sheet'; // 'sheet' or 'creator'
+function updateAppearanceCustomControls(character = curChar()) {
+  if (!character || !character.sheet) return;
+  const isGm = isGmUser();
+  const locked = Boolean(character.sheet.lockAppearance);
+
+  const btnSetting = el('btn-open-portrait-setting');
+  if (btnSetting) {
+    if (locked && !isGm) {
+      btnSetting.classList.add('is-locked');
+      btnSetting.title = '主持人已锁定角色立绘，暂无法更换';
+      btnSetting.innerHTML = '🔒 立绘已锁定';
+      btnSetting.style.opacity = '0.6';
+    } else {
+      btnSetting.classList.remove('is-locked');
+      btnSetting.title = '上传或裁剪调整角色立绘';
+      btnSetting.innerHTML = '🖼️ 上传 / 调整立绘';
+      btnSetting.style.opacity = '1';
+    }
+  }
+
+  const btnGmLock = el('btn-gm-lock-appearance');
+  if (btnGmLock) {
+    btnGmLock.hidden = !isGm;
+    btnGmLock.classList.toggle('active', locked);
+    btnGmLock.title = locked ? '当前：已锁定玩家自定立绘（点击允许更换）' : '当前：允许玩家自由更换立绘（点击锁定）';
+    btnGmLock.innerHTML = locked ? '🔒 锁定立绘（禁止更换）' : '🔓 开放立绘（允许更换）';
+  }
+}
+
+// ==========================================
+// 启动应用入口（确保所有模块、变量与监听器完全就绪后安全点火）
+// ==========================================
+try {
+  await init();
+} catch (err) {
+  console.error('角色库启动异常，已自动进入本地安全模式:', err);
+  updateSyncStatus(false, '本地就绪');
+  try { switchLayer('vault'); } catch {}
+}
