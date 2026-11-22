@@ -971,6 +971,56 @@ async function switchLayer(layer, targetIndex) {
   }
 }
 
+// 主持人视角：分玩家归属查看角色数据结构构建
+function getVaultPlayerGroups(charList) {
+  const sess = readSession();
+  const currentOwner = currentUser?.owner || sess?.owner;
+  const groupsMap = new Map();
+
+  charList.forEach((char, index) => {
+    const oId = char.owner_id || 'unknown';
+    if (!groupsMap.has(oId)) {
+      groupsMap.set(oId, []);
+    }
+    groupsMap.get(oId).push({ char, index });
+  });
+
+  const groups = [];
+  let playerSeq = 1;
+
+  for (const [oId, list] of groupsMap.entries()) {
+    const isGm = Boolean(currentOwner && oId === currentOwner);
+    let title = '';
+    let badgeClass = '';
+    if (isGm) {
+      title = '👑 主持人本人';
+      badgeClass = 'vault-owner-badge-gm';
+    } else {
+      const shortId = oId.length > 6 ? oId.slice(-4) : oId;
+      title = `👤 玩家 ${playerSeq++} (#${shortId})`;
+      badgeClass = 'vault-owner-badge-player';
+    }
+    groups.push({
+      ownerId: oId,
+      title,
+      badgeClass,
+      isGm,
+      list
+    });
+  }
+
+  // 主持人分组排在第一位，随后按玩家序号排列
+  groups.sort((a, b) => {
+    if (a.isGm) return -1;
+    if (b.isGm) return 1;
+    return 0;
+  });
+
+  return groups;
+}
+
+let vaultGmFilterOwner = 'all';
+
 // 渲染第一层：角色库展示与角色卡片列表
 function renderVaultLobby() {
   updateGmControls();
@@ -982,31 +1032,138 @@ function renderVaultLobby() {
   container.innerHTML = '';
   const stage = el('vault-preview');
   stage.hidden = !characters.length;
-  const rows = characters.map((character, index) => {
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'vault-choice';
-    row.textContent = `${character.avatar_name || '无名角色'} · ${character.level || 1} 级`;
-    row.setAttribute('aria-pressed', 'false');
-    row.addEventListener('click', () => select(index));
-    container.append(row);
-    return row;
-  });
+
+  const isGm = isGmUser();
+  const allCardButtons = [];
+
   function select(index) {
     activeCharIndex = index;
     const character = characters[index];
-    const sheet = character.sheet;
-    rows.forEach((row, rowIndex) => row.setAttribute('aria-pressed', String(rowIndex === index)));
+    if (!character) return;
+    const sheet = character.sheet || {};
+    allCardButtons.forEach(btn => {
+      btn.setAttribute('aria-pressed', String(Number(btn.dataset.charIndex) === index));
+    });
     const job = db?.classes?.find(item => item.ID === sheet.classId || item.名称 === sheet.classId);
     const ancestry = db?.ancestries?.find(item => item.ID === sheet.ancestryId || item.名称 === sheet.ancestryId);
     el('vault-preview-name').textContent = character.avatar_name || '无名角色';
-    el('vault-preview-details').textContent = [ancestry?.名称, job?.名称, `${character.level || 1} 级`].filter(Boolean).join(' · ');
+
+    // 如果是主持人视点，附上归属者信息
+    let ownerSuffix = null;
+    if (isGm) {
+      const sess = readSession();
+      const currentOwner = currentUser?.owner || sess?.owner;
+      if (currentOwner && character.owner_id === currentOwner) {
+        ownerSuffix = '👑 主持人';
+      } else if (character.owner_id) {
+        const shortId = character.owner_id.length > 6 ? character.owner_id.slice(-4) : character.owner_id;
+        ownerSuffix = `👤 归属玩家 (#${shortId})`;
+      }
+    }
+
+    el('vault-preview-details').textContent = [
+      ancestry?.名称,
+      job?.名称,
+      `${character.level || 1} 级`,
+      ownerSuffix
+    ].filter(Boolean).join(' · ');
+
     el('vault-preview-open').onclick = () => switchLayer('sheet', index);
     el('vault-preview-export').onclick = () => exportCharacterJson(index);
     el('vault-preview-delete').onclick = () => deleteCharacterByIndex(index);
     setAppearanceFrame('vault-preview-canvas', character);
   }
-  if (rows.length) select(Math.min(Math.max(activeCharIndex, 0), rows.length - 1));
+
+  if (!isGm) {
+    // 普通玩家视角：直接陈列该玩家名下所有角色
+    characters.forEach((character, index) => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'vault-choice';
+      row.dataset.charIndex = String(index);
+      row.textContent = `${character.avatar_name || '无名角色'} · ${character.level || 1} 级`;
+      row.setAttribute('aria-pressed', 'false');
+      row.addEventListener('click', () => select(index));
+      container.append(row);
+      allCardButtons.push(row);
+    });
+  } else {
+    // 主持人视角：分玩家分组查看与筛选名下化身
+    const groups = getVaultPlayerGroups(characters);
+
+    // 1. 顶部玩家筛选 Tabs (全部 / 主持人 / 玩家1 / 玩家2 ...)
+    const filterBar = document.createElement('div');
+    filterBar.className = 'vault-gm-filter-bar';
+
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.className = `vault-gm-chip ${vaultGmFilterOwner === 'all' ? 'active' : ''}`;
+    allBtn.textContent = `全部化身 (${characters.length})`;
+    allBtn.addEventListener('click', () => {
+      vaultGmFilterOwner = 'all';
+      renderVaultLobby();
+    });
+    filterBar.append(allBtn);
+
+    groups.forEach(g => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = `vault-gm-chip ${vaultGmFilterOwner === g.ownerId ? 'active' : ''}`;
+      chip.textContent = `${g.title} (${g.list.length})`;
+      chip.addEventListener('click', () => {
+        vaultGmFilterOwner = g.ownerId;
+        renderVaultLobby();
+      });
+      filterBar.append(chip);
+    });
+    container.append(filterBar);
+
+    // 2. 按玩家卡片区块展示其名下的角色
+    const visibleGroups = vaultGmFilterOwner === 'all'
+      ? groups
+      : groups.filter(g => g.ownerId === vaultGmFilterOwner);
+
+    visibleGroups.forEach(g => {
+      const groupCard = document.createElement('div');
+      groupCard.className = 'vault-player-group';
+
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'vault-player-group-header';
+      groupHeader.innerHTML = `
+        <div class="vault-player-title-row">
+          <span class="${g.badgeClass}">${g.title}</span>
+        </div>
+        <span class="vault-player-count-badge">${g.list.length} 个角色</span>
+      `;
+      groupCard.append(groupHeader);
+
+      const charListWrap = document.createElement('div');
+      charListWrap.className = 'vault-player-chars-list';
+
+      g.list.forEach(({ char, index }) => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'vault-choice';
+        row.dataset.charIndex = String(index);
+        row.textContent = `${char.avatar_name || '无名角色'} · ${char.level || 1} 级`;
+        row.setAttribute('aria-pressed', 'false');
+        row.addEventListener('click', () => select(index));
+        charListWrap.append(row);
+        allCardButtons.push(row);
+      });
+
+      groupCard.append(charListWrap);
+      container.append(groupCard);
+    });
+  }
+
+  // 默认选中当前 activeCharIndex（若当前过滤导致不在可见列表内，则选中可见的第一个）
+  if (allCardButtons.length) {
+    const hasCurrentActive = allCardButtons.some(b => Number(b.dataset.charIndex) === activeCharIndex);
+    const targetIdx = hasCurrentActive ? activeCharIndex : Number(allCardButtons[0].dataset.charIndex);
+    select(targetIdx);
+  }
+
   const create = document.createElement('button');
   create.type = 'button';
   create.className = 'vault-create-card';
@@ -1142,8 +1299,8 @@ function setAppearanceFrame(id, character, download = false) {
           console.warn('纸娃娃实时刷新异常 (保持现有画布):', err);
         });
         targetFrame._pendingCharacter = null;
-      } else if (attempts < 20) {
-        setTimeout(() => trySet(attempts + 1), 60);
+      } else if (attempts < 30) {
+        setTimeout(() => trySet(attempts + 1), 30);
       }
     };
     trySet();
@@ -1162,15 +1319,9 @@ function setAppearanceFrame(id, character, download = false) {
     frame.src = url.href;
     target.replaceChildren(frame);
   } else {
-    frame._pendingCharacter = character;
-    frame.onload = () => {
-      pushCharacterToFrame(frame, frame._pendingCharacter);
-    };
-    if (frame.src !== url.href) {
-      frame.src = url.href;
-    } else {
-      pushCharacterToFrame(frame, character);
-    }
+    // 关键优化：iframe 已经就绪时，绝不通过修改 frame.src 触发页面重载！
+    // 直接向已有 iframe 的 DaggerworldAvatar API 推送最新角色，单次点击秒速切换！
+    pushCharacterToFrame(frame, character);
   }
   target.hidden = false;
 }

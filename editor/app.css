@@ -4693,3 +4693,94 @@ body.dw-theme {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   主持人角色库：分玩家归属查看与快速筛选
+   ========================================================================== */
+.vault-gm-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(128, 80, 51, 0.08);
+  border: 1px solid var(--border-bo3, #805033);
+  border-radius: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.vault-gm-chip {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  border: 1px solid var(--border-bo3, #805033);
+  background: var(--pixel-surface, #fff3db);
+  color: var(--pixel-ink, #2a1805);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-weight: 500;
+  user-select: none;
+}
+.vault-gm-chip:hover {
+  background: #fce7c0;
+  border-color: #a7553f;
+}
+.vault-gm-chip.active {
+  background: #9b3f32;
+  color: #fff;
+  border-color: #69241b;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+.vault-player-group {
+  background: rgba(255, 255, 255, 0.45);
+  border: 1.5px solid rgba(128, 80, 51, 0.35);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.vault-player-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed rgba(128, 80, 51, 0.3);
+}
+.vault-player-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vault-owner-badge-gm {
+  background: #d4a359;
+  color: #2a1805;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  border: 1px solid #9f6f28;
+}
+.vault-owner-badge-player {
+  background: #7a4628;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  border: 1px solid #542d17;
+}
+.vault-player-count-badge {
+  font-size: 11px;
+  color: var(--text-muted, #7c624e);
+  font-weight: 600;
+}
+.vault-player-chars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
