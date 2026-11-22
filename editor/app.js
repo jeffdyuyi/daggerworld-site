@@ -5744,7 +5744,8 @@ function switchPortraitMode(targetMode) {
 
   if (targetMode === 'custom') {
     if (!c.sheet.customPortrait?.dataUrl) {
-      // 尚未上传过立绘：直接唤起本地选择图片
+      // 尚未上传过立绘：打开编辑框并唤起选择图片
+      openPortraitEditorModal();
       promptUploadCustomPortrait();
       return;
     }
@@ -5755,6 +5756,7 @@ function switchPortraitMode(targetMode) {
 
   saveLocal();
   renderAppearance(c);
+  renderVaultLobby();
 }
 
 function openPortraitEditorModal() {
@@ -5809,19 +5811,22 @@ function applyPortraitCropPreview() {
   }
 }
 
-function handlePortraitFileSelect(event) {
-  const file = event.target?.files?.[0];
+function processPortraitFile(file) {
   if (!file) return;
 
   if (!file.type.startsWith('image/')) {
-    alert('请选择有效的图片文件（JPG、PNG、WebP 等）。');
+    alert('请选择有效的图片文件（JPG、PNG、WebP、GIF 等）。');
     return;
   }
 
   const reader = new FileReader();
+  reader.onerror = () => {
+    alert('读取图片文件失败，请尝试其他图片。');
+  };
   reader.onload = e => {
-    const rawDataUrl = e.target.result;
-    compressAndScaleImage(rawDataUrl, 850, 1100, 0.88, optimizedDataUrl => {
+    const rawDataUrl = e.target?.result;
+    if (!rawDataUrl) return;
+    compressAndScaleImage(rawDataUrl, 540, 720, 0.82, optimizedDataUrl => {
       tempPortrait.dataUrl = optimizedDataUrl;
       tempPortrait.zoom = 1.0;
       tempPortrait.offsetX = 0;
@@ -5836,30 +5841,61 @@ function handlePortraitFileSelect(event) {
   reader.readAsDataURL(file);
 }
 
+function handlePortraitFileSelect(event) {
+  const file = event.target?.files?.[0];
+  if (file) processPortraitFile(file);
+}
+
 function compressAndScaleImage(dataUrl, maxWidth, maxHeight, quality, callback) {
   const img = new Image();
-  img.onload = () => {
-    let width = img.width;
-    let height = img.height;
-
-    if (width > maxWidth || height > maxHeight) {
-      const ratio = Math.min(maxWidth / width, maxHeight / height);
-      width = Math.round(width * ratio);
-      height = Math.round(height * ratio);
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
-
-    let output = canvas.toDataURL('image/webp', quality);
-    if (!output || output.length > dataUrl.length || output.startsWith('data:image/png')) {
-      output = canvas.toDataURL('image/jpeg', quality);
-    }
-    callback(output);
+  let finished = false;
+  const finish = result => {
+    if (finished) return;
+    finished = true;
+    callback(result);
   };
+
+  img.onload = () => {
+    try {
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
+      if (!width || !height) {
+        finish(dataUrl);
+        return;
+      }
+
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.max(1, Math.round(width * ratio));
+        height = Math.max(1, Math.round(height * ratio));
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        finish(dataUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      let output = canvas.toDataURL('image/webp', quality);
+      if (!output || output.length > dataUrl.length || output.startsWith('data:image/png')) {
+        output = canvas.toDataURL('image/jpeg', quality);
+      }
+      finish(output || dataUrl);
+    } catch (err) {
+      console.warn('Canvas 压缩异常，回退原图:', err);
+      finish(dataUrl);
+    }
+  };
+
+  img.onerror = () => {
+    console.warn('图片解码异常，回退使用原始 DataURL');
+    finish(dataUrl);
+  };
+
   img.src = dataUrl;
 }
 
@@ -5882,6 +5918,7 @@ function savePortraitCustomization() {
 
   saveLocal();
   renderAppearance(c);
+  renderVaultLobby();
   closePortraitEditorModal();
 }
 
@@ -5915,8 +5952,11 @@ function initPortraitListeners() {
     if (e.key === 'Escape' && !el('portrait-editor-modal')?.hidden) closePortraitEditorModal();
   });
 
-  el('btn-select-portrait-file')?.addEventListener('click', promptUploadCustomPortrait);
-  el('portrait-file-input')?.addEventListener('change', handlePortraitFileSelect);
+  const fileInput = el('portrait-file-input');
+  if (fileInput) {
+    fileInput.addEventListener('click', () => { fileInput.value = ''; });
+    fileInput.addEventListener('change', handlePortraitFileSelect);
+  }
 
   el('btn-reset-portrait-adjust')?.addEventListener('click', () => {
     tempPortrait.zoom = 1.0;
@@ -5943,9 +5983,33 @@ function initPortraitListeners() {
     applyPortraitCropPreview();
   });
 
-  // 鼠标与触屏手势拖拽平移视口
+  // 拖拽上传图片支持与平移手势
   const viewport = el('portrait-crop-viewport');
   if (viewport) {
+    viewport.addEventListener('dragenter', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      viewport.classList.add('drag-over');
+    });
+    viewport.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+      viewport.classList.add('drag-over');
+    });
+    viewport.addEventListener('dragleave', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      viewport.classList.remove('drag-over');
+    });
+    viewport.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      viewport.classList.remove('drag-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) processPortraitFile(file);
+    });
+
     const handleDragStart = (clientX, clientY) => {
       if (!tempPortrait.dataUrl) return;
       isDraggingPortrait = true;

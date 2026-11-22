@@ -3688,6 +3688,10 @@ body.dw-theme {
 .portrait-crop-viewport:active {
   cursor: grabbing;
 }
+.portrait-crop-viewport.drag-over {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
 .portrait-crop-viewport img {
   display: block;
   width: 100%;

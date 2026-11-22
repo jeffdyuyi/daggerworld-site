@@ -397,7 +397,6 @@
               </div>
             </div>
             <div class="paperdoll-stage">
-              <input type="file" id="portrait-file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="position:fixed;top:-1000px;left:-1000px;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;">
               <div id="paperdoll" class="appearance-frame appearance-frame-sheet" title="点击可查看或调整立绘"></div>
               <div class="portrait-mode-bar">
                 <div class="portrait-switch-group">
@@ -1655,12 +1654,15 @@
                 <span>📷 请选择本地图片上传</span>
               </div>
             </div>
-            <p class="portrait-crop-tip">💡 在预览框内按住鼠标左键可拖拽平移位置</p>
+            <p class="portrait-crop-tip">💡 支持拖拽图片至上方虚线框；也可在框内按住鼠标左键平移位置</p>
           </div>
 
           <div class="portrait-adjust-controls">
             <div class="portrait-upload-row">
-              <button type="button" class="dw-btn dw-btn-gold" id="btn-select-portrait-file">📁 选择本地图片</button>
+              <label class="dw-btn dw-btn-gold" id="btn-select-portrait-file" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
+                📁 选择本地图片
+                <input type="file" id="portrait-file-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+              </label>
               <button type="button" class="dw-btn dw-btn-outline" id="btn-reset-portrait-adjust">↺ 重置居中</button>
             </div>
 
