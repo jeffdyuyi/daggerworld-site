@@ -1807,7 +1807,16 @@ function decorateGear(node, item, slot = item?.slot) {
 function itemImage(item) {
   const img = document.createElement('img');
   img.className = 'pixel-item-image';
-  img.src = spriteUrl(itemArt(item));
+  let src = '';
+  if (item?.sprite) {
+    src = spriteUrl(item.sprite);
+  } else if (item?.avatarVisualId) {
+    const matched = visualCatalog?.find(it => it.paperdollId === item.avatarVisualId || it.id === item.avatarVisualId);
+    src = matched ? spriteUrl(matched.sprite) : spriteUrl(itemArt(item));
+  } else {
+    src = spriteUrl(itemArt(item));
+  }
+  img.src = src;
   img.alt = '';
   img.loading = 'lazy';
   return img;
@@ -3648,11 +3657,15 @@ function renderDoubleSidedCard(item, options = {}) {
   };
 
   flipBtns.forEach(btn => btn.addEventListener('click', toggleFlip));
-  card.addEventListener('click', (e) => {
-    if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-      toggleFlip(e);
-    }
-  });
+  // 正面点击任意非按钮区域平滑翻至机制背面
+  const frontFace = wrap.querySelector('.dw-card-front');
+  if (frontFace) {
+    frontFace.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+        toggleFlip(e);
+      }
+    });
+  }
 
   return wrap;
 }
@@ -3685,7 +3698,6 @@ function openItemActionModal(index) {
         const targetSlot = allowedSlots[0];
         equipItemToSlot(targetSlot, item);
         el('item-action-modal').hidden = true;
-        renderAll();
       };
     } else {
       equipBtn.style.display = 'none';
