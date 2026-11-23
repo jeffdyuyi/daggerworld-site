@@ -3657,13 +3657,24 @@ function renderDoubleSidedCard(item, options = {}) {
   };
 
   flipBtns.forEach(btn => btn.addEventListener('click', toggleFlip));
-  // 正面点击任意非按钮区域平滑翻至机制背面
+
+  // 正面点击翻至背面 (排除按钮与链接)
   const frontFace = wrap.querySelector('.dw-card-front');
   if (frontFace) {
     frontFace.addEventListener('click', (e) => {
-      if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-        toggleFlip(e);
-      }
+      if (e.target.closest('button') || e.target.closest('a')) return;
+      toggleFlip(e);
+    });
+  }
+
+  // 背面点击翻回正面 (排除按钮、链接、输入控件及划选文本)
+  const backFace = wrap.querySelector('.dw-card-back');
+  if (backFace) {
+    backFace.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('textarea')) return;
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim().length > 0) return;
+      toggleFlip(e);
     });
   }
 

@@ -49,9 +49,9 @@
 .md-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 2px 7px;
+  font-size: 12.5px;
+  line-height: 1.25;
+  padding: 2.5px 8px;
   border-radius: 4px;
   font-weight: 700;
   vertical-align: middle;
@@ -111,9 +111,9 @@ em {
 body.dw-theme {
   background-color: var(--bg-dark);
   color: var(--text-main);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
+  font-family: var(--pixel-font, var(--font-sans));
+  font-size: 16px;
+  line-height: 1.6;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -275,8 +275,8 @@ body.dw-theme {
 /* Buttons */
 .dw-btn {
   font-family: inherit;
-  font-size: 13px;
-  padding: 6px 14px;
+  font-size: 15px;
+  padding: 7px 16px;
   border-radius: 4px;
   cursor: pointer;
   display: inline-flex;
@@ -623,7 +623,7 @@ body.dw-theme {
   border-bottom: 3px solid transparent;
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
   padding: 14px 20px;
   cursor: pointer;
@@ -788,7 +788,7 @@ body.dw-theme {
 }
 
 .slot-name {
-  font-size: 11px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
@@ -840,15 +840,15 @@ body.dw-theme {
 }
 
 .wp-slot-tag {
-  font-size: 10px;
+  font-size: 12.5px;
   background: var(--bg-surface);
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
   color: var(--text-blue);
 }
 
 .wp-name {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
@@ -856,7 +856,7 @@ body.dw-theme {
 }
 
 .wp-stats {
-  font-size: 11px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
@@ -1071,7 +1071,7 @@ body.dw-theme {
 }
 
 .f-select-group label {
-  font-size: 12px;
+  font-size: 14.5px;
   color: var(--text-blue);
   font-weight: bold;
 }
@@ -1081,8 +1081,8 @@ body.dw-theme {
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
   font-family: inherit;
-  font-size: 13px;
-  padding: 8px 12px;
+  font-size: 15.5px;
+  padding: 9px 12px;
   border-radius: 4px;
   outline: none;
   transition: border-color 0.2s ease;
@@ -1143,10 +1143,10 @@ body.dw-theme {
 }
 
 .f-badge {
-  font-size: 11px;
+  font-size: 12.5px;
   background: var(--bo3-primary);
   color: #fff;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 4px;
   font-weight: bold;
 }
@@ -1158,7 +1158,7 @@ body.dw-theme {
 }
 
 .f-card-header h3 {
-  font-size: 15px;
+  font-size: 17px;
   color: var(--text-main);
   font-weight: bold;
 }
@@ -1481,7 +1481,7 @@ body.dw-theme {
 }
 
 .cell-name {
-  font-size: 10px;
+  font-size: 13px;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -1493,7 +1493,7 @@ body.dw-theme {
   position: absolute;
   top: 2px;
   right: 4px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: bold;
   color: var(--text-gold);
 }
@@ -3092,13 +3092,102 @@ body.dw-theme {
   margin-bottom: 24px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
+
+/* 主持人工坊工作室排版：左侧表单与下方工具，右侧吸顶实时卡牌实体预览 */
+#ws-panel-item,
+#ws-panel-domain-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-areas:
+    "editor preview"
+    "actions preview";
+  gap: 24px;
+  align-items: start;
+}
+
+#ws-panel-item > form,
+#ws-panel-domain-card > form {
+  grid-area: editor;
+}
+
+#ws-panel-item > .ws-preview-box,
+#ws-panel-domain-card > .ws-preview-box {
+  grid-area: preview;
+  position: sticky;
+  top: 18px;
+  z-index: 20;
+  margin-top: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-bo3);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+#ws-panel-item > .ws-actions-row,
+#ws-panel-domain-card > .ws-actions-row {
+  grid-area: actions;
+  margin-top: 14px;
+}
+
+#ws-panel-status-effect {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: start;
+}
+#ws-panel-status-effect > .status-create-section {
+  grid-column: 1;
+}
+#ws-panel-status-effect > .ws-preview-box {
+  grid-column: 2;
+  position: sticky;
+  top: 18px;
+  margin-top: 0 !important;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-bo3);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+#ws-panel-status-effect > hr,
+#ws-panel-status-effect > .ws-box-title-row,
+#ws-panel-status-effect > #ws-status-effects-library-list {
+  grid-column: span 2;
+}
+
+@media (max-width: 1080px) {
+  #ws-panel-item,
+  #ws-panel-domain-card,
+  #ws-panel-status-effect {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "preview"
+      "editor"
+      "actions";
+  }
+  #ws-panel-item > .ws-preview-box,
+  #ws-panel-domain-card > .ws-preview-box,
+  #ws-panel-status-effect > .ws-preview-box {
+    position: static;
+  }
+  #ws-panel-status-effect > .status-create-section,
+  #ws-panel-status-effect > .ws-preview-box {
+    grid-column: 1;
+  }
+}
+
 .ws-form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 18px;
 }
 .ws-form-grid label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
   margin-bottom: 6px;
@@ -3107,7 +3196,7 @@ body.dw-theme {
 .ws-form-grid .dw-input,
 .ws-form-grid .dw-select,
 .ws-form-grid .dw-textarea {
-  font-size: 15px;
+  font-size: 15.5px;
   padding: 10px 14px;
   border-radius: 6px;
 }
@@ -3510,12 +3599,12 @@ body.dw-theme {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 5px 10px;
   cursor: pointer;
   user-select: none;
   transition: all 0.2s;
@@ -3696,7 +3785,7 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 }
 
 .ws-calc-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: #23160f;
   display: inline-flex;
@@ -3704,9 +3793,9 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   gap: 6px;
 }
 .ws-calc-badge {
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 4px;
   letter-spacing: 0.02em;
 }
@@ -3732,7 +3821,7 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 }
 
 .ws-calc-subhint {
-  font-size: 12px;
+  font-size: 13.5px;
   color: #5c4436;
   margin-left: auto;
   font-weight: 500;
@@ -5428,7 +5517,7 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
    ========================================================================== */
 .dw-flip-card-wrap {
   perspective: 1200px;
-  width: 300px;
+  width: 320px;
   max-width: 100%;
   margin: 0 auto;
   user-select: none;
@@ -5436,8 +5525,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 
 .dw-flip-card {
   position: relative;
-  width: 300px;
-  height: 440px;
+  width: 320px;
+  height: 480px;
   max-width: 100%;
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
   transform-style: preserve-3d;
@@ -5482,7 +5571,7 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 }
 
 .dw-card-front-header {
-  padding: 12px 14px 8px 14px;
+  padding: 12px 14px 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -5493,13 +5582,13 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 
 .dw-card-front-name {
   font-family: var(--pixel-font);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: bold;
   color: #fff1d6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 185px;
+  max-width: 200px;
 }
 .dw-flip-card[data-quality="green"] .dw-card-front-name { color: #81c784; }
 .dw-flip-card[data-quality="blue"] .dw-card-front-name { color: #64b5f6; }
@@ -5508,8 +5597,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 .dw-flip-card[data-quality="red"] .dw-card-front-name { color: #e57373; }
 
 .dw-card-front-badge {
-  font-size: 11px;
-  padding: 2px 7px;
+  font-size: 13px;
+  padding: 3px 8px;
   border-radius: 4px;
   background: rgba(229, 169, 60, 0.15);
   border: 1px solid rgba(229, 169, 60, 0.35);
@@ -5529,8 +5618,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 }
 
 .dw-card-art-box {
-  width: 190px;
-  height: 230px;
+  width: 210px;
+  height: 250px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5560,7 +5649,7 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 }
 
 .dw-card-front-subtag {
-  font-size: 11.5px;
+  font-size: 13px;
   color: #b8a392;
   letter-spacing: 0.02em;
 }
@@ -5569,8 +5658,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   background: rgba(229, 169, 60, 0.15);
   border: 1px solid #a16c42;
   color: #f3be5d;
-  padding: 4px 10px;
-  font-size: 11px;
+  padding: 5px 12px;
+  font-size: 13px;
   font-family: var(--pixel-font);
   border-radius: 4px;
   cursor: pointer;
@@ -5594,7 +5683,7 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 }
 
 .dw-card-back-header {
-  padding: 10px 12px 8px 12px;
+  padding: 10px 14px 8px 14px;
   background: #eedcc9;
   border-bottom: 2px solid #c9b4a4;
   flex-shrink: 0;
@@ -5608,17 +5697,17 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 
 .dw-card-back-name {
   font-family: var(--pixel-font);
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   color: #3b2219;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 210px;
+  max-width: 220px;
 }
 
 .dw-card-back-sub {
-  font-size: 11px;
+  font-size: 13px;
   color: #6d4c38;
   margin-top: 2px;
   font-weight: 500;
@@ -5626,11 +5715,11 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 
 .dw-card-back-body {
   flex: 1;
-  padding: 10px 12px;
+  padding: 10px 14px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* 复合模块块状外观 (攻防一体/奇物通用) */
@@ -5638,51 +5727,51 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   background: #ffffff;
   border: 1px solid #d8cab8;
   border-radius: 6px;
-  padding: 7px 10px;
+  padding: 8px 12px;
   box-shadow: 0 1px 3px rgba(60, 40, 20, 0.05);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .dw-card-mod-row.weapon-mod {
-  border-left: 3.5px solid #8b1e19;
+  border-left: 4px solid #8b1e19;
 }
 .dw-card-mod-row.armor-mod {
-  border-left: 3.5px solid #1e4a78;
+  border-left: 4px solid #1e4a78;
 }
 .dw-card-mod-row.stats-mod {
-  border-left: 3.5px solid #a35d10;
+  border-left: 4px solid #a35d10;
 }
 .dw-card-mod-row.usage-mod {
-  border-left: 3.5px solid #1c683b;
+  border-left: 4px solid #1c683b;
 }
 
 .dw-card-mod-title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   color: #5c4436;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .dw-card-mod-content {
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 14.5px;
+  line-height: 1.5;
   color: #23160f;
 }
 
 .dw-card-pills-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 
 .dw-card-pill {
-  font-size: 10.5px;
-  padding: 1px 6px;
-  border-radius: 3px;
+  font-size: 12.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
   background: #fbf7ee;
   border: 1px solid #c9b7a4;
   color: #3b2219;
@@ -5698,9 +5787,9 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   background: #fbf7ee;
   border: 1px solid #c9b7a4;
   border-radius: 5px;
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.5;
+  padding: 9px 12px;
+  font-size: 14px;
+  line-height: 1.55;
   color: #2b170e;
 }
 
@@ -5708,16 +5797,16 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   background: #fffbeb;
   border: 1px dashed #f59e0b;
   border-radius: 5px;
-  padding: 6px 9px;
-  font-size: 11px;
+  padding: 7px 10px;
+  font-size: 13px;
   color: #92400e;
 }
 
 .dw-card-back-footer {
-  padding: 6px 12px;
+  padding: 8px 14px;
   background: #eedcc9;
   border-top: 1px solid #c9b4a4;
-  font-size: 10px;
+  font-size: 12px;
   color: #7d5940;
   display: flex;
   justify-content: space-between;
@@ -5727,7 +5816,7 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 
 /* 物品操作弹窗适配 */
 .item-card-modal-window {
-  max-width: 660px !important;
+  max-width: 680px !important;
   width: 95vw;
 }
 .item-card-modal-body {
