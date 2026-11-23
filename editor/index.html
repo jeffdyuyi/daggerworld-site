@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261123-studio-fontscale">
+  <link rel="stylesheet" href="./app.css?v=20261123-v3-layerfix">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -1139,25 +1139,25 @@
             <!-- 4. 符文宝石插槽与隐藏成长潜能 (GM专属) -->
             <div class="f-select-group ws-col-span-2" style="background:rgba(0,0,0,0.2);border:1px solid rgba(229,179,88,0.25);border-radius:6px;padding:12px 14px;margin-top:6px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <strong style="color:var(--text-gold);font-size:13px;display:flex;align-items:center;gap:6px;">
+                <strong style="color:var(--text-gold);font-size:15px;display:flex;align-items:center;gap:6px;">
                   <span>💎</span> 符文宝石插槽与隐藏成长潜能 (GM)
                 </strong>
                 <span class="ws-calc-subhint">默认不开启插槽；隐藏词条对普通玩家不可见</span>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
                 <div>
-                  <label style="font-size:12px;color:#a3e635;">ᚱ 符文插槽数量 (Rune Sockets)</label>
+                  <label style="font-size:14px;color:#a3e635;">ᚱ 符文插槽数量 (Rune Sockets)</label>
                   <input type="number" id="ws-rune-sockets" class="dw-input" min="0" max="6" value="0" style="margin-top:4px;" />
                 </div>
                 <div>
-                  <label style="font-size:12px;color:#38bdf8;">✦ 宝石插槽数量 (Gem Sockets)</label>
+                  <label style="font-size:14px;color:#38bdf8;">✦ 宝石插槽数量 (Gem Sockets)</label>
                   <input type="number" id="ws-gem-sockets" class="dw-input" min="0" max="6" value="0" style="margin-top:4px;" />
                 </div>
               </div>
               <div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                  <label style="font-size:12px;color:#f59e0b;">🔒 隐藏成长词条 / 觉醒潜能</label>
-                  <label style="font-size:11px;color:#fbbf24;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                  <label style="font-size:14px;color:#f59e0b;">🔒 隐藏成长词条 / 觉醒潜能</label>
+                  <label style="font-size:13px;color:#fbbf24;cursor:pointer;display:flex;align-items:center;gap:4px;">
                     <input type="checkbox" id="ws-hidden-growth-active" checked />
                     <span>对玩家隐藏此词条</span>
                   </label>
@@ -1393,7 +1393,7 @@
           <div class="ws-preview-box">
             <div class="preview-title" style="display:flex;justify-content:space-between;align-items:center;">
               <span>👁️ 双面卡牌实体预览</span>
-              <button type="button" class="dw-btn dw-btn-outline dw-btn-sm" id="btn-ws-preview-flip" style="font-size:11px;padding:3px 8px;">🔄 翻转卡牌</button>
+              <button type="button" class="dw-btn dw-btn-outline dw-btn-sm" id="btn-ws-preview-flip" style="font-size:13.5px;padding:5px 12px;">🔄 翻转卡牌</button>
             </div>
             <div class="ws-item-preview-card" id="ws-item-preview" style="background:transparent;border:none;padding:0;box-shadow:none;">
               <!-- 动态嵌入双面翻转卡 -->
@@ -1871,7 +1871,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261123-studio-fontscale').catch(error => {
+    import('./app.js?v=20261123-v3-layerfix').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';

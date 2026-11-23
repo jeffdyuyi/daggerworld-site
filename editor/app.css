@@ -5568,6 +5568,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 .dw-card-front {
   background: radial-gradient(circle at center, #2e1d17 0%, #1a100d 100%);
   color: #fbf6ec;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .dw-card-front-header {
@@ -5680,6 +5682,19 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   background: #faf6ef;
   color: #23160f;
   border: 2px solid #8c6239;
+  user-select: text;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 翻转状态下前后层级与事件穿透控制，保障100%可点击翻转 */
+.dw-flip-card.is-flipped .dw-card-front {
+  z-index: 1;
+  pointer-events: none;
+}
+.dw-flip-card.is-flipped .dw-card-back {
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .dw-card-back-header {

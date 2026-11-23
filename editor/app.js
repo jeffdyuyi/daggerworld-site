@@ -2150,7 +2150,7 @@ function renderInventory(stats) {
         openItemActionModal(c.sheet.inventoryItems.indexOf(item));
       });
     } else {
-      cell.innerHTML = `<span style="color:rgba(255,255,255,0.08);font-size:11px;">#${i + 1}</span>`;
+      cell.innerHTML = `<span style="color:rgba(255,255,255,0.18);font-size:12.5px;">#${i + 1}</span>`;
       // 空格仅作为容量占位显示，不触发未获得物品选择器
     }
     (i < totalSlots ? grid : overflow).appendChild(cell);
@@ -3584,7 +3584,7 @@ function renderDoubleSidedCard(item, options = {}) {
   }
 
   if (backBlocks.length === 0) {
-    backBlocks.push(`<div style="font-size:12px;color:#7d5940;padding:12px;text-align:center;">常规道具，无特殊规则效果。</div>`);
+    backBlocks.push(`<div style="font-size:14px;color:#7d5940;padding:14px;text-align:center;">常规道具，无特殊规则效果。</div>`);
   }
 
   // 品质与套装标签 (正面呈现)
@@ -3624,7 +3624,7 @@ function renderDoubleSidedCard(item, options = {}) {
         <div class="dw-card-back-header">
           <div class="dw-card-back-title-row">
             <strong class="dw-card-back-name" title="${escapeHtml(name)}">${escapeHtml(name)}</strong>
-            <button type="button" class="dw-card-flip-btn" style="padding:2px 8px;font-size:10.5px;" title="翻回图样面">🔄 翻回</button>
+            <button type="button" class="dw-card-flip-btn" title="翻回图样面">🔄 翻回</button>
           </div>
           <div class="dw-card-back-sub">
             <span>${escapeHtml(type)}${subcat ? ' · ' + escapeHtml(subcat) : ''}</span>
