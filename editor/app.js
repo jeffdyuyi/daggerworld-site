@@ -479,7 +479,7 @@ async function init() {
     switchLayer('vault');
   }
 
-  // 4. 异步后台静默同步云端，网络延时不阻塞页面操作（内置自动重试与弹性降级）
+  // 4. 自动同步云端：首次启动时即时执行云端对齐，不延迟角色加载
   if (session) {
     updateSyncStatus(true, `正在同步云端 · ${session.login || '冒险者'}…`);
     const syncAccount = async (retries = 2) => {
@@ -488,21 +488,22 @@ async function init() {
         applyUserRole(account);
         reconcileAccount(account);
         if (currentLayer === 'sheet') renderAll();
+        if (currentLayer === 'vault') renderVaultLobby();
         if (openSheet && currentLayer === 'vault' && characters.length) {
           await switchLayer('sheet', activeCharIndex);
           if (openAdventure) document.querySelector('[data-page="adventure"]')?.click();
         }
         if (openWorkshop && isGmUser()) await switchLayer('workshop');
-        updateSyncStatus(true, `云端已载入 · ${currentUser.login || '冒险者'}`);
+        updateSyncStatus(true, `云端已同步 · ${currentUser.login || '冒险者'}`);
       } catch (err) {
         if (retries > 0) {
           console.warn('云端同步稍有延迟，自动重试中...', err.message);
           updateSyncStatus(true, `云端重试中 · ${session.login || '冒险者'}`);
-          await new Promise(r => setTimeout(r, 2500));
+          await new Promise(r => setTimeout(r, 2000));
           return syncAccount(retries - 1);
         }
         console.warn('Background sync deferred:', err.message);
-        updateSyncStatus(false, `本地就绪 · ${session.login || '冒险者'}`);
+        updateSyncStatus(false, `离线模式 · 本地就绪`);
       }
     };
     syncAccount();
@@ -511,9 +512,12 @@ async function init() {
   }
 }
 
-const owner = readSession()?.owner;
-// 解决 GM 离线/在线 owner 漂移：GM 统一使用固定缓存 key，彻底消除 UUID↔dw-gm-host-kid 不一致
-function resolvedCacheKey() { return 'daggerworld.vault.v2.' + owner; }
+// 解决 GM/玩家离线及会话切换时的数据缓存一致性
+function resolvedCacheKey() {
+  const sess = readSession();
+  const currentOwner = sess?.owner || currentUser?.owner;
+  return 'daggerworld.vault.v2.' + (currentOwner || 'offline');
+}
 let baselines = {};
 function payload(c) {
   const sheet = structuredClone(c.sheet);
@@ -531,18 +535,33 @@ function payload(c) {
 }
 function loadLocalFallback() {
   try {
-    // 旧 key 迁移：首次运行时将旧格式缓存合并到新统一 key 下
     const newKey = resolvedCacheKey();
-    const oldKey = 'daggerworld.vault.v2.' + owner;
-    if (newKey !== oldKey && !localStorage.getItem(newKey) && localStorage.getItem(oldKey)) {
-      localStorage.setItem(newKey, localStorage.getItem(oldKey));
+    let cached = null;
+    const direct = localStorage.getItem(newKey);
+    if (direct) {
+      cached = JSON.parse(direct);
+    } else {
+      // 扫描本地现存所有 vault.v2 缓存，若当前 key 为空则先借用已有离线档案，避免冷启动白屏
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('daggerworld.vault.v2.')) {
+          try {
+            const data = JSON.parse(localStorage.getItem(k));
+            if (data?.characters?.length) {
+              cached = data;
+              localStorage.setItem(newKey, JSON.stringify(cached));
+              break;
+            }
+          } catch {}
+        }
+      }
     }
-    const cached = JSON.parse(localStorage.getItem(newKey));
     characters = (cached?.characters ?? []).map(normalizeCharacter);
     baselines = cached?.baselines ?? {};
-    if (!cached) {
+    if (!cached || !characters.length) {
       const legacy = JSON.parse(localStorage.getItem('daggerworld.vault.v1') || '[]');
-      characters = legacy.filter(c => c?.owner_id === owner).map(c => {
+      const currentOwner = readSession()?.owner;
+      characters = legacy.filter(c => !currentOwner || c?.owner_id === currentOwner).map(c => {
         delete c.notes; return normalizeCharacter(c);
       });
     }
@@ -717,19 +736,21 @@ function reconcileAccount(account, interactive = false) {
 }
 function saveLocal() {
   const sess = readSession();
-  // GM 用固定 key，不受 owner 漂移影响；玩家验证 owner 一致再写
-  if (owner && sess?.owner === owner) {
+  const currentOwner = sess?.owner || currentUser?.owner;
+  if (currentOwner) {
     try { localStorage.setItem(resolvedCacheKey(), JSON.stringify({characters,baselines})); }
     catch (error) { console.warn('角色缓存写入失败：',error); }
   }
   renderSaveButton();
 }
 window.addEventListener('storage', () => {
-  if (readSession()?.owner !== owner) location.replace('../account.html');
+  const sess = readSession();
+  if (currentUser && sess?.owner && sess.owner !== currentUser.owner) location.replace('../account.html');
 });
 const pendingWrites = new Set();
 async function persist(c, data = payload(c)) {
-  if (readSession()?.owner !== owner) throw new Error('账号已切换，请重新进入。');
+  const currentOwner = readSession()?.owner || currentUser?.owner;
+  if (!currentOwner) throw new Error('账号已切换，请重新进入。');
   if (pendingWrites.has(c)) throw new Error('正在保存这个角色。');
   pendingWrites.add(c);
   try {

@@ -38,7 +38,7 @@
 
     <div class="header-right">
       <span class="sync-badge" id="sync-status">
-        <span class="status-dot">●</span> <span id="sync-text">本地就绪</span>
+        <span class="status-dot">●</span> <span id="sync-text">连接云端中…</span>
       </span>
       <button class="dw-btn dw-btn-outline" id="btn-save-cloud" title="立即保存至云端">☁️ 保存</button>
       <div class="more-menu-wrapper">
@@ -1893,7 +1893,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261123-mobile-v2').catch(error => {
+    import('./app.js?v=20261123-sync-v1').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';
