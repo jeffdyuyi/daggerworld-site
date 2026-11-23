@@ -5344,10 +5344,14 @@ function cancelWorkshopEdit() {
   workshopState.editingId = null;
 
   if (el('ws-item-edit-id')) el('ws-item-edit-id').value = '';
+  if (el('ws-item-type')) el('ws-item-type').value = '战利品';
+  if (el('ws-item-tier')) el('ws-item-tier').value = '';
   if (el('ws-item-name')) el('ws-item-name').value = '';
   if (el('ws-item-subcat')) el('ws-item-subcat').value = '';
   if (el('ws-item-desc')) el('ws-item-desc').value = '';
   if (el('ws-item-appearance')) el('ws-item-appearance').value = '';
+  if (el('ws-item-avatar-visual')) el('ws-item-avatar-visual').value = '';
+  updateVisualCurrentCard();
   fillWorkshopGear();
 
   if (el('ws-card-edit-id')) el('ws-card-edit-id').value = '';
