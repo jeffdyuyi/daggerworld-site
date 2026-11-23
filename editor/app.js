@@ -2142,9 +2142,7 @@ function renderInventory(stats) {
       });
     } else {
       cell.innerHTML = `<span style="color:rgba(255,255,255,0.08);font-size:11px;">#${i + 1}</span>`;
-      cell.addEventListener('click', () => {
-        openItemPicker('loot');
-      });
+      // 空格仅作为容量占位显示，不触发未获得物品选择器
     }
     (i < totalSlots ? grid : overflow).appendChild(cell);
   }
@@ -3184,6 +3182,10 @@ function setupEventListeners() {
   el('btn-ws-save-item')?.addEventListener('click', () => handleWorkshopItemSubmit(false));
   el('btn-ws-dispatch-card')?.addEventListener('click', () => handleWorkshopCardSubmit(true));
   el('btn-ws-save-card')?.addEventListener('click', () => handleWorkshopCardSubmit(false));
+  el('btn-ws-preview-flip')?.addEventListener('click', () => {
+    workshopCardFlipped = !workshopCardFlipped;
+    updateItemPreview();
+  });
 
   // 领域卡表单实时预览与自定义新领域交互
   el('ws-card-domain')?.addEventListener('change', (e) => {
@@ -3394,36 +3396,334 @@ function setupEventListeners() {
   });
 }
 
-// Item Action Modal
+// --- 双面像素卡牌实时渲染器 (Double-Sided Pixel Card Engine) ---
+let workshopCardFlipped = false;
+
+function renderDoubleSidedCard(item, options = {}) {
+  if (!item) return document.createElement('div');
+  const isFlipped = Boolean(options.isFlipped);
+  const mode = options.mode || 'view';
+
+  // 基础属性解包 (兼容背包数据模型与工坊草案模型)
+  const name = item.name || item.名称 || '未命名装备';
+  const type = item.type || item.品类 || item.类型 || '装备';
+  const subcat = item.subcat || item.子类别 || '';
+  const tier = Number(item.tier ?? item.位阶 ?? item.suitTier ?? 1);
+  const quality = item.quality || 'white';
+  const isSuit = Boolean(item.isSuitTier || item.suitTier || item.slot === 'suit');
+  const suitTier = isSuit ? Number(item.suitTier || tier) : undefined;
+  const desc = item.desc || item.描述 || '';
+  const creator = item.creator || item.制作者 || '深水城工坊';
+  const owner = item.owner || item.所属者 || (curChar()?.avatar_name || '-');
+  const hiddenGrowthText = item.hiddenGrowthText || item.growth || '';
+
+  // 槽位归属与被动说明
+  const allowedSlots = item.allowedSlots || (item.slot && item.slot !== 'passive' ? [item.slot] : []);
+  const passiveInBag = Boolean(item.passiveInBag || item.slot === 'passive');
+  const capacity = Number(item.capacity || item.容量 || 0);
+
+  let slotLabel = '';
+  if (allowedSlots.length > 0) {
+    slotLabel = allowedSlots.map(s => gearSlots[s] || s).join('/');
+  } else if (passiveInBag) {
+    slotLabel = '背包被动';
+  } else {
+    slotLabel = '背包物品';
+  }
+
+  // 图样高精解析 (优先选择手绘版美观大图样)
+  let artSrc = '';
+  if (item.sprite) {
+    artSrc = spriteUrl(item.sprite);
+  } else if (item.avatarVisualId) {
+    const matched = visualCatalog.find(it => it.paperdollId === item.avatarVisualId || it.id === item.avatarVisualId);
+    artSrc = matched ? spriteUrl(matched.sprite) : spriteUrl(itemArt(item));
+  } else {
+    artSrc = spriteUrl(itemArt(item));
+  }
+  if (!artSrc) artSrc = spriteUrl('item-box');
+
+  // --- 动态模块组装 (复合无界渲染：攻防一体/奇物背包全支持) ---
+  const backBlocks = [];
+
+  // 1. 攻击模块 (若有伤害骰或武器特性)
+  const weapon = item.weapon;
+  const damage = weapon?.damage || item.伤害;
+  const trait = weapon?.trait || item.属性;
+  const range = weapon?.range || item.距离 || '近战';
+  const kind = weapon?.kind || item.伤害类型 || '物理';
+  const burden = weapon?.burden || item.负荷 || '单手';
+  const weaponFeature = weapon?.featureName || weapon?.feature || item.weaponFeature;
+
+  if (damage) {
+    const parts = [range];
+    if (trait) parts.push(trait);
+    parts.push(`${damage} ${kind}`);
+    parts.push(burden);
+
+    backBlocks.push(`
+      <div class="dw-card-mod-row weapon-mod">
+        <div class="dw-card-mod-title">
+          <span>⚔️ 攻击属性</span>
+          ${weaponFeature ? `<span class="dw-card-pill pill-pos">${escapeHtml(weaponFeature)}</span>` : ''}
+        </div>
+        <div class="dw-card-mod-content">
+          <strong>${escapeHtml(parts.join(' · '))}</strong>
+        </div>
+      </div>
+    `);
+  }
+
+  // 2. 防御模块 (若有护甲值、阈值或护甲特性)
+  const armor = item.armor;
+  const armorVal = Number(armor?.value ?? item.基础护甲 ?? item.护甲值 ?? 0);
+  const minorVal = Number(armor?.minor ?? item.轻度阈值 ?? 0);
+  const majorVal = Number(armor?.major ?? item.重度阈值 ?? 0);
+  const severeVal = Number(armor?.severe ?? item.严重阈值 ?? 0);
+  const armorFeature = armor?.featureName || armor?.feature || item.armorFeature;
+
+  if (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0 || armorFeature) {
+    const armorTerms = [];
+    if (armorVal > 0) armorTerms.push(`<strong>基础护甲:</strong> +${armorVal}`);
+    const thresh = [];
+    if (minorVal > 0) thresh.push(`轻 ${minorVal}`);
+    if (majorVal > 0) thresh.push(`重 ${majorVal}`);
+    if (severeVal > 0) thresh.push(`严 ${severeVal}`);
+    if (thresh.length) armorTerms.push(`<strong>阈值:</strong> ${thresh.join(' / ')}`);
+
+    backBlocks.push(`
+      <div class="dw-card-mod-row armor-mod">
+        <div class="dw-card-mod-title">
+          <span>🛡️ 防护属性</span>
+          ${armorFeature ? `<span class="dw-card-pill pill-pos">${escapeHtml(armorFeature)}</span>` : ''}
+        </div>
+        <div class="dw-card-mod-content">
+          ${armorTerms.join(' &nbsp;|&nbsp; ')}
+        </div>
+      </div>
+    `);
+  }
+
+  // 3. 属性微调与生效方式模块 (含背包被动与扩容)
+  const modifiers = item.modifiers || {};
+  const modPills = [];
+  for (const [key, val] of Object.entries(modifiers)) {
+    if (gearEffects[key] && val) {
+      modPills.push(`<span class="dw-card-pill ${val > 0 ? 'pill-pos' : ''}">${gearEffects[key]} ${val > 0 ? '+' : ''}${val}</span>`);
+    }
+  }
+  if (passiveInBag) {
+    modPills.push(`<span class="dw-card-pill pill-pos">🎒 背包被动生效</span>`);
+  }
+  if (capacity > 0) {
+    modPills.push(`<span class="dw-card-pill pill-pos">📦 容器扩展 +${capacity}格</span>`);
+  }
+
+  if (modPills.length > 0) {
+    backBlocks.push(`
+      <div class="dw-card-mod-row stats-mod">
+        <div class="dw-card-mod-title">
+          <span>📊 属性修正与生效方式</span>
+        </div>
+        <div class="dw-card-pills-row">
+          ${modPills.join(' ')}
+        </div>
+      </div>
+    `);
+  }
+
+  // 4. 使用时机与充能模块
+  const usage = item.usage;
+  const trigger = usage?.trigger || item.usageTrigger || item.时机;
+  const cost = usage?.cost || item.usageCost || item.代价;
+  const charges = usage?.charges || item.usageCharges || item.充能;
+
+  if (trigger || cost || charges) {
+    const uParts = [];
+    if (trigger) uParts.push(`<strong>时机:</strong> ${escapeHtml(trigger)}`);
+    if (cost) uParts.push(`<strong>代价:</strong> ${escapeHtml(cost)}`);
+    if (charges) uParts.push(`<strong>充能:</strong> ${escapeHtml(charges)}`);
+
+    backBlocks.push(`
+      <div class="dw-card-mod-row usage-mod">
+        <div class="dw-card-mod-title">
+          <span>🧪 使用时机与代价</span>
+        </div>
+        <div class="dw-card-mod-content">
+          ${uParts.join(' &nbsp;·&nbsp; ')}
+        </div>
+      </div>
+    `);
+  }
+
+  // 5. 特性机制富文本模块
+  if (desc && desc.trim()) {
+    backBlocks.push(`
+      <div class="dw-card-feature-box">
+        ${renderMarkdown(desc)}
+      </div>
+    `);
+  }
+
+  // 6. 觉醒与隐藏词条
+  if (hiddenGrowthText && hiddenGrowthText.trim()) {
+    backBlocks.push(`
+      <div class="dw-card-growth-box">
+        <strong>🌟 觉醒/隐藏词条:</strong> ${escapeHtml(hiddenGrowthText)}
+      </div>
+    `);
+  }
+
+  if (backBlocks.length === 0) {
+    backBlocks.push(`<div style="font-size:12px;color:#7d5940;padding:12px;text-align:center;">常规道具，无特殊规则效果。</div>`);
+  }
+
+  // 品质与套装标签 (正面呈现)
+  const qualityNames = { white: '普通', green: '精良', blue: '稀有', purple: '史诗', orange: '传说', red: '神器' };
+  const suitNames = { 1: '幽玄铁光', 2: '铜耀辉光', 3: '银霜辉光', 4: '炽金辉光' };
+  let frontTagline = qualityNames[quality] || '普通品质';
+  if (suitTier && suitNames[suitTier]) {
+    frontTagline += ` · ${suitNames[suitTier]} (T${suitTier})`;
+  } else if (tier) {
+    frontTagline += ` · 位阶 T${tier}`;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'dw-flip-card-wrap';
+
+  wrap.innerHTML = `
+    <div class="dw-flip-card ${isFlipped ? 'is-flipped' : ''}" data-quality="${quality}" ${suitTier ? `data-suit-tier="${suitTier}"` : ''}>
+      <!-- 正面：纯净手绘图样面 (无底部速览条) -->
+      <div class="dw-card-face dw-card-front">
+        <div class="dw-card-front-header">
+          <span class="dw-card-front-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+          <span class="dw-card-front-badge">${escapeHtml(slotLabel)}</span>
+        </div>
+        <div class="dw-card-front-stage">
+          <div class="dw-card-art-box">
+            <img src="${artSrc}" alt="${escapeHtml(name)}" loading="lazy" />
+          </div>
+        </div>
+        <div class="dw-card-front-footer">
+          <span class="dw-card-front-subtag">${frontTagline}</span>
+          <button type="button" class="dw-card-flip-btn" title="翻转查看机制与属性">🔄 翻看属性</button>
+        </div>
+      </div>
+
+      <!-- 背面：无界复合机制面 -->
+      <div class="dw-card-face dw-card-back">
+        <div class="dw-card-back-header">
+          <div class="dw-card-back-title-row">
+            <strong class="dw-card-back-name" title="${escapeHtml(name)}">${escapeHtml(name)}</strong>
+            <button type="button" class="dw-card-flip-btn" style="padding:2px 8px;font-size:10.5px;" title="翻回图样面">🔄 翻回</button>
+          </div>
+          <div class="dw-card-back-sub">
+            <span>${escapeHtml(type)}${subcat ? ' · ' + escapeHtml(subcat) : ''}</span>
+            <span> &nbsp;|&nbsp; ${escapeHtml(slotLabel)}</span>
+            <span> &nbsp;|&nbsp; T${tier}</span>
+          </div>
+        </div>
+
+        <div class="dw-card-back-body custom-scrollbar">
+          ${backBlocks.join('')}
+        </div>
+
+        <div class="dw-card-back-footer">
+          <span>来源: ${escapeHtml(creator)}</span>
+          <span>归属: ${escapeHtml(owner)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const card = wrap.querySelector('.dw-flip-card');
+  const flipBtns = wrap.querySelectorAll('.dw-card-flip-btn');
+
+  const toggleFlip = (e) => {
+    if (e) e.stopPropagation();
+    card.classList.toggle('is-flipped');
+    if (mode === 'workshop') {
+      workshopCardFlipped = card.classList.contains('is-flipped');
+    }
+  };
+
+  flipBtns.forEach(btn => btn.addEventListener('click', toggleFlip));
+  card.addEventListener('click', (e) => {
+    if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+      toggleFlip(e);
+    }
+  });
+
+  return wrap;
+}
+
+// Item Action Modal (双面卡牌检视与物品操作)
 function openItemActionModal(index) {
   activeBagItemIndex = index;
   const c = curChar();
   const item = c.sheet.inventoryItems[index];
   if (!item) return;
 
-  el('item-action-title').textContent = item.name;
-  const desc = el('item-action-desc');
-  desc.innerHTML = renderMarkdown(item.desc || '');
-  el('item-qty-plus').hidden = Boolean(item.ownedGearId);
-  el('item-qty-minus').hidden = Boolean(item.ownedGearId);
-  if (item.slot) {
-    const attributes = document.createElement('p');
-    const location = item.slot === 'passive' && storedItems(c.sheet).indexOf(item) >= bagCapacity(c.sheet.bags).totalSlots
-      ? '背包奇物 · 当前在溢出区' : gearSlots[item.slot];
-    if (location?.includes('溢出') && bagCapacity(c.sheet.bags).totalSlots > 0) {
-      const move = document.createElement('button');
-      move.textContent = '移入背包首格'; move.onclick = () => {
-        c.sheet.inventoryItems.splice(index,1); c.sheet.inventoryItems.unshift(item);
-        el('item-action-modal').hidden = true; saveLocal(); renderAll();
-      }; desc.append(move);
-    }
-    attributes.textContent = [location, gearFormula(item)].filter(Boolean).join(' · ');
-    desc.prepend(attributes);
+  const itemName = item.name || item.名称 || '物品详情';
+  el('item-action-title').textContent = itemName;
+
+  // 渲染双面像素卡牌至主视区
+  const viewport = el('item-action-card-viewport');
+  if (viewport) {
+    viewport.replaceChildren(renderDoubleSidedCard(item, { mode: 'view' }));
   }
+
+  // 装备至对应槽位按钮交互
+  const equipBtn = el('item-action-equip-btn');
+  const allowedSlots = item.allowedSlots || (item.slot && item.slot !== 'passive' ? [item.slot] : []);
+  if (equipBtn) {
+    if (allowedSlots.length > 0 && !allowedSlots.includes('passive')) {
+      equipBtn.style.display = 'block';
+      const slotName = allowedSlots.map(s => gearSlots[s] || s).join('/');
+      equipBtn.textContent = `⚔️ 装备至对应槽位 (${slotName})`;
+      equipBtn.onclick = () => {
+        const targetSlot = allowedSlots[0];
+        equipItemToSlot(targetSlot, item);
+        el('item-action-modal').hidden = true;
+        renderAll();
+      };
+    } else {
+      equipBtn.style.display = 'none';
+    }
+  }
+
+  // 溢出区移入背包首格交互
+  const overflowContainer = el('item-action-overflow-move-container');
+  if (overflowContainer) {
+    overflowContainer.innerHTML = '';
+    const isOverflow = item.slot === 'passive' && storedItems(c.sheet).indexOf(item) >= bagCapacity(c.sheet.bags).totalSlots;
+    if (isOverflow && bagCapacity(c.sheet.bags).totalSlots > 0) {
+      const moveBtn = document.createElement('button');
+      moveBtn.type = 'button';
+      moveBtn.className = 'dw-btn dw-btn-outline';
+      moveBtn.style.width = '100%';
+      moveBtn.style.marginBottom = '8px';
+      moveBtn.textContent = '📦 移入背包首格生效';
+      moveBtn.onclick = () => {
+        c.sheet.inventoryItems.splice(index, 1);
+        c.sheet.inventoryItems.unshift(item);
+        el('item-action-modal').hidden = true;
+        saveLocal();
+        renderAll();
+      };
+      overflowContainer.appendChild(moveBtn);
+    }
+  }
+
+  // 持有数量与使用权限控制
+  const isUnique = Boolean(item.ownedGearId || item.slot || (item.allowedSlots && item.allowedSlots.length > 0));
+  el('item-qty-plus').hidden = isUnique;
+  el('item-qty-minus').hidden = isUnique;
+  const qtyBox = el('item-action-qty-box');
+  if (qtyBox) qtyBox.style.display = isUnique ? 'none' : 'flex';
   el('item-qty-val').textContent = item.qty || 1;
-  el('item-action-use').hidden = Boolean(item.slot);
-  el('item-qty-plus').hidden = Boolean(item.slot);
-  el('item-qty-minus').hidden = Boolean(item.slot);
+  el('item-action-use').hidden = Boolean(item.slot || item.allowedSlots?.length);
+
   el('item-action-modal').hidden = false;
 }
 
@@ -4253,7 +4553,7 @@ function updateCardPreview() {
   if (descEl) descEl.innerHTML = renderMarkdown(desc);
 }
 
-// 实时更新物品表单预览 (所见即所得 · 仅显示已填项)
+// 实时更新物品表单预览 (所见即所得 · 双面像素卡牌无界复合呈现)
 function updateItemPreview() {
   const name = el('ws-item-name')?.value?.trim() || '未命名物品';
   const type = el('ws-item-type')?.value || '战利品';
@@ -4271,7 +4571,6 @@ function updateItemPreview() {
   const previewEl = el('ws-item-preview');
   if (!previewEl) return;
 
-  // 1. 武器攻击数值行 (若填写了伤害骰才展示)
   const weaponDamage = el('ws-weapon-damage')?.value?.trim() || '';
   const weaponTrait = el('ws-weapon-trait')?.value || '';
   const weaponRange = el('ws-weapon-range')?.value || '近战';
@@ -4279,114 +4578,69 @@ function updateItemPreview() {
   const weaponBurden = el('ws-weapon-burden')?.value || '单手';
   const weaponFeatureName = el('ws-weapon-feature-name')?.value?.trim() || '';
 
-  let weaponHtml = '';
-  if (weaponActive && weaponDamage) {
-    const parts = [weaponRange];
-    if (weaponTrait) parts.push(weaponTrait);
-    parts.push(`${weaponDamage} ${weaponKind}`);
-    parts.push(weaponBurden);
-    weaponHtml = `
-      <div class="ws-preview-stat-row weapon-row">
-        <span class="stat-icon">⚔️</span>
-        <span class="stat-content"><strong>攻击:</strong> ${escapeHtml(parts.join(' · '))}</span>
-        ${weaponFeatureName ? `<span class="stat-feature-pill">特性: ${escapeHtml(weaponFeatureName)}</span>` : ''}
-      </div>
-    `;
-  }
-
-  // 2. 护甲与阈值数值行 (若护甲值或阈值 > 0 才展示)
   const armorVal = armorActive ? (Number(el('ws-armor-value')?.value) || 0) : 0;
   const minorVal = armorActive ? (Number(el('ws-armor-minor')?.value) || 0) : 0;
   const majorVal = armorActive ? (Number(el('ws-armor-major')?.value) || 0) : 0;
   const severeVal = armorActive ? (Number(el('ws-armor-severe')?.value) || 0) : 0;
   const armorFeatureName = el('ws-armor-feature-name')?.value?.trim() || '';
 
-  let armorHtml = '';
-  if (armorActive && (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0)) {
-    const terms = [];
-    if (armorVal > 0) terms.push(`<strong>基础护甲:</strong> +${armorVal}`);
-    const thresh = [];
-    if (minorVal > 0) thresh.push(`轻 ${minorVal}`);
-    if (majorVal > 0) thresh.push(`重 ${majorVal}`);
-    if (severeVal > 0) thresh.push(`严 ${severeVal}`);
-    if (thresh.length) terms.push(`<strong>阈值:</strong> ${thresh.join(' / ')}`);
-    armorHtml = `
-      <div class="ws-preview-stat-row armor-row">
-        <span class="stat-icon">🛡️</span>
-        <span class="stat-content">${terms.join(' &nbsp;|&nbsp; ')}</span>
-        ${armorFeatureName ? `<span class="stat-feature-pill">特性: ${escapeHtml(armorFeatureName)}</span>` : ''}
-      </div>
-    `;
-  }
-
-  // 3. 属性与状态上限修正行 (仅显示已填写的非0项)
   const gear = workshopGear();
-  const modPills = [];
-  if (modActive) {
-    for (const [key, value] of Object.entries(gear.modifiers || {})) {
-      if (gearEffects[key] && value) {
-        modPills.push(`<span class="ws-stat-pill ${value > 0 ? 'pos' : 'neg'}">${gearEffects[key]} ${value > 0 ? '+' : ''}${value}</span>`);
-      }
-    }
-  }
-  let modHtml = '';
-  if (modPills.length > 0) {
-    modHtml = `
-      <div class="ws-preview-stat-row mod-row">
-        <span class="stat-icon">📊</span>
-        <div class="ws-pills-wrap">${modPills.join(' ')}</div>
-      </div>
-    `;
-  }
 
-  // 4. 使用触发与充能行 (仅当填写了触发/消耗/充能时显示)
   const trigger = usageActive ? el('ws-usage-trigger')?.value?.trim() : '';
   const cost = usageActive ? el('ws-usage-cost')?.value?.trim() : '';
   const charges = usageActive ? el('ws-usage-charges')?.value?.trim() : '';
 
-  let usageHtml = '';
-  if (usageActive && (trigger || cost || charges)) {
-    const uParts = [];
-    if (trigger) uParts.push(`时机: ${escapeHtml(trigger)}`);
-    if (cost) uParts.push(`代价: ${escapeHtml(cost)}`);
-    if (charges) uParts.push(`充能: ${escapeHtml(charges)}`);
-    usageHtml = `
-      <div class="ws-preview-stat-row usage-row">
-        <span class="stat-icon">🧪</span>
-        <span class="stat-content">${uParts.join(' &nbsp;·&nbsp; ')}</span>
-      </div>
-    `;
-  }
+  const quality = el('ws-item-quality')?.value || 'white';
+  const isSuitTier = Boolean(el('ws-toggle-suit-tier')?.checked);
+  const suitTier = isSuitTier ? (Number(el('ws-item-suit-tier')?.value) || 1) : undefined;
+  const avatarVisualId = el('ws-item-avatar-visual')?.value?.trim() || undefined;
+  const hiddenGrowthText = el('ws-hidden-growth-active')?.checked ? el('ws-hidden-growth-text')?.value?.trim() : '';
 
-  // 5. 槽位与被动说明 (有可装备位置或被动时才显示)
-  const slotTerms = [];
-  if (passiveInBag) slotTerms.push('🎒 背包被动生效');
-  if (allowedSlots.length > 0) slotTerms.push(`部位: ${allowedSlots.map(s => gearSlots[s] || s).join('/')}`);
-  if (gear.capacity) slotTerms.push(`容器扩展: +${gear.capacity}格`);
-  const slotHtml = slotTerms.length ? `<div class="ws-preview-slot-note">${slotTerms.join(' &nbsp;·&nbsp; ')}</div>` : '';
+  const workshopItem = {
+    name,
+    type,
+    subcat,
+    tier,
+    desc,
+    quality,
+    avatarVisualId,
+    appearance: el('ws-item-appearance')?.value || '',
+    allowedSlots,
+    slot: allowedSlots[0] || (passiveInBag ? 'passive' : ''),
+    passiveInBag,
+    capacity: Number(el('ws-container-cap')?.value) || 0,
+    isSuitTier,
+    suitTier,
+    hiddenGrowthText,
+    creator: currentUser?.nickname || '主持人',
+    owner: '-',
+    weapon: (weaponActive && weaponDamage) ? {
+      damage: weaponDamage,
+      trait: weaponTrait,
+      range: weaponRange,
+      kind: weaponKind,
+      burden: weaponBurden,
+      featureName: weaponFeatureName
+    } : null,
+    armor: (armorActive && (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0 || armorFeatureName)) ? {
+      value: armorVal,
+      minor: minorVal,
+      major: majorVal,
+      severe: severeVal,
+      featureName: armorFeatureName
+    } : null,
+    modifiers: (modActive && Object.keys(gear.modifiers || {}).length > 0) ? gear.modifiers : null,
+    usage: (usageActive && (trigger || cost || charges)) ? {
+      trigger,
+      cost,
+      charges
+    } : null
+  };
 
-  // 6. 机制与效果说明 (仅当填写时显示)
-  const descHtml = desc ? `<div class="preview-desc">${renderMarkdown(desc)}</div>` : '';
-
-  // 动态组装整个卡片
-  previewEl.innerHTML = `
-    <div class="preview-icon" id="ws-prev-icon"></div>
-    <div class="preview-content">
-      <div class="preview-top">
-        <strong id="ws-prev-name">${escapeHtml(name)}</strong>
-        <span class="preview-tag" id="ws-prev-tag">${escapeHtml(type)}${subcat ? ' · ' + escapeHtml(subcat) : ''} · T${tier}</span>
-      </div>
-      ${weaponHtml}
-      ${armorHtml}
-      ${modHtml}
-      ${usageHtml}
-      ${slotHtml}
-      ${descHtml}
-    </div>
-  `;
-
-  decorateGear(previewEl, { ...gear, tier });
-  el('ws-prev-icon')?.replaceChildren(itemImage({ name, type, subcat, appearance: el('ws-item-appearance')?.value }));
+  previewEl.replaceChildren(renderDoubleSidedCard(workshopItem, {
+    mode: 'workshop',
+    isFlipped: workshopCardFlipped
+  }));
 }
 
 // 提交物品创制 / 编辑 (保存或发放)

@@ -5420,3 +5420,389 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   font-size: 11px;
   color: #9ca3af;
 }
+
+/* ==========================================================================
+   双面像素装备卡牌 (Double-Sided Pixel Gear Card)
+   正面：纯净手绘图样面 (Art Front) 无速览条
+   背面：无界复合机制面 (Composite Data Back) 支持攻防一体/奇物/背包
+   ========================================================================== */
+.dw-flip-card-wrap {
+  perspective: 1200px;
+  width: 300px;
+  max-width: 100%;
+  margin: 0 auto;
+  user-select: none;
+}
+
+.dw-flip-card {
+  position: relative;
+  width: 300px;
+  height: 440px;
+  max-width: 100%;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.dw-flip-card.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.dw-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 0 1px #3a241d;
+  background: #231612;
+  border: 2px solid #58372d;
+}
+
+/* 品质外框颜色与微光效联动 */
+.dw-flip-card[data-quality="green"] .dw-card-face { border-color: #2e7d32; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 12px rgba(46, 125, 50, 0.3); }
+.dw-flip-card[data-quality="blue"] .dw-card-face { border-color: #1976d2; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 14px rgba(25, 118, 210, 0.4); }
+.dw-flip-card[data-quality="purple"] .dw-card-face { border-color: #8e24aa; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 16px rgba(142, 36, 170, 0.45); }
+.dw-flip-card[data-quality="orange"] .dw-card-face { border-color: #e65100; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 18px rgba(230, 81, 0, 0.5); }
+.dw-flip-card[data-quality="red"] .dw-card-face { border-color: #c62828; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 20px rgba(198, 40, 40, 0.6); }
+
+/* 四大制式套装金属鎏金角边与光晕 */
+.dw-flip-card[data-suit-tier="1"] .dw-card-face { border-color: #818cf8; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 14px rgba(129, 140, 248, 0.45); }
+.dw-flip-card[data-suit-tier="2"] .dw-card-face { border-color: #b45309; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 14px rgba(217, 119, 6, 0.45); }
+.dw-flip-card[data-suit-tier="3"] .dw-card-face { border-color: #e2e8f0; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 16px rgba(226, 232, 240, 0.55); }
+.dw-flip-card[data-suit-tier="4"] .dw-card-face { border-color: #f59e0b; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 20px rgba(245, 158, 11, 0.65); }
+
+/* --- 正面：纯净图样面 (Art Front) --- */
+.dw-card-front {
+  background: radial-gradient(circle at center, #2e1d17 0%, #1a100d 100%);
+  color: #fbf6ec;
+}
+
+.dw-card-front-header {
+  padding: 12px 14px 8px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(229, 169, 60, 0.2);
+  background: rgba(18, 11, 9, 0.6);
+  flex-shrink: 0;
+}
+
+.dw-card-front-name {
+  font-family: var(--pixel-font);
+  font-size: 15px;
+  font-weight: bold;
+  color: #fff1d6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 185px;
+}
+.dw-flip-card[data-quality="green"] .dw-card-front-name { color: #81c784; }
+.dw-flip-card[data-quality="blue"] .dw-card-front-name { color: #64b5f6; }
+.dw-flip-card[data-quality="purple"] .dw-card-front-name { color: #ba68c8; }
+.dw-flip-card[data-quality="orange"] .dw-card-front-name { color: #ffb74d; }
+.dw-flip-card[data-quality="red"] .dw-card-front-name { color: #e57373; }
+
+.dw-card-front-badge {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(229, 169, 60, 0.15);
+  border: 1px solid rgba(229, 169, 60, 0.35);
+  color: #f3be5d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dw-card-front-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+  background: radial-gradient(circle, rgba(245, 230, 200, 0.07) 0%, rgba(15, 10, 8, 0.92) 80%);
+}
+
+.dw-card-art-box {
+  width: 190px;
+  height: 230px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.dw-card-art-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.75));
+  transition: transform 0.25s ease;
+}
+
+.dw-flip-card:hover .dw-card-art-box img {
+  transform: scale(1.05);
+}
+
+.dw-card-front-footer {
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(18, 11, 9, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.dw-card-front-subtag {
+  font-size: 11.5px;
+  color: #b8a392;
+  letter-spacing: 0.02em;
+}
+
+.dw-card-flip-btn {
+  background: rgba(229, 169, 60, 0.15);
+  border: 1px solid #a16c42;
+  color: #f3be5d;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--pixel-font);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.dw-card-flip-btn:hover {
+  background: #e5a93c;
+  color: #231612;
+  border-color: #f3be5d;
+}
+
+/* --- 背面：复合机制面 (Composite Data Back) --- */
+.dw-card-back {
+  transform: rotateY(180deg);
+  background: #faf6ef;
+  color: #23160f;
+  border: 2px solid #8c6239;
+}
+
+.dw-card-back-header {
+  padding: 10px 12px 8px 12px;
+  background: #eedcc9;
+  border-bottom: 2px solid #c9b4a4;
+  flex-shrink: 0;
+}
+
+.dw-card-back-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dw-card-back-name {
+  font-family: var(--pixel-font);
+  font-size: 14px;
+  font-weight: 700;
+  color: #3b2219;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 210px;
+}
+
+.dw-card-back-sub {
+  font-size: 11px;
+  color: #6d4c38;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.dw-card-back-body {
+  flex: 1;
+  padding: 10px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 复合模块块状外观 (攻防一体/奇物通用) */
+.dw-card-mod-row {
+  background: #ffffff;
+  border: 1px solid #d8cab8;
+  border-radius: 6px;
+  padding: 7px 10px;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.05);
+  font-size: 12px;
+}
+
+.dw-card-mod-row.weapon-mod {
+  border-left: 3.5px solid #8b1e19;
+}
+.dw-card-mod-row.armor-mod {
+  border-left: 3.5px solid #1e4a78;
+}
+.dw-card-mod-row.stats-mod {
+  border-left: 3.5px solid #a35d10;
+}
+.dw-card-mod-row.usage-mod {
+  border-left: 3.5px solid #1c683b;
+}
+
+.dw-card-mod-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5c4436;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dw-card-mod-content {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #23160f;
+}
+
+.dw-card-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.dw-card-pill {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #fbf7ee;
+  border: 1px solid #c9b7a4;
+  color: #3b2219;
+  font-weight: 600;
+}
+.dw-card-pill.pill-pos {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.dw-card-feature-box {
+  background: #fbf7ee;
+  border: 1px solid #c9b7a4;
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #2b170e;
+}
+
+.dw-card-growth-box {
+  background: #fffbeb;
+  border: 1px dashed #f59e0b;
+  border-radius: 5px;
+  padding: 6px 9px;
+  font-size: 11px;
+  color: #92400e;
+}
+
+.dw-card-back-footer {
+  padding: 6px 12px;
+  background: #eedcc9;
+  border-top: 1px solid #c9b4a4;
+  font-size: 10px;
+  color: #7d5940;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* 物品操作弹窗适配 */
+.item-card-modal-window {
+  max-width: 660px !important;
+  width: 95vw;
+}
+.item-card-modal-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 16px 20px !important;
+}
+@media (max-width: 640px) {
+  .item-card-modal-body {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+.item-action-sidebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 220px;
+  width: 100%;
+}
+.item-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+/* 挑选图样画册放大为美观手绘大图展示 */
+.visual-picker-window {
+  max-width: 820px !important;
+  width: 95vw;
+}
+.visual-picker-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+  gap: 14px !important;
+  padding: 14px !important;
+}
+.visual-card {
+  padding: 12px 10px !important;
+  min-height: 140px;
+  background: #fbf7ee !important;
+  border: 1px solid #d8cab8 !important;
+  border-radius: 8px !important;
+}
+.visual-card:hover {
+  border-color: #8c6239 !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.12) !important;
+}
+.visual-card.selected {
+  border-color: #8b1e19 !important;
+  background: #fff5f5 !important;
+  box-shadow: 0 0 0 2px #8b1e19 !important;
+}
+.visual-card-thumb {
+  width: 90px !important;
+  height: 90px !important;
+  background: #f5ede1 !important;
+  border: 1px solid #c9b7a4 !important;
+  border-radius: 6px !important;
+}
+.visual-card-thumb img {
+  max-width: 84px !important;
+  max-height: 84px !important;
+}
+.visual-card-name {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: #2b170e !important;
+  margin-top: 6px;
+}
+.visual-card-desc {
+  font-size: 11px !important;
+  color: #6d4c38 !important;
+}
+

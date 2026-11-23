@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>角色库</title>
-  <link rel="stylesheet" href="./app.css?v=20261122-legendary">
+  <link rel="stylesheet" href="./app.css?v=20261123-cardflip">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
 </head>
 <body class="dw-theme">
@@ -1175,17 +1175,17 @@
                       </div>
                       <div class="ws-visual-info">
                         <div class="ws-visual-title-row">
-                          <span class="ws-visual-label">纸娃娃外观：</span>
+                          <span class="ws-visual-label">装备与卡牌图样：</span>
                           <strong id="ws-visual-current-name">未指定 (纯背包物品)</strong>
                         </div>
-                        <span class="ws-visual-subhint" id="ws-visual-current-hint">点击从图库选择外观素材</span>
+                        <span class="ws-visual-subhint" id="ws-visual-current-hint">点击从美观画册图库中挑选高保真装备立面</span>
                       </div>
-                      <button type="button" class="dw-btn dw-btn-gold ws-btn-choose-art" id="btn-open-visual-picker">🎨 挑选图样</button>
+                      <button type="button" class="dw-btn dw-btn-gold ws-btn-choose-art" id="btn-open-visual-picker">🎨 挑选美观图样</button>
                       <button type="button" class="dw-btn dw-btn-outline ws-btn-clear-art" id="btn-clear-visual" title="清除穿戴外观">✕ 清除</button>
                     </div>
                     <input type="hidden" id="ws-item-avatar-visual" value="">
                     
-                    <div class="ws-pixel-icon-picker-line" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                    <div class="ws-pixel-icon-picker-line" style="display:none !important;">
                       <label for="ws-item-appearance" style="font-size:12px;color:var(--text-muted);white-space:nowrap;">物品栏备用像素小图标：</label>
                       <select id="ws-item-appearance" class="dw-select" style="max-width:240px;">
                         <option value="">📦 默认箱盒 (根据品类自动匹配)</option>
@@ -1389,17 +1389,14 @@
             </div>
           </form>
 
-          <!-- Live Preview Card (所见即所得 · 正统数值纯净呈现) -->
+          <!-- Live Preview Card (所见即所得 · 双面卡牌实体呈现) -->
           <div class="ws-preview-box">
-            <div class="preview-title">👁️ 物品效果预览</div>
-            <div class="ws-item-preview-card" id="ws-item-preview">
-              <div class="preview-icon" id="ws-prev-icon">📦</div>
-              <div class="preview-content">
-                <div class="preview-top">
-                  <strong id="ws-prev-name">物品名称</strong>
-                  <span class="preview-tag" id="ws-prev-tag">战利品 · T1</span>
-                </div>
-              </div>
+            <div class="preview-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <span>👁️ 双面卡牌实体预览</span>
+              <button type="button" class="dw-btn dw-btn-outline dw-btn-sm" id="btn-ws-preview-flip" style="font-size:11px;padding:3px 8px;">🔄 翻转卡牌</button>
+            </div>
+            <div class="ws-item-preview-card" id="ws-item-preview" style="background:transparent;border:none;padding:0;box-shadow:none;">
+              <!-- 动态嵌入双面翻转卡 -->
             </div>
           </div>
 
@@ -1760,27 +1757,40 @@
   <!-- GM Resource Workshop has moved to Layer 3 #layer-workshop -->
 
   <!-- MODAL: Item Action Modal (Bag Click) -->
+  <!-- MODAL: Item Action Modal (双面卡牌检视与物品操作) -->
   <div class="dw-modal-backdrop" id="item-action-modal" hidden>
-    <div class="dw-modal-window narrow-modal">
+    <div class="dw-modal-window item-card-modal-window">
       <div class="modal-header">
-        <h2 id="item-action-title">物品操作</h2>
+        <h2 id="item-action-title">物品检视与操作</h2>
         <button class="modal-close-btn" id="item-action-close">✕</button>
       </div>
-      <div class="modal-body">
-        <p id="item-action-desc" style="font-size:13px;color:var(--text-main);"></p>
-        <div id="item-action-sockets-container" class="gear-socket-bar" style="display:none;"></div>
-        <div id="item-action-growth-container" class="gear-growth-display" style="display:none;"></div>
-        <div class="item-qty-control" style="display:flex;align-items:center;gap:12px;margin-top:10px;">
-          <span style="font-size:13px;color:var(--text-muted);">物品持有数量：</span>
-          <button class="stepper-btn" id="item-qty-minus">-</button>
-          <strong id="item-qty-val" style="font-size:16px;color:var(--text-gold);">1</strong>
-          <button class="stepper-btn" id="item-qty-plus">+</button>
+      <div class="modal-body item-card-modal-body">
+        <div id="item-action-card-viewport" class="item-action-card-viewport">
+          <!-- 动态嵌入双面翻转卡牌 -->
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="dw-btn dw-btn-outline" style="color:var(--accent-cinnabar-bright);" id="item-action-delete">🗑️ 丢弃</button>
-        <button class="dw-btn dw-btn-primary" id="item-action-gm-edit" style="display:none;background:linear-gradient(135deg,#7d1c14,#a43825);color:#fff;border-color:#e5b358;">👑 主持人再编辑 / 觉醒</button>
-        <button class="dw-btn dw-btn-gold" id="item-action-use">🧪 使用/消耗 1个</button>
+        <div class="item-action-sidebar">
+          <p id="item-action-desc" style="display:none;"></p>
+          <div id="item-action-sockets-container" class="gear-socket-bar" style="display:none;"></div>
+          <div id="item-action-growth-container" class="gear-growth-display" style="display:none;"></div>
+          
+          <div class="item-action-quick-actions" id="item-action-quick-actions">
+            <button type="button" class="dw-btn dw-btn-gold" id="item-action-equip-btn" style="display:none;width:100%;margin-bottom:8px;">⚔️ 装备入槽</button>
+            <div id="item-action-overflow-move-container"></div>
+          </div>
+
+          <div class="item-qty-control" id="item-action-qty-box" style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:var(--text-muted);">物品持有数量：</span>
+            <button class="stepper-btn" id="item-qty-minus">-</button>
+            <strong id="item-qty-val" style="font-size:16px;color:var(--text-gold);">1</strong>
+            <button class="stepper-btn" id="item-qty-plus">+</button>
+          </div>
+
+          <div class="item-action-buttons">
+            <button class="dw-btn dw-btn-gold" id="item-action-use">🧪 使用/消耗 1个</button>
+            <button class="dw-btn dw-btn-primary" id="item-action-gm-edit" style="display:none;background:linear-gradient(135deg,#7d1c14,#a43825);color:#fff;border-color:#e5b358;">👑 主持人再编辑 / 觉醒</button>
+            <button class="dw-btn dw-btn-outline" style="color:var(--accent-cinnabar-bright);" id="item-action-delete">🗑️ 丢弃</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1861,7 +1871,7 @@
     <form method="dialog"><button class="dw-btn dw-btn-outline">取消</button></form>
   </dialog>
   <script type="module">
-    import('./app.js?v=20261122-legendary').catch(error => {
+    import('./app.js?v=20261123-cardflip').catch(error => {
       console.error('角色库启动异常', error);
       const span = document.getElementById('sync-text');
       if (span) span.textContent = '本地就绪 (请检查网络后刷新重试云端)';
