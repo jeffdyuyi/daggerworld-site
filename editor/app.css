@@ -5772,11 +5772,31 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
 .dw-flip-card[data-quality="orange"] .dw-card-face { border-color: #e65100; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 18px rgba(230, 81, 0, 0.5); }
 .dw-flip-card[data-quality="red"] .dw-card-face { border-color: #c62828; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 20px rgba(198, 40, 40, 0.6); }
 
-/* 四大制式套装金属鎏金角边与光晕 */
-.dw-flip-card[data-suit-tier="1"] .dw-card-face { border-color: #818cf8; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 14px rgba(129, 140, 248, 0.45); }
-.dw-flip-card[data-suit-tier="2"] .dw-card-face { border-color: #b45309; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 14px rgba(217, 119, 6, 0.45); }
-.dw-flip-card[data-suit-tier="3"] .dw-card-face { border-color: #e2e8f0; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 16px rgba(226, 232, 240, 0.55); }
-.dw-flip-card[data-suit-tier="4"] .dw-card-face { border-color: #f59e0b; box-shadow: 0 8px 24px rgba(0,0,0,0.65), 0 0 20px rgba(245, 158, 11, 0.65); }
+/* 品质选择器在套装状态下的禁用互斥样式 */
+.ws-pills-row#ws-quality-selector.is-disabled {
+  opacity: 0.42;
+  pointer-events: none;
+  filter: grayscale(0.85);
+  cursor: not-allowed;
+}
+
+/* 四大制式套装专属炫光耀目边框 (3.5px高亮边框 + 内外双层强炫光，互斥覆盖普通品质) */
+.dw-flip-card[data-suit-tier="1"] .dw-card-face {
+  border: 3.5px solid #818cf8 !important;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.7), 0 0 20px rgba(129, 140, 248, 0.75), inset 0 0 10px rgba(129, 140, 248, 0.35) !important;
+}
+.dw-flip-card[data-suit-tier="2"] .dw-card-face {
+  border: 3.5px solid #d97706 !important;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.7), 0 0 22px rgba(217, 119, 6, 0.8), inset 0 0 10px rgba(217, 119, 6, 0.38) !important;
+}
+.dw-flip-card[data-suit-tier="3"] .dw-card-face {
+  border: 3.5px solid #f1f5f9 !important;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.7), 0 0 24px rgba(241, 245, 249, 0.9), inset 0 0 12px rgba(226, 232, 240, 0.45) !important;
+}
+.dw-flip-card[data-suit-tier="4"] .dw-card-face {
+  border: 3.5px solid #fbbf24 !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.7), 0 0 28px rgba(251, 191, 36, 0.95), inset 0 0 14px rgba(245, 158, 11, 0.5) !important;
+}
 
 /* --- 正面：纯净图样面 (Art Front) --- */
 .dw-card-front {
@@ -5949,6 +5969,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* 复合模块块状外观 (攻防一体/奇物通用) */
@@ -5959,6 +5981,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   padding: 8px 12px;
   box-shadow: 0 1px 3px rgba(60, 40, 20, 0.05);
   font-size: 14px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .dw-card-mod-row.weapon-mod {
@@ -5989,6 +6013,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   font-size: 14.5px;
   line-height: 1.5;
   color: #23160f;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .dw-card-pills-row {
@@ -6018,9 +6044,53 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   border-radius: 5px;
   padding: 9px 12px;
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: #2b170e;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
+
+/* Markdown 排版工具栏与描述区域 */
+.ws-desc-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.ws-md-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 6px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(229, 179, 88, 0.2);
+}
+.ws-md-btn {
+  background: rgba(45, 30, 24, 0.85);
+  border: 1px solid rgba(229, 179, 88, 0.3);
+  color: #f6ebd8;
+  font-size: 12.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.ws-md-btn:hover {
+  background: #472d1f;
+  border-color: var(--border-gold, #e5a93c);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.ws-md-btn.ws-md-gold { color: #facc15; border-color: rgba(250, 204, 21, 0.4); }
+.ws-md-btn.ws-md-red { color: #f87171; border-color: rgba(248, 113, 113, 0.4); }
+.ws-md-btn.ws-md-blue { color: #60a5fa; border-color: rgba(96, 165, 250, 0.4); }
+.ws-md-btn.ws-md-green { color: #4ade80; border-color: rgba(74, 222, 128, 0.4); }
 
 .dw-card-growth-box {
   background: #fffbeb;
@@ -6029,6 +6099,8 @@ input.ws-block-toggle:checked + .ws-switch-slider::before {
   padding: 7px 10px;
   font-size: 13px;
   color: #92400e;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .dw-card-back-footer {

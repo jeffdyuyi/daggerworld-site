@@ -3277,17 +3277,88 @@ function setupEventListeners() {
   [
     'ws-item-name', 'ws-item-type', 'ws-item-tier', 'ws-item-subcat', 'ws-item-desc',
     'ws-item-appearance', 'ws-item-slot', 'ws-item-quality', 'ws-item-avatar-visual',
-    'ws-weapon-trait', 'ws-weapon-damage', 'ws-weapon-range', 'ws-weapon-kind', 'ws-weapon-burden', 'ws-weapon-feature-name',
-    'ws-armor-value', 'ws-armor-minor', 'ws-armor-major', 'ws-armor-severe', 'ws-armor-feature-name',
+    'ws-weapon-trait', 'ws-weapon-damage', 'ws-weapon-range', 'ws-weapon-kind', 'ws-weapon-burden',
+    'ws-armor-value', 'ws-armor-minor', 'ws-armor-major', 'ws-armor-severe',
     'ws-usage-trigger', 'ws-usage-cost', 'ws-usage-charges'
   ].forEach(id => {
     el(id)?.addEventListener('input', updateItemPreview);
     el(id)?.addEventListener('change', updateItemPreview);
   });
 
+  // Markdown 快捷排版工具栏按键交互
+  const descTextarea = el('ws-item-desc');
+  document.querySelectorAll('#ws-desc-toolbar .ws-md-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!descTextarea) return;
+      const action = btn.dataset.mdAction;
+      const start = descTextarea.selectionStart;
+      const end = descTextarea.selectionEnd;
+      const val = descTextarea.value;
+      const selected = val.substring(start, end);
+
+      let insert = '';
+      let cursorOffset = 0;
+
+      switch (action) {
+        case 'bold':
+          insert = selected ? `**${selected}**` : `**粗体文本**`;
+          cursorOffset = selected ? insert.length : 2;
+          break;
+        case 'italic':
+          insert = selected ? `*${selected}*` : `*斜体文本*`;
+          cursorOffset = selected ? insert.length : 1;
+          break;
+        case 'code':
+          insert = selected ? `\`${selected}\`` : `\`高亮词条\``;
+          cursorOffset = selected ? insert.length : 1;
+          break;
+        case 'gold':
+          insert = selected ? `:gold[${selected}]` : `:gold[金字文本]`;
+          cursorOffset = selected ? insert.length : 6;
+          break;
+        case 'red':
+          insert = selected ? `:red[${selected}]` : `:red[红字警告]`;
+          cursorOffset = selected ? insert.length : 5;
+          break;
+        case 'blue':
+          insert = selected ? `:blue[${selected}]` : `:blue[蓝字重点]`;
+          cursorOffset = selected ? insert.length : 6;
+          break;
+        case 'green':
+          insert = selected ? `:green[${selected}]` : `:green[绿字增益]`;
+          cursorOffset = selected ? insert.length : 7;
+          break;
+        case 'list':
+          insert = selected ? `\n- ${selected}` : `\n- 机制条目`;
+          cursorOffset = insert.length;
+          break;
+        case 'br':
+          insert = `\n`;
+          cursorOffset = 1;
+          break;
+        case 'hr':
+          insert = `\n---\n`;
+          cursorOffset = insert.length;
+          break;
+        default:
+          return;
+      }
+
+      descTextarea.setRangeText(insert, start, end, 'end');
+      descTextarea.focus();
+      if (!selected) {
+        descTextarea.setSelectionRange(start + cursorOffset, start + insert.length - (action === 'bold' ? 2 : action === 'italic' || action === 'code' ? 1 : action === 'br' || action === 'hr' || action === 'list' ? 0 : 1));
+      }
+      descTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+
   // 绑定品质药丸按钮点击 (白色/绿色/蓝色/紫色/橙色/红色渐变与边框)
   document.querySelectorAll('.ws-quality-pill').forEach(btn => {
     btn.addEventListener('click', () => {
+      // 若处于制式套装状态，不可选普通品质
+      if (el('ws-toggle-suit-tier')?.checked) return;
       const q = btn.dataset.quality;
       document.querySelectorAll('.ws-quality-pill').forEach(b => b.classList.toggle('active', b === btn));
       if (el('ws-item-quality')) el('ws-item-quality').value = q;
@@ -3299,6 +3370,9 @@ function setupEventListeners() {
   el('ws-toggle-suit-tier')?.addEventListener('change', (e) => {
     const isChecked = e.target.checked;
     if (el('ws-suit-tier-container')) el('ws-suit-tier-container').hidden = !isChecked;
+    if (el('ws-quality-selector')) {
+      el('ws-quality-selector').classList.toggle('is-disabled', isChecked);
+    }
     if (isChecked && (!el('ws-item-suit-tier')?.value || el('ws-item-suit-tier').value === '')) {
       el('ws-item-suit-tier').value = '1';
       document.querySelectorAll('.ws-tier-pill').forEach(b => b.classList.toggle('active', b.dataset.tier === '1'));
@@ -3455,26 +3529,24 @@ function renderDoubleSidedCard(item, options = {}) {
   // --- 动态模块组装 (复合无界渲染：攻防一体/奇物背包全支持) ---
   const backBlocks = [];
 
-  // 1. 攻击模块 (若有伤害骰或武器特性)
+  // 1. 攻击模块 (若有伤害骰)
   const weapon = item.weapon;
   const damage = weapon?.damage || item.伤害;
   const trait = weapon?.trait || item.属性;
   const range = weapon?.range || item.距离 || '近战';
   const kind = weapon?.kind || item.伤害类型 || '物理';
   const burden = weapon?.burden || item.负荷 || '单手';
-  const weaponFeature = weapon?.featureName || weapon?.feature || item.weaponFeature;
 
   if (damage) {
     const parts = [range];
     if (trait) parts.push(trait);
     parts.push(`${damage} ${kind}`);
-    parts.push(burden);
+    if (burden) parts.push(burden);
 
     backBlocks.push(`
       <div class="dw-card-mod-row weapon-mod">
         <div class="dw-card-mod-title">
           <span>⚔️ 攻击属性</span>
-          ${weaponFeature ? `<span class="dw-card-pill pill-pos">${escapeHtml(weaponFeature)}</span>` : ''}
         </div>
         <div class="dw-card-mod-content">
           <strong>${escapeHtml(parts.join(' · '))}</strong>
@@ -3483,15 +3555,14 @@ function renderDoubleSidedCard(item, options = {}) {
     `);
   }
 
-  // 2. 防御模块 (若有护甲值、阈值或护甲特性)
+  // 2. 防御模块 (若有护甲值或阈值)
   const armor = item.armor;
   const armorVal = Number(armor?.value ?? item.基础护甲 ?? item.护甲值 ?? 0);
   const minorVal = Number(armor?.minor ?? item.轻度阈值 ?? 0);
   const majorVal = Number(armor?.major ?? item.重度阈值 ?? 0);
   const severeVal = Number(armor?.severe ?? item.严重阈值 ?? 0);
-  const armorFeature = armor?.featureName || armor?.feature || item.armorFeature;
 
-  if (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0 || armorFeature) {
+  if (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0) {
     const armorTerms = [];
     if (armorVal > 0) armorTerms.push(`<strong>基础护甲:</strong> +${armorVal}`);
     const thresh = [];
@@ -3504,7 +3575,6 @@ function renderDoubleSidedCard(item, options = {}) {
       <div class="dw-card-mod-row armor-mod">
         <div class="dw-card-mod-title">
           <span>🛡️ 防护属性</span>
-          ${armorFeature ? `<span class="dw-card-pill pill-pos">${escapeHtml(armorFeature)}</span>` : ''}
         </div>
         <div class="dw-card-mod-content">
           ${armorTerms.join(' &nbsp;|&nbsp; ')}
@@ -3590,11 +3660,12 @@ function renderDoubleSidedCard(item, options = {}) {
   // 品质与套装标签 (正面呈现)
   const qualityNames = { white: '普通', green: '精良', blue: '稀有', purple: '史诗', orange: '传说', red: '神器' };
   const suitNames = { 1: '幽玄铁光', 2: '铜耀辉光', 3: '银霜辉光', 4: '炽金辉光' };
-  let frontTagline = qualityNames[quality] || '普通品质';
+  let frontTagline = '';
   if (suitTier && suitNames[suitTier]) {
-    frontTagline += ` · ${suitNames[suitTier]} (T${suitTier})`;
-  } else if (tier) {
-    frontTagline += ` · 位阶 T${tier}`;
+    frontTagline = `${suitNames[suitTier]} (T${suitTier}套装)`;
+  } else {
+    frontTagline = qualityNames[quality] || '普通品质';
+    if (tier) frontTagline += ` · 位阶 T${tier}`;
   }
 
   const wrap = document.createElement('div');
@@ -3629,7 +3700,7 @@ function renderDoubleSidedCard(item, options = {}) {
           <div class="dw-card-back-sub">
             <span>${escapeHtml(type)}${subcat ? ' · ' + escapeHtml(subcat) : ''}</span>
             <span> &nbsp;|&nbsp; ${escapeHtml(slotLabel)}</span>
-            <span> &nbsp;|&nbsp; T${tier}</span>
+            ${tier ? `<span> &nbsp;|&nbsp; T${tier}</span>` : ''}
           </div>
         </div>
 
@@ -4579,10 +4650,11 @@ function updateCardPreview() {
 // 实时更新物品表单预览 (所见即所得 · 双面像素卡牌无界复合呈现)
 function updateItemPreview() {
   const name = el('ws-item-name')?.value?.trim() || '未命名物品';
-  const type = el('ws-item-type')?.value || '战利品';
+  const type = el('ws-item-type')?.value?.trim() || '战利品';
   const subcat = el('ws-item-subcat')?.value?.trim() || '';
-  const tier = Number(el('ws-item-tier')?.value) || 1;
-  const desc = el('ws-item-desc')?.value?.trim() || '';
+  const tierRaw = el('ws-item-tier')?.value;
+  const tier = (tierRaw !== '' && tierRaw != null && !isNaN(Number(tierRaw))) ? Number(tierRaw) : null;
+  const desc = el('ws-item-desc')?.value || '';
 
   const allowedSlots = getSelectedAllowedSlots();
   const passiveInBag = el('ws-toggle-passive-bag')?.checked ?? false;
@@ -4595,17 +4667,15 @@ function updateItemPreview() {
   if (!previewEl) return;
 
   const weaponDamage = el('ws-weapon-damage')?.value?.trim() || '';
-  const weaponTrait = el('ws-weapon-trait')?.value || '';
-  const weaponRange = el('ws-weapon-range')?.value || '近战';
-  const weaponKind = el('ws-weapon-kind')?.value || '物理';
-  const weaponBurden = el('ws-weapon-burden')?.value || '单手';
-  const weaponFeatureName = el('ws-weapon-feature-name')?.value?.trim() || '';
+  const weaponTrait = el('ws-weapon-trait')?.value?.trim() || '';
+  const weaponRange = el('ws-weapon-range')?.value?.trim() || '近战';
+  const weaponKind = el('ws-weapon-kind')?.value?.trim() || '物理';
+  const weaponBurden = el('ws-weapon-burden')?.value?.trim() || '单手';
 
   const armorVal = armorActive ? (Number(el('ws-armor-value')?.value) || 0) : 0;
   const minorVal = armorActive ? (Number(el('ws-armor-minor')?.value) || 0) : 0;
   const majorVal = armorActive ? (Number(el('ws-armor-major')?.value) || 0) : 0;
   const severeVal = armorActive ? (Number(el('ws-armor-severe')?.value) || 0) : 0;
-  const armorFeatureName = el('ws-armor-feature-name')?.value?.trim() || '';
 
   const gear = workshopGear();
 
@@ -4642,15 +4712,13 @@ function updateItemPreview() {
       trait: weaponTrait,
       range: weaponRange,
       kind: weaponKind,
-      burden: weaponBurden,
-      featureName: weaponFeatureName
+      burden: weaponBurden
     } : null,
-    armor: (armorActive && (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0 || armorFeatureName)) ? {
+    armor: (armorActive && (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0)) ? {
       value: armorVal,
       minor: minorVal,
       major: majorVal,
-      severe: severeVal,
-      featureName: armorFeatureName
+      severe: severeVal
     } : null,
     modifiers: (modActive && Object.keys(gear.modifiers || {}).length > 0) ? gear.modifiers : null,
     usage: (usageActive && (trigger || cost || charges)) ? {
@@ -4722,6 +4790,7 @@ function fillWorkshopGear(item = {}) {
   const suitTierVal = Number(item.suitTier || item.tier || 1);
   if (el('ws-toggle-suit-tier')) el('ws-toggle-suit-tier').checked = isSuitTier;
   if (el('ws-suit-tier-container')) el('ws-suit-tier-container').hidden = !isSuitTier;
+  if (el('ws-quality-selector')) el('ws-quality-selector').classList.toggle('is-disabled', isSuitTier);
   if (el('ws-item-suit-tier')) el('ws-item-suit-tier').value = isSuitTier ? String(suitTierVal) : '';
   document.querySelectorAll('.ws-tier-pill').forEach(btn => {
     btn.classList.toggle('active', Number(btn.dataset.tier) === suitTierVal);
@@ -4752,9 +4821,6 @@ function fillWorkshopGear(item = {}) {
     const cnMap = { trait: '属性', damage: '伤害', range: '距离', kind: '伤害类型', burden: '负荷' };
     field.value = weaponData[key] ?? item[cnMap[key]] ?? '';
   }
-  if (el('ws-weapon-feature-name')) {
-    el('ws-weapon-feature-name').value = weaponData.featureName || item.weaponFeatureName || '';
-  }
 
   // 5. 回显护甲计算块 (仅当基础护甲或任一阈值有效时激活)
   const armorObj = item.armor || {};
@@ -4771,9 +4837,6 @@ function fillWorkshopGear(item = {}) {
   if (el('ws-armor-minor')) el('ws-armor-minor').value = minorVal || '';
   if (el('ws-armor-major')) el('ws-armor-major').value = majorVal || '';
   if (el('ws-armor-severe')) el('ws-armor-severe').value = severeVal || '';
-  if (el('ws-armor-feature-name')) {
-    el('ws-armor-feature-name').value = armorObj.featureName || item.armorFeatureName || '';
-  }
 
   // 6. 回显属性修正块 (仅当包含非0修正时激活)
   const gear = readGear(item);
@@ -4810,10 +4873,11 @@ function handleWorkshopItemSubmit(isDispatch) {
   const name = el('ws-item-name')?.value?.trim();
   if (!name) return alert('请输入物品名称！');
 
-  const type = el('ws-item-type')?.value || '战利品';
+  const type = el('ws-item-type')?.value?.trim() || '战利品';
   const subcat = el('ws-item-subcat')?.value?.trim() || '';
-  const tier = Number(el('ws-item-tier')?.value) || 1;
-  const desc = el('ws-item-desc')?.value?.trim() || '';
+  const tierRaw = el('ws-item-tier')?.value;
+  const tier = (tierRaw !== '' && tierRaw != null && !isNaN(Number(tierRaw))) ? Number(tierRaw) : null;
+  const desc = el('ws-item-desc')?.value || '';
   const explicitAppearance = validAppearance(el('ws-item-appearance')?.value);
   const icon = explicitAppearance ? itemAppearances[explicitAppearance] : resolveItemIcon(name, type, subcat);
 
@@ -4837,13 +4901,12 @@ function handleWorkshopItemSubmit(isDispatch) {
       return alert('武器伤害骰格式错误，请输入如 d8+2、1d10 等表达式。');
     }
     weapon = {
-      trait: el('ws-weapon-trait')?.value || '',
-      range: el('ws-weapon-range')?.value || '近战',
+      trait: el('ws-weapon-trait')?.value?.trim() || '',
+      range: el('ws-weapon-range')?.value?.trim() || '近战',
       damage: weaponDamage,
-      kind: el('ws-weapon-kind')?.value || '物理',
-      damageType: el('ws-weapon-kind')?.value || '物理',
-      burden: el('ws-weapon-burden')?.value || '单手',
-      featureName: el('ws-weapon-feature-name')?.value?.trim() || ''
+      kind: el('ws-weapon-kind')?.value?.trim() || '物理',
+      damageType: el('ws-weapon-kind')?.value?.trim() || '物理',
+      burden: el('ws-weapon-burden')?.value?.trim() || '单手'
     };
   }
 
@@ -4852,7 +4915,6 @@ function handleWorkshopItemSubmit(isDispatch) {
   const minorVal = armorActive ? (Number(el('ws-armor-minor')?.value) || 0) : 0;
   const majorVal = armorActive ? (Number(el('ws-armor-major')?.value) || 0) : 0;
   const severeVal = armorActive ? (Number(el('ws-armor-severe')?.value) || 0) : 0;
-  const armorFeatureName = el('ws-armor-feature-name')?.value?.trim() || '';
 
   let armor = undefined;
   if (armorActive && (armorVal > 0 || minorVal > 0 || majorVal > 0 || severeVal > 0)) {
@@ -4861,8 +4923,7 @@ function handleWorkshopItemSubmit(isDispatch) {
       baseArmor: armorVal,
       minor: minorVal,
       major: majorVal,
-      severe: severeVal,
-      featureName: armorFeatureName
+      severe: severeVal
     };
   }
 
@@ -4933,8 +4994,7 @@ function handleWorkshopItemSubmit(isDispatch) {
       距离: weapon.range,
       伤害: weapon.damage,
       伤害类型: weapon.kind,
-      负荷: weapon.burden,
-      weaponFeatureName: weapon.featureName
+      负荷: weapon.burden
     } : {}),
     // 护甲字段展平映射
     ...(armor ? {
@@ -4942,8 +5002,7 @@ function handleWorkshopItemSubmit(isDispatch) {
       基础护甲: armor.score,
       轻度阈值: armor.minor,
       重度阈值: armor.major,
-      严重阈值: armor.severe,
-      armorFeatureName: armor.featureName
+      严重阈值: armor.severe
     } : {}),
     qty: 1,
     ownedGearId: isEquipment ? (editId || crypto.randomUUID()) : undefined
@@ -5202,7 +5261,7 @@ function loadItemToEdit(item) {
   switchWorkshopWorkbenchTab('item');
   if (el('ws-item-edit-id')) el('ws-item-edit-id').value = item.id;
   if (el('ws-item-type')) el('ws-item-type').value = item.type || '战利品';
-  if (el('ws-item-tier')) el('ws-item-tier').value = item.tier || '1';
+  if (el('ws-item-tier')) el('ws-item-tier').value = item.tier != null ? String(item.tier) : '';
   if (el('ws-item-name')) el('ws-item-name').value = item.name || '';
   if (el('ws-item-subcat')) el('ws-item-subcat').value = item.subcat || '';
   if (el('ws-item-desc')) el('ws-item-desc').value = item.desc || '';

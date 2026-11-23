@@ -1073,16 +1073,23 @@
             <input type="hidden" id="ws-item-edit-id" value="">
             <div class="f-select-group">
               <label>物品类型</label>
-              <select id="ws-item-type" class="dw-select">
-                <option value="战利品" selected>战利品 (Loot)</option>
+              <input type="text" id="ws-item-type" class="dw-input" list="ws-item-type-list" placeholder="选择或输入类型" value="战利品">
+              <datalist id="ws-item-type-list">
+                <option value="战利品">战利品 (Loot)</option>
                 <option value="消耗品">消耗品 (Consumable)</option>
                 <option value="武器">武器 (Weapon)</option>
                 <option value="护甲">护甲 (Armor)</option>
-              </select>
+                <option value="饰品">饰品 (Accessory)</option>
+                <option value="奇物">奇物 (Wondrous Item)</option>
+                <option value="工具">工具 (Tool)</option>
+                <option value="材料">材料 (Material)</option>
+                <option value="其他">其他 (Other)</option>
+              </datalist>
             </div>
             <div class="f-select-group">
               <label>位阶</label>
               <select id="ws-item-tier" class="dw-select">
+                <option value="">— 无位阶 (通用/不限) —</option>
                 <option value="1">T1 · 1–2级</option>
                 <option value="2">T2 · 3–8级</option>
                 <option value="3">T3 · 9–14级</option>
@@ -1262,15 +1269,15 @@
                 </div>
                 <div class="gear-effect-fields" id="ws-weapon-fields" hidden>
                   <label>攻击判定属性
-                    <select id="ws-weapon-trait" class="dw-select">
-                      <option value="">— 未指定 —</option>
+                    <input type="text" id="ws-weapon-trait" class="dw-input" list="ws-weapon-trait-list" placeholder="选择或自定义属性">
+                    <datalist id="ws-weapon-trait-list">
                       <option value="敏捷">敏捷 (Agility)</option>
                       <option value="力量">力量 (Strength)</option>
                       <option value="灵巧">灵巧 (Finesse)</option>
                       <option value="本能">本能 (Instinct)</option>
                       <option value="风采">风采 (Presence)</option>
                       <option value="知识">知识 (Knowledge)</option>
-                    </select>
+                    </datalist>
                   </label>
                   <div class="ws-field-col ws-col-span-2">
                     <label for="ws-weapon-damage">伤害骰 (Damage)</label>
@@ -1285,33 +1292,37 @@
                       <button type="button" class="ws-dice-pill" data-dice="2d6">2d6</button>
                       <button type="button" class="ws-dice-pill" data-dice="+1">+1</button>
                       <button type="button" class="ws-dice-pill" data-dice="+2">+2</button>
-                      <button type="button" class="ws-dice-pill ws-dice-clear" data-action="clear-dice" title="清空伤害骰">清空</button>
+                      <button type="button" class="ws-dice-pill" data-dice-clear="clear-dice" title="清空伤害骰">清空</button>
                     </div>
                   </div>
                   <label>射程范围 (Range)
-                    <select id="ws-weapon-range" class="dw-select">
+                    <input type="text" id="ws-weapon-range" class="dw-input" list="ws-weapon-range-list" placeholder="选择或自定义射程" value="近战">
+                    <datalist id="ws-weapon-range-list">
                       <option value="近战">近战 (Melee)</option>
                       <option value="邻近">邻近 (Very Close)</option>
                       <option value="近距离">近距离 (Close)</option>
                       <option value="远距离">远距离 (Far)</option>
                       <option value="极远距离">极远距离 (Very Far)</option>
-                    </select>
+                    </datalist>
                   </label>
                   <label>伤害类型 (Type)
-                    <select id="ws-weapon-kind" class="dw-select">
+                    <input type="text" id="ws-weapon-kind" class="dw-input" list="ws-weapon-kind-list" placeholder="选择或自定义类型" value="物理">
+                    <datalist id="ws-weapon-kind-list">
                       <option value="物理">物理 (Physical)</option>
                       <option value="魔法">魔法 (Magic)</option>
-                    </select>
+                      <option value="神圣">神圣 (Holy)</option>
+                      <option value="暗蚀">暗蚀 (Necrotic)</option>
+                      <option value="真实">真实 (True)</option>
+                    </datalist>
                   </label>
                   <label>负荷持握 (Burden)
-                    <select id="ws-weapon-burden" class="dw-select">
+                    <input type="text" id="ws-weapon-burden" class="dw-input" list="ws-weapon-burden-list" placeholder="选择或自定义持握" value="单手">
+                    <datalist id="ws-weapon-burden-list">
                       <option value="单手">单手 (One-Handed)</option>
                       <option value="双手">双手 (Two-Handed)</option>
                       <option value="副手">副手 (Off-Hand)</option>
-                    </select>
-                  </label>
-                  <label>武器特性名 (Feature Name)
-                    <input id="ws-weapon-feature-name" class="dw-input" placeholder="例如: 寒纹 / 破甲 (选填)">
+                      <option value="免持">免持 (Free)</option>
+                    </datalist>
                   </label>
                 </div>
               </div>
@@ -1338,9 +1349,6 @@
                   </label>
                   <label>严重阈值 (+Severe)
                     <input id="ws-armor-severe" class="dw-input" type="number" min="0" max="99" placeholder="留空或0不生效">
-                  </label>
-                  <label class="ws-col-span-2">护甲特性名 (Feature Name)
-                    <input id="ws-armor-feature-name" class="dw-input" placeholder="例如: 沉稳 / 轻盈 (选填)">
                   </label>
                 </div>
               </div>
@@ -1384,8 +1392,22 @@
             </div>
 
             <div class="f-select-group ws-col-span-2">
-              <label>机制与效果说明 (支持 Markdown **粗体**，留空不显示)</label>
-              <textarea id="ws-item-desc" class="dw-textarea" rows="4" placeholder="使用时机、检定修正与效果说明…"></textarea>
+              <div class="ws-desc-header-row">
+                <label for="ws-item-desc"><strong>机制与效果说明</strong> (特性与效果总览，支持 Markdown 语法与换行)</label>
+                <div class="ws-md-toolbar" id="ws-desc-toolbar">
+                  <button type="button" class="ws-md-btn" data-md-action="bold" title="粗体 (**文本**)"><strong>B</strong> 粗体</button>
+                  <button type="button" class="ws-md-btn" data-md-action="italic" title="斜体 (*文本*)"><em>I</em> 斜体</button>
+                  <button type="button" class="ws-md-btn" data-md-action="code" title="高亮代码 (`文本`)"><code>&lt;/&gt;</code> 高亮</button>
+                  <button type="button" class="ws-md-btn ws-md-gold" data-md-action="gold" title="金黄高亮 (:gold[文本])">🏷️ 金字</button>
+                  <button type="button" class="ws-md-btn ws-md-red" data-md-action="red" title="红色警告 (:red[文本])">🔴 红字</button>
+                  <button type="button" class="ws-md-btn ws-md-blue" data-md-action="blue" title="蓝色重点 (:blue[文本])">🔵 蓝字</button>
+                  <button type="button" class="ws-md-btn ws-md-green" data-md-action="green" title="绿色增益 (:green[文本])">🟢 绿字</button>
+                  <button type="button" class="ws-md-btn" data-md-action="list" title="列表项 (- 事项)">• 列表</button>
+                  <button type="button" class="ws-md-btn" data-md-action="br" title="强制换行">&para; 换行</button>
+                  <button type="button" class="ws-md-btn" data-md-action="hr" title="分割线 (---)">— 分割线</button>
+                </div>
+              </div>
+              <textarea id="ws-item-desc" class="dw-textarea" rows="5" placeholder="在此输入使用时机、检定修正、攻防特性与具体规则机制…&#10;支持上方工具栏一键排版，文本会自动根据卡牌宽度折行，亦支持直接回车换行。"></textarea>
             </div>
           </form>
 
