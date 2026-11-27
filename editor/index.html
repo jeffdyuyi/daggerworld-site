@@ -9,6 +9,8 @@
   <title>角色库</title>
   <link rel="stylesheet" href="./app.css?v=20261123-mobile-v2">
   <link rel="stylesheet" href="../pixel-theme.css?v=vault-gradient1">
+<link rel="stylesheet" href="../assets/dark-fantasy/theme.css">
+<link rel="stylesheet" href="../assets/dark-fantasy/site.css">
 </head>
 <body class="dw-theme">
   <!-- Top Navigation & Vault Bar -->
@@ -41,6 +43,7 @@
         <span class="status-dot">●</span> <span id="sync-text">连接云端中…</span>
       </span>
       <button class="dw-btn dw-btn-outline" id="btn-save-cloud" title="立即保存至云端">☁️ 保存</button>
+      <button class="dw-btn dw-btn-gold" id="btn-enter-mmo-direct" style="display:none;font-weight:bold;padding:6px 12px;cursor:pointer;border:1px solid #d4af37;" title="携带当前角色踏入 3D MMO 主城">🏰 踏入主城</button>
       <div class="more-menu-wrapper">
         <button class="dw-btn dw-btn-icon" id="btn-more-toggle">⚙️</button>
         <div class="more-dropdown" id="more-dropdown" hidden>
@@ -874,7 +877,7 @@
         <section><h3>冒险笔记</h3><div id="adventure-journal"></div></section>
         <section><h3>NPC 记录</h3><div id="adventure-npc"></div></section>
         <section>
-          <h3><a class="dw-btn dw-btn-gold" href="../adventure-canvas/">线索墙 <span aria-hidden="true">›</span></a></h3>
+          <h3><a class="dw-btn dw-btn-gold" href="../mmo/?open=whiteboard">进入 MMO 线索白板 <span aria-hidden="true">›</span></a></h3>
           <div id="adventure-clue"></div>
         </section>
       </div>

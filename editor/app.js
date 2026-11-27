@@ -18,14 +18,13 @@ function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 400);
   }, 2800);
 }
-import { visualCatalog } from './visual-catalog.js';
+import { itemArt, itemAppearances, validAppearance, spriteUrl, EXQUISITE_EQUIPMENT_CATALOG } from './item-art.js';
 import {setupAdventureBoard} from './adventure-board.js?v=20261121-layout2';
 import {livePaperdollEnabled, showCharacterOutline, showCustomPortrait} from './appearance-preview.js?v=20261121-body2';
 import { sheetStats, adjustment } from './stats.js';
 import { gearSlots, gearEffects, readGear, slotMatches, storedItems, gearFormula, suitSlots, suitCoversSlot } from './gear-effects.js';
 import { traits, startingModifiers, tierForLevel, damageDice, equipmentIssue, cardKey, uniqueCards, cardLevel, recallCost, experienceThresholds, lastLevel, rulesLevel, advancementCost } from './sheet-rules.js';
 import { readGmNote, writeGmNote, loadAccount, grantCharacterResource, saveCharacter, deleteCharacter, readSession } from '../session.js?v=20261121-auth2';
-import { itemArt, itemAppearances, validAppearance, spriteUrl } from './item-art.js';
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -741,6 +740,12 @@ function saveLocal() {
     try { localStorage.setItem(resolvedCacheKey(), JSON.stringify({characters,baselines})); }
     catch (error) { console.warn('角色缓存写入失败：',error); }
   }
+  const current = curChar();
+  if (current) {
+    try {
+      localStorage.setItem('daggerworld.active_character.v1', JSON.stringify(current));
+    } catch {}
+  }
   renderSaveButton();
 }
 window.addEventListener('storage', () => {
@@ -960,6 +965,15 @@ async function switchLayer(layer, targetIndex) {
     if (!db) { alert('规则资料尚未加载完成，请检查网络或刷新后重试。'); return; }
   }
   el('btn-save-cloud').hidden = layer !== 'sheet';
+  if (el('btn-enter-mmo-direct')) {
+    const showMmoBtn = layer === 'sheet' || isGmUser();
+    el('btn-enter-mmo-direct').style.display = showMmoBtn ? 'inline-flex' : 'none';
+    if (isGmUser() && layer !== 'sheet') {
+      el('btn-enter-mmo-direct').textContent = '👑 直接进入 3D MMO';
+    } else {
+      el('btn-enter-mmo-direct').textContent = '🏰 进入 3D MMO';
+    }
+  }
   el('current-character').hidden = layer !== 'sheet';
   isGmOverrideActive = false;
   currentLayer = layer;
@@ -1832,7 +1846,7 @@ function itemImage(item) {
   if (item?.sprite) {
     src = spriteUrl(item.sprite);
   } else if (item?.avatarVisualId) {
-    const matched = visualCatalog?.find(it => it.paperdollId === item.avatarVisualId || it.id === item.avatarVisualId);
+    const matched = EXQUISITE_EQUIPMENT_CATALOG?.find(it => it.id === item.avatarVisualId || it.sprite === item.avatarVisualId);
     src = matched ? spriteUrl(matched.sprite) : spriteUrl(itemArt(item));
   } else {
     src = spriteUrl(itemArt(item));
@@ -3102,6 +3116,30 @@ function setupEventListeners() {
     catch (err) { saveErrorCharacter = c; alert(err.message); }
     finally { renderSaveButton(); }
   };
+  const enterMmoBtn = el('btn-enter-mmo-direct');
+  if (enterMmoBtn) {
+    enterMmoBtn.onclick = () => {
+      const c = curChar();
+      const gmMode = isGmUser();
+      if (!c && !gmMode) return alert('请先打开或选择一个角色！');
+      try {
+        if (c && currentLayer === 'sheet') {
+          localStorage.setItem('daggerworld.active_character.v1', JSON.stringify(c));
+        } else if (gmMode) {
+          localStorage.removeItem('daggerworld.active_character.v1');
+        }
+        const sess = readSession();
+        localStorage.setItem('daggerworld.mmo_entry_state.v1', JSON.stringify({
+          role: currentUser?.role || sess?.role || (gmMode ? 'gm' : 'player'),
+          mode: gmMode && (!c || currentLayer !== 'sheet') ? 'gm_observer' : 'character',
+          characterId: c && currentLayer === 'sheet' ? c.id : null,
+          login: currentUser?.login || sess?.login || '',
+          enteredAt: new Date().toISOString()
+        }));
+      } catch {}
+      window.location.href = '../mmo/';
+    };
+  }
 
   // Fixed More Dropdown (Toggle class 'show' and close on outside click)
   const moreBtn = el('btn-more-toggle');
@@ -3540,7 +3578,7 @@ function renderDoubleSidedCard(item, options = {}) {
   if (item.sprite) {
     artSrc = spriteUrl(item.sprite);
   } else if (item.avatarVisualId) {
-    const matched = visualCatalog.find(it => it.paperdollId === item.avatarVisualId || it.id === item.avatarVisualId);
+    const matched = EXQUISITE_EQUIPMENT_CATALOG.find(it => it.id === item.avatarVisualId || it.sprite === item.avatarVisualId);
     artSrc = matched ? spriteUrl(matched.sprite) : spriteUrl(itemArt(item));
   } else {
     artSrc = spriteUrl(itemArt(item));
@@ -4033,29 +4071,65 @@ function rollHistoryKey(character) {
   return `daggerworld.roll-history.v1:${JSON.stringify([owner ?? 'local', character.id])}`;
 }
 
-function readLastRoll(key) {
+function readRollHistory(key) {
   if (!lastRollCache.has(key)) {
-    let entry = null;
+    let entries = [];
     try {
       const stored = JSON.parse(localStorage.getItem(key) ?? 'null');
-      entry = Array.isArray(stored) ? stored[0] ?? null : stored;
-      if (Array.isArray(stored)) localStorage.setItem(key, JSON.stringify(entry));
+      if (Array.isArray(stored)) {
+        entries = stored.filter(Boolean);
+      } else if (stored && typeof stored === 'object') {
+        entries = [stored];
+      }
     } catch { /* The last roll remains available in memory. */ }
-    lastRollCache.set(key, entry);
+    lastRollCache.set(key, entries);
   }
-  return lastRollCache.get(key);
+  return lastRollCache.get(key) || [];
+}
+
+function readLastRoll(key) {
+  const history = readRollHistory(key);
+  return history[0] ?? null;
 }
 
 function renderLastRoll(character) {
-  const entry = readLastRoll(rollHistoryKey(character));
+  const history = readRollHistory(rollHistoryKey(character));
+  const entry = history[0] ?? null;
   const display = el('last-roll');
   display.hidden = !entry;
   if (!entry) {
-    display.textContent = '';
+    display.innerHTML = '';
     return;
   }
   const modifier = entry.mod >= 0 ? `+${entry.mod}` : String(entry.mod);
-  display.textContent = `上一次检定 · ${rollAttributeNames[entry.attr] ?? '属性'} · 希望 ${entry.hope} / 恐惧 ${entry.fear} · 修正 ${modifier} · 合计 ${entry.total} · ${entry.outcome}`;
+  const checkName = entry.reason || `${rollAttributeNames[entry.attr] ?? '属性'}检定`;
+  const summaryHtml = `<span>上一次检定 · ${escapeHtml(checkName)} · 总值 <strong>${entry.total}</strong> · ${escapeHtml(entry.outcome)}（希望 ${entry.hope} / 恐惧 ${entry.fear} · 调整 ${modifier}）</span>`;
+  if (history.length <= 1) {
+    display.innerHTML = summaryHtml;
+    return;
+  }
+  const historyItemsHtml = history.map((item) => {
+    const m = item.mod >= 0 ? `+${item.mod}` : String(item.mod);
+    const name = item.reason || `${rollAttributeNames[item.attr] ?? '属性'}检定`;
+    const time = item.timestamp ? `<span style="opacity:0.7;margin-right:6px;">${escapeHtml(item.timestamp)}</span>` : '';
+    return `<div style="padding:3px 0;border-top:1px dashed rgba(216,175,91,0.2);font-size:12px;">${time}<strong>${escapeHtml(item.rollerName || character.name || '角色')}</strong> · ${escapeHtml(name)} · 希望 ${item.hope} / 恐惧 ${item.fear} · 调整 ${m} · <strong>总值 ${item.total} · ${escapeHtml(item.outcome)}</strong></div>`;
+  }).join('');
+  display.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+      ${summaryHtml}
+      <button type="button" class="btn-secondary" style="padding:2px 8px;font-size:11px;" data-toggle-roll-history>展开历史 (${history.length})</button>
+    </div>
+    <div data-roll-history-list hidden style="margin-top:6px;max-height:180px;overflow-y:auto;">${historyItemsHtml}</div>
+  `;
+  const toggleBtn = display.querySelector('[data-toggle-roll-history]');
+  const listEl = display.querySelector('[data-roll-history-list]');
+  if (toggleBtn && listEl) {
+    toggleBtn.addEventListener('click', () => {
+      const nextHidden = !listEl.hidden;
+      listEl.hidden = nextHidden;
+      toggleBtn.textContent = nextHidden ? `展开历史 (${history.length})` : '收起历史';
+    });
+  }
 }
 
 function openDiceRoll(attr) {
@@ -4084,22 +4158,57 @@ function executeDualityRoll(attr) {
   let outcome;
   if (hopeDie > fearDie) {
     outcome = '带着希望';
-    verdictEl.textContent = '带着希望。请与检定难度比较。';
+    verdictEl.textContent = `总值 ${total} · 带着希望`;
     verdictEl.style.color = '#72b5dc';
   } else if (fearDie > hopeDie) {
     outcome = '带着恐惧';
-    verdictEl.textContent = '带着恐惧。请与检定难度比较。';
+    verdictEl.textContent = `总值 ${total} · 带着恐惧`;
     verdictEl.style.color = '#f87171';
   } else {
     outcome = '关键成功';
-    verdictEl.textContent = '关键成功。行动检定获得 1 点希望，并清除 1 点压力。';
+    verdictEl.textContent = `总值 ${total} · 关键成功`;
     verdictEl.style.color = 'var(--text-gold)';
   }
   const key = rollHistoryKey(c);
-  const entry = { attr, hope: hopeDie, fear: fearDie, mod, total, outcome };
-  lastRollCache.set(key, entry);
-  try { localStorage.setItem(key, JSON.stringify(entry)); } catch { /* Keep the last roll in memory. */ }
+  const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  const reason = `${rollAttributeNames[attr] ?? '属性'}检定`;
+  const rollerName = c.name || c.sheet?.name || '冒险者';
+  const entry = {
+    id: `roll_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    characterId: c.id,
+    rollerName,
+    attr,
+    reason,
+    hope: hopeDie,
+    fear: fearDie,
+    mod,
+    total,
+    outcome,
+    timestamp,
+  };
+  const nextHistory = [entry, ...readRollHistory(key)].slice(0, 50);
+  lastRollCache.set(key, nextHistory);
+  try { localStorage.setItem(key, JSON.stringify(nextHistory)); } catch { /* Keep the last roll in memory. */ }
   renderLastRoll(c);
+
+  // 若私人主机在线，同步写入全桌共享历史
+  fetch('/api/dice-rolls', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: entry.id,
+      characterId: c.id,
+      rollerName,
+      reason,
+      hopeDie,
+      fearDie,
+      modifier: mod,
+      total,
+      outcomeLabel: outcome,
+      isCritical: hopeDie === fearDie,
+      timestamp,
+    }),
+  }).catch(() => { /* offline fallback */ });
 }
 
 // ==========================================================================
@@ -4120,24 +4229,24 @@ function updateVisualCurrentCard() {
   const visualId = visualInput?.value?.trim() || '';
   const appearanceVal = appSelect?.value?.trim() || '';
 
-  let matched = visualCatalog.find(item => item.paperdollId === visualId || item.id === visualId);
+  let matched = EXQUISITE_EQUIPMENT_CATALOG.find(item => item.id === visualId || item.sprite === visualId);
   if (!matched && appearanceVal) {
-    matched = visualCatalog.find(item => item.sprite === appearanceVal || item.id === appearanceVal);
+    matched = EXQUISITE_EQUIPMENT_CATALOG.find(item => item.sprite === appearanceVal || item.id === appearanceVal);
   }
 
   if (matched) {
     thumbEl.innerHTML = `<img src="${spriteUrl(matched.sprite)}" alt="${escapeHtml(matched.name)}">`;
     nameEl.textContent = matched.name;
     const catLabels = { weapon: '武器', shield: '盾牌', armor: '护甲', head: '战盔', body: '身躯/腿足', pack: '容器', item: '道具/战利品' };
-    hintEl.textContent = `品类：${catLabels[matched.cat] || '装备'} · ${matched.desc || '联动纸娃娃换装'}`;
+    hintEl.textContent = `品类：${catLabels[matched.cat] || '装备'} · ${matched.desc || '手绘精美装备大图'}`;
   } else if (appearanceVal) {
     thumbEl.innerHTML = `<img src="${spriteUrl(appearanceVal)}" alt="图标">`;
     nameEl.textContent = itemAppearances[appearanceVal] || appearanceVal;
-    hintEl.textContent = '物品栏像素小图标 (无纸娃娃穿戴联动)';
+    hintEl.textContent = '手绘精美道具图样';
   } else {
     thumbEl.innerHTML = '<span class="thumb-empty">❓</span>';
     nameEl.textContent = '未指定 (纯背包物品)';
-    hintEl.textContent = '点击可从武器、护甲、披风、战盔等图库中直接看图挑选';
+    hintEl.textContent = '点击可从武器、护甲、披风、战盔等 96 款精美手绘图库中直接挑选';
   }
 }
 
@@ -4149,7 +4258,7 @@ function renderVisualPickerGrid() {
   const currentApp = el('ws-item-appearance')?.value?.trim() || '';
 
   const q = currentVisualSearch.trim().toLowerCase();
-  const filtered = visualCatalog.filter(item => {
+  const filtered = EXQUISITE_EQUIPMENT_CATALOG.filter(item => {
     if (currentVisualCategory !== 'all' && item.cat !== currentVisualCategory) return false;
     if (q) {
       const matchName = item.name.toLowerCase().includes(q);
@@ -4166,7 +4275,7 @@ function renderVisualPickerGrid() {
   }
 
   grid.innerHTML = filtered.map(item => {
-    const isSelected = (currentVisualId && (item.paperdollId === currentVisualId || item.id === currentVisualId)) ||
+    const isSelected = (currentVisualId && (item.id === currentVisualId || item.sprite === currentVisualId)) ||
                        (!currentVisualId && currentApp && (item.sprite === currentApp || item.id === currentApp));
     return `
       <div class="visual-card ${isSelected ? 'selected' : ''}" data-visual-id="${escapeHtml(item.id)}" title="${escapeHtml(item.name)}: ${escapeHtml(item.desc)}">
@@ -4182,7 +4291,7 @@ function renderVisualPickerGrid() {
   grid.querySelectorAll('.visual-card').forEach(card => {
     card.addEventListener('click', () => {
       const id = card.dataset.visualId;
-      const target = visualCatalog.find(it => it.id === id);
+      const target = EXQUISITE_EQUIPMENT_CATALOG.find(it => it.id === id);
       if (target) selectVisualItem(target);
     });
   });
@@ -4190,7 +4299,7 @@ function renderVisualPickerGrid() {
 
 function selectVisualItem(item) {
   if (el('ws-item-avatar-visual')) {
-    el('ws-item-avatar-visual').value = item.paperdollId || '';
+    el('ws-item-avatar-visual').value = item.id || '';
   }
   if (el('ws-item-appearance')) {
     el('ws-item-appearance').value = item.sprite;

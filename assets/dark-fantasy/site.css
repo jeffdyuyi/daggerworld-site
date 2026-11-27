@@ -1,0 +1,40 @@
+/* Static portal, vault and host shell share the original Dark Fantasy artwork. */
+body:has(.route) .hero-copy, .route :is(.paper,.panel), .srd-modal-card,
+.game-entry .entry-panel, .dw-theme :is(.vault-preview,.modal-content,.vault-char-card,.vault-create-card,.creator-card),
+.host-console main, .host-console [id^="modal-"] > div {
+  border: 9px solid #60442e;
+  border-image: var(--df-frame);
+  background-color: #f2dfbc;
+  color: #30241d;
+}
+body:has(.route) :is(.portal-library,.home .button), .game-entry .entry-primary,
+.dw-theme :is(.dw-btn-gold,.vcard-btn-enter,.tab-btn.active), .host-console main .grid > button.bg-slate-900 {
+  border: 5px solid #533828;
+  border-image: var(--df-button);
+  color: #fff6dd;
+  text-shadow: 0 1px 3px #241408, 0 0 4px #241408;
+  font-size: 1rem !important;
+  line-height: 1.35;
+}
+:is(.entry-primary,.dw-btn-gold,.vcard-btn-enter,.home .button):hover { filter: brightness(1.12); }
+:is(.entry-primary,.dw-btn-gold,.vcard-btn-enter,.home .button):active { filter: brightness(.85); }
+.host-console {background: #221e1b; font-family: var(--df-font); color: #35291f; align-items: flex-start;}
+.host-console main { margin: auto; max-width: 52rem; border-radius: 0; }
+.host-console main header { border-color: #9e8161; }
+.host-console :is(.text-xs,.text-sm,[class*="text-[10px]"],[class*="text-[11px]"]) {font-size: .89rem; line-height: 1.45;}
+.host-console :is(.text-slate-400,.text-slate-500) {color: #605343;}
+.host-console .bg-slate-900 .text-slate-400 {color: #fff0cd;}
+.host-console .grid > :is(a,button).group {background: #f9edda; border-color: #b09069;}
+.host-console [id^="modal-"] > div {max-height: 92dvh; overflow: auto; border-radius: 0;}
+.host-console button {cursor: pointer;}
+.host-console :is(button,a):focus-visible {outline: 3px solid #805024;}
+
+.dw-theme {--font-serif: var(--df-font); --font-header: var(--df-font); --font-sans: var(--df-font);}
+.dw-theme .slot-icon-box {border: 4px solid #48423a; border-image: var(--df-slot);}
+
+.host-console main > header {flex-wrap: wrap;}
+.host-console main > header > :last-child {flex-wrap: wrap;}
+.host-console #badge-status, .host-console button[onclick="confirmShutdown()"] {white-space: nowrap;}
+.host-console main > section.grid > div {background: #312a25; border: 5px solid #5f4736; border-image: var(--df-frame);}
+.host-console main > section.grid > div :is(.text-slate-900,.text-slate-500,.text-slate-400) {color: #f4e6d0;}
+.host-console #stat-uptime {font-family: var(--df-font); font-variant-numeric: tabular-nums;}

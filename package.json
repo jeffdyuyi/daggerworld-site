@@ -6,9 +6,13 @@
     "dev": "vite",
     "test": "vitest run",
     "build": "vite build --config vite.adventure.config.js",
-    "test:browser": "playwright test",
-    "test:live": "vitest run live-realtime.test.ts",
-    "build:adventure": "vite build --config vite.adventure.config.js"
+    "test:browser": "npm --prefix mmo run test:e2e --",
+    "build:adventure": "vite build --config vite.adventure.config.js",
+    "dev:mmo": "npm --prefix mmo run dev",
+    "build:mmo": "npm --prefix mmo run build",
+    "dev:host": "npm --prefix server run dev",
+    "build:host": "npm --prefix server run build",
+    "start:host": "npm --prefix server run start"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "0.18.1",

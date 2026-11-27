@@ -1,10 +1,16 @@
 # Dependencies & Build Outputs
 /node_modules/
 /dist/
+/mmo/dist/
+/mmo/node_modules/
+/server/node_modules/
+/server/dist/
+/server/data/
+/server/backups/
 /test-results/
 /playwright-report/
-/.temp/
-/supabase/.temp/
+**/.temp/
+/supabase**/.temp/
 
 # Confidential & Raw Artifacts
 /邀请码-私下分发.txt

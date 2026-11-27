@@ -1,0 +1,16 @@
+@font-face {
+  font-family: "Fusion Pixel";
+  src: url("../fonts/fusion-pixel-12px-proportional-zh_hans.otf.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+:root {
+  --df-font: "Fusion Pixel", "Microsoft YaHei", sans-serif;
+  --df-frame: url("./frame.png") 42 / 9px stretch;
+  --df-button: url("./button.png") 60 fill / 7px stretch;
+  --df-slot: url("./slot.png") 56 / 5px stretch;
+  --df-dial: url("./dial.png");
+}
+html {font-size: 112.5%;}
+body, button, input, textarea, select {font-family: var(--df-font);}
+:focus-visible {outline: 2px solid #ecb653; outline-offset: 2px;}
